@@ -9,8 +9,6 @@ import {
   Text,
   Button,
   InlineStack,
-  SkeletonDisplayText,
-  SkeletonBodyText,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { getOrSetCache } from "../utils/serverCache.server";
@@ -52,7 +50,6 @@ export const loader = async ({ request }) => {
 export default function AppIndex() {
   const { slug, themeId } = useLoaderData();
   const [resolvedThemeId, setResolvedThemeId] = useState(null);
-  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -63,8 +60,6 @@ export default function AppIndex() {
       active = false;
     };
   }, [themeId]);
-
-  const enablePreview = () => setShowPreview(true);
 
   const openFallback = (id) => {
     const url = `https://admin.shopify.com/store/${slug}/themes/${id ?? "current"}/editor?context=apps`;
@@ -125,18 +120,6 @@ export default function AppIndex() {
   const seoP = { margin: "0 0 10px", color: "#202223" };
   const seoUl = { margin: "0 0 0 16px", padding: 0, lineHeight: 1.5 };
 
-  const PreviewSkeleton = (
-    <div style={{ width: "100%", maxWidth: 980, margin: "0 auto" }}>
-      <Card>
-        <BlockStack gap="300">
-          <SkeletonDisplayText size="medium" />
-          <SkeletonBodyText lines={3} />
-          <div style={{ height: 96, borderRadius: 12, background: "#f1f2f4" }} />
-        </BlockStack>
-      </Card>
-    </div>
-  );
-
   return (
     <Page title="Fomoify Sales Popup & Proof">
       <TitleBar title="Fomoify Sales Popup & Proof" />
@@ -150,14 +133,10 @@ export default function AppIndex() {
               <Button variant="secondary" onClick={() => openFallback(resolvedThemeId)}>
                 Open in new tab (fallback)
               </Button>
-              <Button variant="primary" onClick={enablePreview} disabled={showPreview}>
-                {showPreview ? "Preview loaded" : "Load preview"}
-              </Button>
             </InlineStack>
           </BlockStack>
         </Card>
 
-        {showPreview ? (
           <Card>
             <BlockStack gap="300">
               <Text as="h2" variant="headingLg">Preview – Popup Content</Text>
@@ -222,9 +201,6 @@ export default function AppIndex() {
               </section>
             </BlockStack>
           </Card>
-        ) : (
-          PreviewSkeleton
-        )}
       </BlockStack>
     </Page>
   );

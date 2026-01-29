@@ -1,8 +1,8 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "566eaad8ff3a144a38768da34f9a805f"
+client_id = "19bf03bfbf8995bb1bb05e7a45b1b062"
 name = "Fomoify Test App"
-application_url = "https://shopify-fomo-app-test.vercel.app/app"
+application_url = "https://shopify-fomo-app.vercel.app/app"
 embedded = true
 handle = "fomoify-test-app"
 
@@ -34,13 +34,13 @@ scopes = "read_products,write_products,read_themes,write_themes,write_orders,rea
 
 [auth]
 redirect_urls = [
-  "https://shopify-fomo-app-test.vercel.app/auth/callback",
-  "https://shopify-fomo-app-test.vercel.app/shopify/callback",
+  "https://shopify-fomo-app.vercel.app/auth/callback",
+  "https://shopify-fomo-app.vercel.app/shopify/callback",
   "https://shopify-fomo-app-test.vercel.app/api/auth/callback"
 ]
 
 [app_proxy]
-url = "https://shopify-fomo-app-test.vercel.app/proxy/fomo"
+url = "https://shopify-fomo-app.vercel.app/proxy/fomo"
 subpath = "fomo"
 prefix = "apps"
 
