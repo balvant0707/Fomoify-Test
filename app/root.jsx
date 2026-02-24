@@ -6,6 +6,8 @@ import {
   Scripts,
   ScrollRestoration,
   useLoaderData,
+  useRouteError,
+  isRouteErrorResponse,
 } from "@remix-run/react";
 import { useEffect } from "react";
 
@@ -71,7 +73,7 @@ export default function App() {
         <Links />
 
         {/* ✅ Tawk.to Live Chat – Backend (All Pages) */}
-        <script
+        {/* <script
           dangerouslySetInnerHTML={{
             __html: `
               var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
@@ -86,12 +88,38 @@ export default function App() {
               })();
             `,
           }}
-        />
+        /> */}
       </head>
 
       <body>
         <Outlet />
         <ScrollRestoration />
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  const message = isRouteErrorResponse(error)
+    ? `${error.status} ${error.statusText}`
+    : error?.message || "Something went wrong";
+
+  return (
+    <html lang="en">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>Application Error</title>
+        <Meta />
+        <Links />
+      </head>
+      <body>
+        <div style={{ padding: 24, fontFamily: "Inter, sans-serif" }}>
+          <h1 style={{ fontSize: 22, marginBottom: 8 }}>Application Error</h1>
+          <p style={{ color: "#6b7280" }}>{message}</p>
+        </div>
         <Scripts />
       </body>
     </html>

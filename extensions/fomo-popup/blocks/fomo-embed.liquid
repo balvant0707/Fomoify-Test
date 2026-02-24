@@ -1,5 +1,5 @@
 {%- comment -%}
-Fomoify – Core App Embed
+Fomoify - Core App Embed
 {%- endcomment -%}
 
 <script src="{{ 'm2fomos.js' | asset_url }}" defer></script>
@@ -7,20 +7,13 @@ Fomoify – Core App Embed
 <div
   id="fomo-embed-root"
   data-design-mode="{{ request.design_mode }}"
-  data-preview-enabled="{{ settings.preview_in_editor }}"
+  data-shop-domain="{{ shop.permanent_domain }}"
+  data-preview-enabled="true"
 ></div>
 
 {% schema %}
 {
-  "name": "Fomoify – Core Embed",
-  "target": "body",
-  "settings": [
-    {
-      "type": "checkbox",
-      "id": "preview_in_editor",
-      "label": "Show preview in Theme Editor",
-      "default": true
-    }
-  ]
+  "name": "Fomoify - Core Embed",
+  "target": "body"
 }
 {% endschema %}

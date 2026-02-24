@@ -6,7 +6,7 @@ import { sendOwnerEmail } from "../utils/sendOwnerEmail.server";
 const norm = (s) => (s || "").toLowerCase();
 
 export const action = async ({ request }) => {
-  const { topic, shop, payload } = await authenticate.webhook(request); // ✅ v3 way
+  const { topic, shop } = await authenticate.webhook(request); // ✅ v3 way
   const s = norm(shop);
 
   console.log("[WEBHOOK RECEIVED]", topic, s);
@@ -70,6 +70,27 @@ or offer help with setup/optimization.
       console.log("[APP_UNINSTALLED] uninstall email sent");
     } catch (err) {
       console.error("[APP_UNINSTALLED] failed to send uninstall email:", err);
+    }
+  }
+
+  if (topic === "ORDERS_CREATE" && s) {
+    try {
+      const table = prisma.popupAnalyticsEvent || prisma.popupanalyticsevent;
+      if (table) {
+        await table.create({
+          data: {
+            shop: s,
+            popupType: "orders",
+            eventType: "order",
+            productHandle: null,
+            visitorId: null,
+            pagePath: null,
+            sourceUrl: null,
+          },
+        });
+      }
+    } catch (err) {
+      console.error("[ORDERS_CREATE] analytics insert failed:", err);
     }
   }
 

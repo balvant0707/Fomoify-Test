@@ -29,7 +29,13 @@ import { useIdle } from "../../utils/useIdle";
 const TITLES = {
   recent: "Recent Purchases",
   flash: "Flash Sale Bars",
+  visitor: "Visitor Popup",
+  lowstock: "Low Stock Popup",
+  addtocart: "Add to Cart Popup",
+  review: "Review Notification",
 };
+const ALLOWED_TYPES = new Set(["all", ...Object.keys(TITLES)]);
+const ALLOWED_STATUSES = new Set(["all", "enabled", "disabled"]);
 
 const pageOptions = [
   { label: "All Pages", value: "allpage" },
@@ -39,20 +45,6 @@ const pageOptions = [
   { label: "Pages", value: "pages" },
   { label: "Cart Page", value: "cart" },
 ];
-
-const getAdminQS = () => {
-  try {
-    return typeof window !== "undefined" ? window.location.search || "" : "";
-  } catch {
-    return "";
-  }
-};
-
-const appendQS = (url) => {
-  const qs = getAdminQS();
-  if (!qs) return url;
-  return url.includes("?") ? `${url}&${qs.slice(1)}` : `${url}${qs}`;
-};
 
 function pretty(str) {
   return String(str || "")
@@ -118,11 +110,15 @@ function formatLines(val) {
 }
 
 function getTitleDisplay(row) {
-  return row.key === "recent"
-    ? "Recent Order Popup"
-    : (row.messageTitle && row.messageTitle.trim?.()) ||
-        row.messageTitlesJson ||
-        "";
+  if (row.key === "recent") return "Recent Order Popup";
+  if (row.key === "flash") {
+    return (
+      (row.messageTitle && row.messageTitle.trim?.()) ||
+      row.messageTitlesJson ||
+      TITLES.flash
+    );
+  }
+  return TITLES[row.key] || pretty(row.key);
 }
 
 function getMessageDisplay(row) {
@@ -136,6 +132,7 @@ function getMessageDisplay(row) {
 
   const nonFlashVal =
     (row.messageText && row.messageText.trim?.()) ||
+    (row.message && row.message.trim?.()) ||
     row.namesJson ||
     row.locationsJson ||
     "";
@@ -222,6 +219,7 @@ export default function NotificationTable({
   const confirmDelete = useCallback(() => {
     if (!delRow) return;
     const id = delRow.id;
+    const key = delRow.key;
     setDelRow(null);
     setShowDeleted(true);
     setDeletedIds((prev) => {
@@ -232,6 +230,7 @@ export default function NotificationTable({
     const fd = new FormData();
     fd.set("_action", "delete");
     fd.set("id", String(id));
+    if (key) fd.set("key", String(key));
     delFetcher.submit(fd, { method: "post" });
   }, [delRow, delFetcher]);
 
@@ -264,8 +263,10 @@ export default function NotificationTable({
     { label: "Inactive", value: "disabled" },
   ];
 
-  const currentType = filters?.type || "all";
-  const currentStatus = filters?.status || "all";
+  const currentType = ALLOWED_TYPES.has(filters?.type) ? filters.type : "all";
+  const currentStatus = ALLOWED_STATUSES.has(filters?.status)
+    ? filters.status
+    : "all";
   const initialQ = filters?.q || "";
 
   const [query, setQuery] = useState(initialQ);
@@ -380,7 +381,7 @@ export default function NotificationTable({
                 + New Notification
               </Button>
 
-              <Button
+              {/* <Button
                 variant="secondary"
                 onClick={() => {
                   setQuery("");
@@ -393,7 +394,7 @@ export default function NotificationTable({
                 }}
               >
                 Clear Filters
-              </Button>
+              </Button> */}
             </InlineStack>
           </Form>
         </div>
@@ -440,8 +441,6 @@ export default function NotificationTable({
                 headings={[
                   { title: "No" },
                   { title: "Popup Title" },
-                  { title: "Notification Message" },
-                  { title: "Popup Type" },
                   { title: "Show On Pages" },
                   { title: "Status" },
                   { title: "Actions" },
@@ -469,7 +468,7 @@ export default function NotificationTable({
                         </Text>
                       </IndexTable.Cell>
 
-                      <IndexTable.Cell className="col-text">
+                      {/* <IndexTable.Cell className="col-text">
                         <Text as="p" breakWord>
                           {formatLines(textDisplay)}
                         </Text>
@@ -477,7 +476,7 @@ export default function NotificationTable({
 
                       <IndexTable.Cell>
                         {TITLES[row.key] || pretty(row.key)}
-                      </IndexTable.Cell>
+                      </IndexTable.Cell> */}
 
                       <IndexTable.Cell>
                         {showTypeLabel(row.showType)}
@@ -491,6 +490,7 @@ export default function NotificationTable({
                             value="toggle-enabled"
                           />
                           <input type="hidden" name="id" value={row.id} />
+                          <input type="hidden" name="key" value={row.key} />
                           <input
                             type="hidden"
                             name="enabled"
@@ -517,13 +517,7 @@ export default function NotificationTable({
                       <IndexTable.Cell>
                         <InlineStack align="start" gap="200">
                           <Button
-                            onClick={() =>
-                              navigate(
-                                appendQS(
-                                  `/app/notification/${row.key}/edit/${row.id}`
-                                )
-                              )
-                            }
+                            onClick={() => navigate(`/app/notification/${row.key}`)}
                           >
                             Edit
                           </Button>
