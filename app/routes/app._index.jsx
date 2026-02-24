@@ -1094,7 +1094,7 @@ export default function AppIndex() {
                     </svg>
                   </div>
                   <div className="home-support-item-body">
-                    <div className="home-support-item-link">Support</div>
+                    <div className="home-support-item-link">Support Ticket</div>
                     <Text as="p" tone="subdued">
                       Support, reply, and assist instantly in office hours.
                     </Text>
@@ -1104,7 +1104,7 @@ export default function AppIndex() {
               <button
                 type="button"
                 className="home-support-item knowledge"
-                onClick={() => navigate(appUrl("/app/documents"))}
+                onClick={() => window.open("https://fomoifysalespopupproof.tawk.help/category/features", "_blank")}
               >
                 <div className="home-support-item-row">
                   <div className="home-support-item-icon" aria-hidden>
