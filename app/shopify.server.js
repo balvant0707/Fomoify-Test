@@ -129,6 +129,13 @@ export const shopify = shopifyApp({
   hooks: {
     // OAuth complete → save token, mark installed, and (re)register webhooks
     afterAuth: async ({ session }) => {
+      // Detect first install before upsert (onboardedAt null = never welcomed)
+      const existing = await prisma.shop.findUnique({
+        where: { shop: session.shop },
+        select: { onboardedAt: true },
+      });
+      const isNewInstall = !existing || existing.onboardedAt === null;
+
       await upsertInstalledShop({
         shop: session.shop,
         accessToken: session.accessToken ?? null,
@@ -136,6 +143,32 @@ export const shopify = shopifyApp({
 
       const reg = await shopify.registerWebhooks({ session });
       console.log("🔔 registerWebhooks:", JSON.stringify(reg, null, 2));
+
+      if (isNewInstall) {
+        try {
+          // Fetch the store's contact email via GraphQL
+          const client = new shopify.api.clients.Graphql({ session });
+          const { data } = await client.request(`#graphql
+            query { shop { name email } }
+          `);
+          const shopEmail = data?.shop?.email ?? null;
+          const shopName = data?.shop?.name ?? null;
+
+          await sendWelcomeEmail({
+            shopEmail,
+            shopName,
+            shopDomain: session.shop,
+          });
+
+          // Mark as onboarded so reinstalls don't trigger another welcome email
+          await prisma.shop.update({
+            where: { shop: session.shop },
+            data: { onboardedAt: new Date() },
+          });
+        } catch (err) {
+          console.error("[welcome email] failed:", err.message);
+        }
+      }
     },
   },
 });

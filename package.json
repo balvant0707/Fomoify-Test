@@ -6,6 +6,7 @@
     "node": "^18.20 || ^20.10 || >=21.0.0"
   },
   "scripts": {
+  "notify-users": "node scripts/notify-users.js",
   "build": "prisma generate && remix vite:build",
   "dev": "remix vite:dev",
   "config:link": "shopify app config link",
