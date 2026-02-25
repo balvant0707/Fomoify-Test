@@ -79,6 +79,9 @@ export async function loader({ request }) {
 
     return json(payload);
   } catch (e) {
+    // Let Remix handle redirects/auth responses
+    if (e instanceof Response) throw e;
+    console.error("[products-picker] loader failed:", e);
     return json(
       { items: [], error: e?.message || "Failed to load products" },
       { status: 500 }

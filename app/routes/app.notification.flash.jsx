@@ -3,23 +3,351 @@ import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
   Page, Card, Button, TextField, Select, ChoiceList, Box,
   BlockStack, InlineStack, Text, ColorPicker, Frame,
-  Toast, Loading, Layout, Popover, Tag, ButtonGroup, DropZone
+  Toast, Loading, Popover, Tag, ButtonGroup, DropZone, RadioButton, Checkbox
 } from "@shopify/polaris";
-import { useLoaderData, useNavigate } from "@remix-run/react";
+import { useLoaderData, useNavigate, useLocation } from "@remix-run/react";
 import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { saveFlashPopup } from "../models/popup-config.server";
 
-/* ───────── Constants ───────── */
+/* ---------------- Constants ---------------- */
 const KEY = "flash";
+const LAYOUTS = [
+  { label: "Landscape", value: "landscape" },
+  { label: "Portrait", value: "portrait" },
+];
+const TIME_UNITS = [
+  { label: "Seconds", value: "seconds" },
+  { label: "Minutes", value: "minutes" },
+];
+const intervalUnitFromSeconds = (seconds) => {
+  const n = Number(seconds || 0);
+  return n >= 60 && n % 60 === 0 ? "minutes" : "seconds";
+};
+const intervalValueFromSeconds = (seconds, unit) => {
+  const n = Number(seconds || 0);
+  if (unit === "minutes") return Math.round(n / 60);
+  return Math.round(n);
+};
+const intervalSecondsFromValue = (value, unit, maxSeconds = 3600) => {
+  const n = parseInt(String(value || "0"), 10);
+  const base = Number.isFinite(n) ? n : 0;
+  const max =
+    unit === "minutes" ? Math.max(0, Math.floor(maxSeconds / 60)) : maxSeconds;
+  const clamped = Math.max(0, Math.min(max, base));
+  return unit === "minutes" ? clamped * 60 : clamped;
+};
 
-/* ───────── Loader (no DB prefill) ───────── */
-export async function loader({ request }) {
-  await authenticate.admin(request);
-  return json({ existing: null, key: KEY, title: "Flash Sale Bars" });
+const initVisibility = (showType) => {
+  const base = {
+    showHome: false,
+    showProduct: false,
+    productScope: "all",
+    showCollectionList: false,
+    showCollection: false,
+    collectionScope: "all",
+    showCart: false,
+  };
+  switch (showType) {
+    case "home":
+      return { ...base, showHome: true };
+    case "product":
+      return { ...base, showProduct: true };
+    case "collection":
+      return { ...base, showCollection: true, showCollectionList: true };
+    case "cart":
+      return { ...base, showCart: true };
+    case "allpage":
+    default:
+      return {
+        ...base,
+        showHome: true,
+        showProduct: true,
+        showCollection: true,
+        showCollectionList: true,
+        showCart: true,
+      };
+  }
+};
+
+const visibilityToShowType = (visibility) => {
+  const flags = [
+    visibility.showHome,
+    visibility.showProduct,
+    visibility.showCollection,
+    visibility.showCollectionList,
+    visibility.showCart,
+  ];
+  const enabledCount = flags.filter(Boolean).length;
+  if (enabledCount === 0) return "allpage";
+  if (enabledCount > 1) return "allpage";
+  if (visibility.showHome) return "home";
+  if (visibility.showProduct) return "product";
+  if (visibility.showCollection || visibility.showCollectionList)
+    return "collection";
+  if (visibility.showCart) return "cart";
+  return "allpage";
+};
+
+const FLASH_STYLES = `
+.flash-shell {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+.flash-sidebar {
+  width: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.flash-nav-btn {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 4px;
+  padding: 5px 10px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+}
+.flash-nav-btn:hover {
+  border-color: #cbd5e1;
+}
+.flash-nav-btn.is-active {
+  background: #2f855a;
+  color: #ffffff;
+  border-color: #2f855a;
+}
+.flash-nav-icon {
+  width: 20px;
+  height: 20px;
+}
+.flash-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.flash-columns {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+.flash-form {
+  flex: 1;
+  min-width: 360px;
+}
+.flash-preview {
+  flex: 1;
+  min-width: 320px;
+}
+.flash-preview-box {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 10px;
+  min-height: 320px;
+}
+@media (max-width: 1100px) {
+  .flash-shell {
+    flex-direction: column;
+  }
+  .flash-sidebar {
+    width: 100%;
+    flex-direction: row;
+  }
+  .flash-nav-btn {
+    flex: 1;
+    flex-direction: row;
+    justify-content: center;
+  }
+  .flash-columns {
+    flex-direction: column;
+  }
+}
+@media (max-width: 640px) {
+  .flash-nav-btn {
+    padding: 10px;
+    font-size: 12px;
+  }
+  .flash-form,
+  .flash-preview {
+    min-width: 0;
+  }
+}
+`;
+
+function LayoutIcon() {
+  return (
+    <svg
+      className="flash-nav-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <line x1="9" y1="4" x2="9" y2="20" />
+      <line x1="9" y1="10" x2="21" y2="10" />
+    </svg>
+  );
 }
 
-/* ───────── Action: ALWAYS CREATE NEW ROW ───────── */
+function ContentIcon() {
+  return (
+    <svg
+      className="flash-nav-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="4" y="5" width="16" height="14" rx="2" />
+      <line x1="7" y1="9" x2="17" y2="9" />
+      <line x1="7" y1="13" x2="15" y2="13" />
+    </svg>
+  );
+}
+
+function DisplayIcon() {
+  return (
+    <svg
+      className="flash-nav-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="5" width="18" height="12" rx="2" />
+      <line x1="8" y1="21" x2="16" y2="21" />
+      <line x1="12" y1="17" x2="12" y2="21" />
+    </svg>
+  );
+}
+
+function BehaviorIcon() {
+  return (
+    <svg
+      className="flash-nav-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19 12a7 7 0 0 0-.08-1.06l2-1.55-2-3.46-2.44 1a7 7 0 0 0-1.84-1.06L14.4 2h-4.8l-.24 2.87a7 7 0 0 0-1.84 1.06l-2.44-1-2 3.46 2 1.55A7 7 0 0 0 5 12c0 .36.03.71.08 1.06l-2 1.55 2 3.46 2.44-1c.56.44 1.18.8 1.84 1.06L9.6 22h4.8l.24-2.87c.66-.26 1.28-.62 1.84-1.06l2.44 1 2-3.46-2-1.55c.05-.35.08-.7.08-1.06Z" />
+    </svg>
+  );
+}
+
+const NAV_ITEMS = [
+  { id: "layout", label: "Layout", Icon: LayoutIcon },
+  { id: "content", label: "Content", Icon: ContentIcon },
+  { id: "display", label: "Display", Icon: DisplayIcon },
+  { id: "behavior", label: "Behavior", Icon: BehaviorIcon },
+];
+
+/* ---------------- Loader (per-shop prefill) ---------------- */
+export async function loader({ request }) {
+  const { session } = await authenticate.admin(request);
+  const shop = session?.shop;
+  let last = null;
+
+  if (shop) {
+    try {
+      const model =
+        prisma?.flashpopupconfig || prisma?.flashPopupConfig || null;
+      if (model?.findFirst) {
+        last = await model.findFirst({
+          where: { shop },
+          orderBy: { id: "desc" },
+        });
+      }
+    } catch (e) {
+      console.error("[Flash loader] flashpopupconfig findFirst failed:", e);
+    }
+  }
+
+  const source = last;
+  const parseArr = (s) => {
+    if (Array.isArray(s)) return s;
+    try {
+      const a = JSON.parse(s || "[]");
+      return Array.isArray(a) ? a : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const messageTitlesJson = parseArr(source?.messageTitlesJson);
+  const locationsJson = parseArr(source?.locationsJson);
+  const namesJson = parseArr(source?.namesJson);
+  const mobilePosition = parseArr(source?.mobilePositionJson);
+  const selectedProductsJson = parseArr(source?.selectedProductsJson);
+
+  const enabledRaw = source?.enabled;
+  const enabled =
+    enabledRaw === undefined || enabledRaw === null
+      ? true
+      : enabledRaw === true || enabledRaw === 1 || enabledRaw === "1";
+
+  const saved = {
+    enabled,
+    showType: source?.showType ?? "allpage",
+    messageTitle: source?.messageTitle ?? messageTitlesJson[0] ?? "Flash Sale",
+    name: source?.name ?? locationsJson[0] ?? "Flash Sale: 20% OFF",
+    messageText: source?.messageText ?? namesJson[0] ?? "ends in 02:15 hours",
+    fontFamily: source?.fontFamily ?? "System",
+    fontWeight: source?.fontWeight ?? 600,
+    layout: source?.layout ?? "landscape",
+    imageAppearance: source?.imageAppearance ?? "cover",
+    template: source?.template ?? "solid",
+    position: source?.position ?? "top-right",
+    animation: source?.animation ?? "slide",
+    mobileSize: source?.mobileSize ?? "compact",
+    mobilePosition: mobilePosition.length ? mobilePosition : ["top"],
+    bgColor: source?.bgColor ?? "#FFFBD2",
+    bgAlt: source?.bgAlt ?? source?.ctaBgColor ?? "#FBCFCF",
+    textColor: source?.textColor ?? source?.msgColor ?? "#000000",
+    numberColor: source?.numberColor ?? source?.titleColor ?? "#000000",
+    priceTagBg: source?.priceTagBg ?? "#593E3F",
+    priceTagAlt: source?.priceTagAlt ?? "#E66465",
+    priceColor: source?.priceColor ?? "#FFFFFF",
+    starColor: source?.starColor ?? "#F06663",
+    rounded: source?.rounded ?? 14,
+    firstDelaySeconds: source?.firstDelaySeconds ?? 1,
+    durationSeconds: source?.durationSeconds ?? 1,
+    alternateSeconds: source?.alternateSeconds ?? 5,
+    intervalUnit:
+      source?.intervalUnit ??
+      intervalUnitFromSeconds(source?.alternateSeconds ?? 5),
+    iconKey: source?.iconKey ?? "reshot",
+    iconSvg: source?.iconSvg ?? "",
+    messageTitlesJson,
+    locationsJson,
+    namesJson,
+    selectedProductsJson,
+  };
+
+  return json({ saved, key: KEY, title: "Flash Sale Bars" });
+}
+
+/* ---------------- Action: Upsert Per Shop ---------------- */
 export async function action({ request }) {
   const { session } = await authenticate.admin(request);
   const shop = session?.shop;
@@ -34,12 +362,9 @@ export async function action({ request }) {
   const { form } = body || {};
   if (!form) return json({ success: false, error: "Missing form" }, { status: 400 });
 
-  const enabled = form?.enabled?.includes?.("enabled") ?? false;
+  console.log("[Flash Popup] form payload:", JSON.stringify(form, null, 2));
 
-  const fontWeightNum =
-    form?.fontWeight !== undefined && form?.fontWeight !== null && form?.fontWeight !== ""
-      ? Number(form.fontWeight)
-      : null;
+  const enabled = form?.enabled?.includes?.("enabled") ?? false;
 
   // Priority for icon: uploaded SVG > builtin key > default "reshot"
   const incomingKey = form?.iconKey ?? null;
@@ -58,70 +383,39 @@ export async function action({ request }) {
   const namesArr     = Array.isArray(form?.namesJson) ? form.namesJson : [];
   const mobilePosArr = Array.isArray(form?.mobilePosition) ? form.mobilePosition : [];
 
-  // Optional selected products list as JSON string (nullable)
-  const selProdJson =
-    Array.isArray(form?.selectedProductsJson) && form.selectedProductsJson.length
-      ? JSON.stringify(form.selectedProductsJson)
-      : null;
-
-  const data = {
-    // keys
-    shop,
-    key: KEY,
-
-    // flags
-    enabled,
-    showType: form?.showType ?? null,
-
-    // JSON strings for DB
-    messageTitlesJson: JSON.stringify(titleArr),
-    locationsJson: JSON.stringify(locationArr),
-    namesJson: JSON.stringify(namesArr),
-    selectedProductsJson: selProdJson,
-    mobilePositionJson: JSON.stringify(mobilePosArr),
-
-    // Scalars
-    messageText: form?.messageText ?? (namesArr[0] ?? null),
-    fontFamily: form?.fontFamily ?? null,
-    fontWeight: isNaN(fontWeightNum) ? null : fontWeightNum,
-    position: form?.position ?? null,
-    animation: form?.animation ?? null,
-    mobileSize: form?.mobileSize ?? null,
-    titleColor: form?.titleColor ?? null,
-    bgColor: form?.bgColor ?? null,
-    msgColor: form?.msgColor ?? null,
-    ctaBgColor: form?.ctaBgColor ?? null,
-
-    rounded: form?.rounded != null ? Number(form.rounded) : null,
-    durationSeconds: form?.durationSeconds != null ? Number(form.durationSeconds) : null,
-    alternateSeconds: form?.alternateSeconds != null ? Number(form.alternateSeconds) : null,
-
-    // Persist icon
-    iconKey: usedIconKey,
-    iconSvg: usedIconSvg,
-  };
-
-  // remove explicit undefined (keep nulls)
-  Object.keys(data).forEach((k) => { if (data[k] === undefined) delete data[k]; });
-
   try {
-    // ALWAYS CREATE a NEW ENTRY (no upsert/search)
-    const created = await prisma.notificationconfig.create({ data });
-    return json({ success: true, id: created.id });
+    const flashForm = {
+      ...form,
+      enabled: enabled ? ["enabled"] : [],
+      messageTitlesJson: titleArr,
+      locationsJson: locationArr,
+      namesJson: namesArr,
+      selectedProductsJson: Array.isArray(form?.selectedProductsJson)
+        ? form.selectedProductsJson
+        : [],
+      mobilePosition: Array.isArray(form?.mobilePosition)
+        ? form.mobilePosition
+        : [],
+      iconKey: usedIconKey,
+      iconSvg: usedIconSvg,
+    };
+    const saved = await saveFlashPopup(shop, flashForm);
+    return json({ success: true, id: saved?.id ?? null });
   } catch (e) {
-    console.error("[flash create failed]", e?.code, e?.meta, e);
-    return json({
-      success: false,
-      error: String(e?.message || e),
-      code: e?.code || null,
-      cause: e?.meta?.cause || null,
-      hint:
-        "Ensure Prisma model name is 'notificationconfig' with @@map('NotificationConfig'), and DB column nullability matches the optional fields.",
-    }, { status: 500 });
+    console.error("[flash save failed]", e?.code, e?.meta, e);
+    return json(
+      {
+        success: false,
+        error: String(e?.message || e),
+        code: e?.code || null,
+        cause: e?.meta?.cause || null,
+      },
+      { status: 500 }
+    );
   }
 }
 
-/* ───────── Built-in SVGs (all valid) ───────── */
+/* ---------------- Built-in SVGs (all valid) ---------------- */
 const SVGS = {
   reshot: `
 <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 64 64" aria-hidden="true">
@@ -148,7 +442,7 @@ const SVGS = {
   </g>
 </svg>
 `,
-  // ✅ Fixed, valid SVG (no "..." placeholders)
+  // Fixed, valid SVG (no "..." placeholders)
   reshotflashon: `
 <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" aria-hidden="true">
   <g fill="none">
@@ -166,7 +460,7 @@ const baseSvgOptions = [
   { label: "Deadline", value: "deadline" },
 ];
 
-/* ───────── Color helpers ───────── */
+/* ---------------- Color helpers ---------------- */
 const hex6 = (v) => /^#[0-9A-F]{6}$/i.test(String(v || ""));
 function hexToRgb(hex) { const c = hex.replace("#", ""); const n = parseInt(c, 16); return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: (n & 255) }; }
 function rgbToHsv({ r, g, b }) { r /= 255; g /= 255; b /= 255; const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min; let h = 0; if (d) { switch (max) { case r: h = (g - b) / d + (g < b ? 6 : 0); break; case g: h = (b - r) / d + 2; break; case b: h = (r - g) / d + 4; break }h *= 60; } const s = max ? d / max : 0; return { hue: h, saturation: s, brightness: max }; }
@@ -175,7 +469,7 @@ const rgbToHex = ({ r, g, b }) => `#${[r, g, b].map(v => v.toString(16).padStart
 const hexToHSB = (hex) => rgbToHsv(hexToRgb(hex));
 const hsbToHEX = (hsb) => rgbToHex(hsvToRgb(hsb));
 
-/* ───────── SVG utils ───────── */
+/* ---------------- SVG utils ---------------- */
 function sanitizeSvg(svg) {
   return String(svg)
     .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
@@ -206,16 +500,35 @@ function isSvgRenderable(svg) {
   return true;
 }
 
-/* ───────── ColorInput ───────── */
+/* ---------------- ColorInput ---------------- */
 function ColorInput({ label, value, onChange, placeholder = "#244E89" }) {
   const [open, setOpen] = useState(false);
   const [hsb, setHsb] = useState(hex6(value) ? hexToHSB(value) : { hue: 212, saturation: 0.7, brightness: 0.55 });
   useEffect(() => { if (hex6(value)) setHsb(hexToHSB(value)); }, [value]);
 
   const swatch = (
-    <div
+    <span
+      role="button"
+      tabIndex={0}
       onClick={() => setOpen(true)}
-      style={{ width: 28, height: 28, borderRadius: 10, cursor: "pointer", border: "1px solid rgba(0,0,0,0.08)", background: hex6(value) ? value : "#ffffff" }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          setOpen(true);
+        }
+      }}
+      aria-label={`${label} color picker`}
+      style={{
+         width: 34,
+        height: 31,
+        margin: "0px -12px -5px 0px",
+        borderLeft: "1px solid #c9cccf",
+        borderRadius: "0 8px 8px 0",
+        overflow: "hidden",
+        cursor: "pointer",
+        background: hex6(value) ? value : "#ffffff",
+        display: "inline-block",
+      }}
     />
   );
 
@@ -239,7 +552,7 @@ function ColorInput({ label, value, onChange, placeholder = "#244E89" }) {
   );
 }
 
-/* ───────── Multi-value helpers ───────── */
+/* ---------------- Multi-value helpers ---------------- */
 function useTokenDraft(list, setList) {
   const [draft, setDraft] = useState("");
   const splitOnComma = (raw) => String(raw || "").split(",").map((p) => p.trim()).filter(Boolean);
@@ -261,7 +574,7 @@ function useTokenDraft(list, setList) {
   return { draft, setDraft, addMany, removeAt, commitDraft, onInputChange, onKeyDown };
 }
 
-/* ───────── Anim & Preview helpers ───────── */
+/* ---------------- Anim & Preview helpers ---------------- */
 const getAnimationStyle = (a) =>
   a === "slide" ? { transform: "translateY(8px)", animation: "notif-slide-in 240ms ease-out" } :
     a === "bounce" ? { animation: "notif-bounce-in 420ms cubic-bezier(.34,1.56,.64,1)" } :
@@ -280,20 +593,39 @@ const posToFlex = (pos) => {
   }
 };
 
-/* ───────── Notification bubble ───────── */
+/* ---------------- Notification bubble ---------------- */
 function NotificationPreview({ form, isMobile = false }) {
   const animStyle = useMemo(() => getAnimationStyle(form.animation), [form.animation]);
+  const imageAppearance = String(form.imageAppearance || "cover")
+    .trim()
+    .toLowerCase();
+  const isContain =
+    imageAppearance === "contain" || imageAppearance.includes("fit");
+  const isPortrait = form.layout === "portrait";
+  const iconDim = isPortrait ? 96 : 60;
+  const iconSize = isPortrait ? 84 : isContain ? 48 : iconDim;
 
   const svgMarkup = useMemo(() => {
     const uploaded = extractFirstSvg(form.iconSvg || "");
     const candidate = uploaded || SVGS[form.iconKey] || SVGS["reshot"];
     const base = isSvgRenderable(candidate) ? candidate : SVGS["reshot"];
-    return base ? normalizeSvgSize(base, 50) : "";
-  }, [form.iconSvg, form.iconKey]);
+    return base ? normalizeSvgSize(base, iconSize) : "";
+  }, [form.iconSvg, form.iconKey, iconSize]);
 
   const base = Number(form.rounded ?? 14) || 14;
   const scale = isMobile ? mobileSizeScale(form?.mobileSize) : 1;
   const sized = Math.max(10, Math.min(28, Math.round(base * scale)));
+  const showIcon = !!svgMarkup;
+  const imageOverflow = showIcon && !isContain && !isPortrait;
+  const avatarOffset = Math.round(iconDim * 0.45);
+  const padTop = isPortrait ? 24 : 15;
+  const padRight = isPortrait ? 24 : 44;
+  const padBottom = isPortrait ? 24 : 15;
+  const padLeft = isPortrait ? 24 : imageOverflow ? 12 + avatarOffset : 15;
+  const background =
+    form.template === "gradient"
+      ? `linear-gradient(135deg, ${form.bgColor} 0%, ${form.bgAlt} 100%)`
+      : form.bgColor;
 
   return (
     <div>
@@ -306,25 +638,82 @@ function NotificationPreview({ form, isMobile = false }) {
 
       <div style={{
         fontFamily: form.fontFamily === "System" ? "ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto" : form.fontFamily,
-        background: form.bgColor, color: form.msgColor, borderRadius: 14,
-        boxShadow: "0 8px 24px rgba(0,0,0,0.12)", padding: 12, border: "1px solid rgba(17,24,39,0.06)",
-        display: "flex", alignItems: "center", gap: 12,
-        maxWidth: isMobile ? mobileSizeToWidth(form?.mobileSize) : 560,
+        background, color: form.textColor, 
+        borderRadius: 14,
+        boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+        paddingTop: padTop,
+        paddingRight: padRight,
+        paddingBottom: padBottom,
+        paddingLeft: padLeft,
+        border: "1px solid rgba(17,24,39,0.06)",
+        display: "flex",
+        alignItems: isPortrait ? "center" : "center",
+        gap: isPortrait ? 10 : 12,
+        flexDirection: isPortrait ? "column" : "row",
+        maxWidth: isMobile
+          ? mobileSizeToWidth(form?.mobileSize)
+          : isPortrait
+            ? 340
+            : 560,
+        position: "relative",
         ...animStyle
       }}>
-        {svgMarkup ? (
+        {imageOverflow ? (
+          <div
+            style={{
+              position: "absolute",
+              left: "8px",
+              top: isPortrait ? 24 : "50%",
+              transform: isPortrait
+                ? "translate(-50%, 0)"
+                : "translate(-50%, -50%)",
+              width: iconDim,
+              height: iconDim,
+              borderRadius: 12,
+              overflow: "hidden",
+              background: "#f3f4f6",
+              flexShrink: 0,
+              display: "grid",
+              placeItems: "center",
+              boxShadow: "0 8px 18px rgba(0,0,0,0.18)",
+              border: "2px solid rgba(255,255,255,0.75)",
+            }}
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                display: "block",
+                width: "100%",
+                height: "100%",
+              }}
+              dangerouslySetInnerHTML={{ __html: svgMarkup }}
+            />
+          </div>
+        ) : showIcon ? (
           <span
             aria-hidden="true"
-            style={{ display: "block", flexShrink: 0, width: 60, height: 60 }}
+            style={{
+              display: "block",
+              flexShrink: 0,
+              width: iconSize,
+              height: iconSize,
+            }}
             dangerouslySetInnerHTML={{ __html: svgMarkup }}
           />
         ) : null}
-        <div style={{ display: "grid", gap: 4 }}>
-          <p style={{ margin: 0, color: form.titleColor, fontWeight: form.fontWeight ? Number(form.fontWeight) : 600, fontSize: sized }}>
+        <div
+          style={{
+            display: "grid",
+            gap: 4,
+            minWidth: 0,
+            textAlign: isPortrait ? "center" : "left",
+          }}
+        >
+          <p style={{ margin: 0, color: form.numberColor, fontWeight: form.fontWeight ? Number(form.fontWeight) : 600, fontSize: sized }}>
             {form.messageTitle || "Flash Sale"}
           </p>
           <p style={{ margin: 0, fontSize: sized, lineHeight: 1.5 }}>
-            <small>{form.name || "Flash Sale: 20% OFF"} — {form.messageText || "ends in 02:15 hours"}</small>
+            <small>{form.name || "Flash Sale: 20% OFF"} - {form.messageText || "ends in 02:15 hours"}</small>
           </p>
         </div>
       </div>
@@ -338,9 +727,16 @@ function DesktopPreview({ form }) {
   return (
     <div
       style={{
-        width: "100%", maxWidth: 900, minHeight: 320, height: 400, borderRadius: 12,
-        border: "1px solid #e5e7eb", background: "linear-gradient(180deg,#fafafa 0%,#f5f5f5 100%)",
-        overflow: "hidden", position: "relative", display: "flex", padding: 18, boxSizing: "border-box", ...flex,
+        width: "100%",
+        minHeight: 320,
+        height: "100%",
+        overflow: "hidden",
+        position: "relative",
+        display: "flex",
+        padding: 0,
+        boxSizing: "border-box",
+        justifyContent: "center",
+        alignItems: "flex-start",
       }}
     >
       <NotificationPreview form={form} />
@@ -372,73 +768,82 @@ function MobilePreview({ form }) {
 
 /* Live Preview wrapper */
 function LivePreview({ form }) {
-  const [mode, setMode] = useState("desktop");
   return (
     <BlockStack gap="300">
-      <InlineStack align="space-between" blockAlign="center">
-        <Text as="h3" variant="headingMd">Live Preview</Text>
-        <ButtonGroup segmented>
-          <Button pressed={mode === "desktop"} onClick={() => setMode("desktop")}>Desktop</Button>
-          <Button pressed={mode === "mobile"} onClick={() => setMode("mobile")}>Mobile</Button>
-          <Button pressed={mode === "both"} onClick={() => setMode("both")}>Both</Button>
-        </ButtonGroup>
-      </InlineStack>
-
-      {mode === "desktop" && <DesktopPreview form={form} />}
-      {mode === "mobile" && <MobilePreview form={form} />}
-      {mode === "both" && (
-        <InlineStack gap="400" align="space-between" wrap>
-          <Box width="58%"><DesktopPreview form={form} /></Box>
-          <Box width="40%"><MobilePreview form={form} /></Box>
-        </InlineStack>
-      )}
-
+      <Text as="h3" variant="headingMd">Live Preview</Text>
+      <DesktopPreview form={form} />
       <Text as="p" variant="bodySm" tone="subdued">
-        Desktop preview follows the Desktop position. Mobile preview follows the Mobile Position and the Notification size.
+        Preview reflects your desktop settings.
       </Text>
     </BlockStack>
   );
 }
 
-/* ───────── Page ───────── */
+/* ---------------- Page ---------------- */
 export default function FlashConfigPage() {
   const navigate = useNavigate();
-  const { title } = useLoaderData();
+  const location = useLocation();
+  const notificationUrl = `/app/notification${location.search || ""}`;
+  const notificationManageUrl = `/app/notification/manage${location.search || ""}`;
+  const { title, saved } = useLoaderData();
 
   const [saving, setSaving] = useState(false);
+  const [activeSection, setActiveSection] = useState("layout");
   const [toast, setToast] = useState({ active: false, error: false, msg: "" });
+  const [visibility, setVisibility] = useState(() =>
+    initVisibility(saved?.showType || "allpage")
+  );
 
-  // defaults ONLY (no DB prefill)
-  const defaultTitles = ["Flash Sale"];
-  const defaultLocations = ["Flash Sale: 20% OFF"];
-  const defaultNames = ["ends in 02:15 hours"];
+  const defaultTitles =
+    saved?.messageTitlesJson?.length
+      ? saved.messageTitlesJson
+      : [saved?.messageTitle || "Flash Sale"];
+  const defaultLocations =
+    saved?.locationsJson?.length
+      ? saved.locationsJson
+      : [saved?.name || "Flash Sale: 20% OFF"];
+  const defaultNames =
+    saved?.namesJson?.length
+      ? saved.namesJson
+      : [saved?.messageText || "ends in 02:15 hours"];
 
   const [titlesList, setTitlesList] = useState(defaultTitles);
   const [locationsList, setLocationsList] = useState(defaultLocations);
   const [namesList, setNamesList] = useState(defaultNames);
 
   const [form, setForm] = useState({
-    enabled: ["enabled"],
-    showType: "allpage",
+    enabled: saved?.enabled ? ["enabled"] : ["disabled"],
+    showType: saved?.showType ?? "allpage",
 
-    messageTitle: defaultTitles[0],
-    name: defaultLocations[0],
-    messageText: defaultNames[0],
-    fontFamily: "System",
-    fontWeight: "600",
-    position: "top-right",
-    animation: "slide",
-    mobileSize: "compact",
-    mobilePosition: ["top"],
-    titleColor: "#111111",
-    bgColor: "#FFF8E1",
-    msgColor: "#111111",
-    rounded: 14,
-    durationSeconds: 1,
-    alternateSeconds: 5,
-    iconKey: "reshot", // default builtin
-    iconSvg: "",       // uploaded svg string (optional)
-    ctaBgColor: null,
+    messageTitle: saved?.messageTitle ?? defaultTitles[0] ?? "Flash Sale",
+    name: saved?.name ?? defaultLocations[0] ?? "Flash Sale: 20% OFF",
+    messageText: saved?.messageText ?? defaultNames[0] ?? "ends in 02:15 hours",
+    fontFamily: saved?.fontFamily ?? "System",
+    fontWeight: String(saved?.fontWeight ?? "600"),
+    layout: saved?.layout ?? "landscape",
+    imageAppearance: saved?.imageAppearance ?? "cover",
+    template: saved?.template ?? "solid",
+    position: saved?.position ?? "top-right",
+    animation: saved?.animation ?? "slide",
+    mobileSize: saved?.mobileSize ?? "compact",
+    mobilePosition:
+      saved?.mobilePosition?.length ? saved.mobilePosition : ["top"],
+    bgColor: saved?.bgColor ?? "#FFFBD2",
+    bgAlt: saved?.bgAlt ?? "#FBCFCF",
+    textColor: saved?.textColor ?? "#000000",
+    numberColor: saved?.numberColor ?? "#000000",
+    priceTagBg: saved?.priceTagBg ?? "#593E3F",
+    priceTagAlt: saved?.priceTagAlt ?? "#E66465",
+    priceColor: saved?.priceColor ?? "#FFFFFF",
+    starColor: saved?.starColor ?? "#F06663",
+    rounded: saved?.rounded ?? 14,
+    firstDelaySeconds: saved?.firstDelaySeconds ?? 1,
+    durationSeconds: saved?.durationSeconds ?? 1,
+    alternateSeconds: saved?.alternateSeconds ?? 5,
+    intervalUnit:
+      saved?.intervalUnit ?? intervalUnitFromSeconds(saved?.alternateSeconds ?? 5),
+    iconKey: saved?.iconKey ?? "reshot",
+    iconSvg: saved?.iconSvg ?? "",
   });
 
   const [svgName, setSvgName] = useState("");
@@ -454,9 +859,35 @@ export default function FlashConfigPage() {
     }));
   }, [titlesList, locationsList, namesList]);
 
+  useEffect(() => {
+    const nextShowType = visibilityToShowType(visibility);
+    setForm(f => (f.showType === nextShowType ? f : { ...f, showType: nextShowType }));
+  }, [visibility]);
+
   const onField = (k) => (v) => setForm(f => ({ ...f, [k]: v }));
   const onDurationChange = (val) => { const n = parseInt(val || "0", 10); const x = isNaN(n) ? 1 : Math.min(60, Math.max(1, n)); setForm(f => ({ ...f, durationSeconds: x })); };
-  const onAlternateChange = (val) => { const n = parseInt(val || "0", 10); const x = isNaN(n) ? 0 : Math.min(3600, Math.max(0, n)); setForm(f => ({ ...f, alternateSeconds: x })); };
+  const onDelayChange = (val) => {
+    const n = parseInt(val || "0", 10);
+    const x = isNaN(n) ? 0 : Math.min(3600, Math.max(0, n));
+    setForm((f) => ({ ...f, firstDelaySeconds: x }));
+  };
+  const onIntervalValueChange = (val) => {
+    setForm((f) => {
+      const unit = f.intervalUnit || intervalUnitFromSeconds(f.alternateSeconds);
+      const nextSeconds = intervalSecondsFromValue(val, unit, 3600);
+      return { ...f, alternateSeconds: nextSeconds };
+    });
+  };
+  const onIntervalUnitChange = (unit) => {
+    setForm((f) => {
+      const nextSeconds = intervalSecondsFromValue(
+        intervalValueFromSeconds(f.alternateSeconds, unit),
+        unit,
+        3600
+      );
+      return { ...f, intervalUnit: unit, alternateSeconds: nextSeconds };
+    });
+  };
 
   const titlesDraft = useTokenDraft(titlesList, setTitlesList);
   const locationsDraft = useTokenDraft(locationsList, setLocationsList);
@@ -468,6 +899,12 @@ export default function FlashConfigPage() {
       ? [{ label: "Custom (uploaded)", value: "upload_svg" }, ...baseSvgOptions]
       : baseSvgOptions;
   }, [form.iconSvg]);
+  const intervalUnit =
+    form.intervalUnit || intervalUnitFromSeconds(form.alternateSeconds);
+  const intervalValue = intervalValueFromSeconds(
+    form.alternateSeconds,
+    intervalUnit
+  );
 
   // Handle SVG drop
   const handleSvgDrop = useCallback((_drop, accepted, rejected) => {
@@ -510,6 +947,7 @@ export default function FlashConfigPage() {
     setUploadError("");
   };
 
+
   const save = async () => {
     try {
       setSaving(true);
@@ -527,21 +965,13 @@ export default function FlashConfigPage() {
         body: JSON.stringify({ form: payload }),
       });
       if (!res.ok) throw new Error((await res.text()) || "Failed to save");
-      setToast({ active: true, error: false, msg: "Saved as a new Flash Bar" });
-      setTimeout(() => navigate("/app/dashboard"), 900);
+      setToast({ active: true, error: false, msg: "Saved." });
+      setTimeout(() => navigate(notificationManageUrl), 900);
     } catch (e) {
       setToast({ active: true, error: true, msg: e?.message || "Something went wrong" });
     } finally { setSaving(false); }
   };
 
-  const pageOptions = [
-    { label: "All Pages", value: "allpage" },
-    { label: "Home Page", value: "home" },
-    { label: "Product Page", value: "product" },
-    { label: "Collection Page", value: "collection" },
-    { label: "Pages", value: "pages" },
-    { label: "Cart Page", value: "cart" },
-  ];
   const fontOptions = [
     { label: "System", value: "System" }, { label: "Inter", value: "Inter" }, { label: "Roboto", value: "Roboto" },
     { label: "Montserrat", value: "Montserrat" }, { label: "Poppins", value: "Poppins" }
@@ -568,22 +998,31 @@ export default function FlashConfigPage() {
     <Frame>
       {saving && <Loading />}
       <Page
-        title="Configuration – Flash Sale Bars"
-        backAction={{ content: "Back", onAction: () => navigate("/app/notification") }}
-        primaryAction={{ content: "Save as New", onAction: save, loading: saving, disabled: saving }}
+        title="Configuration - Flash Sale Bars"
+        backAction={{ content: "Back", onAction: () => navigate(notificationUrl) }}
+        primaryAction={{ content: "Save", onAction: save, loading: saving, disabled: saving }}
       >
-        <Layout>
-          {/* Live Preview */}
-          <Layout.Section>
-            <Card>
-              <Box padding="4">
-                <LivePreview form={form} />
-              </Box>
-            </Card>
-          </Layout.Section>
+        <style>{FLASH_STYLES}</style>
+<div className="flash-shell">
+  <div className="flash-sidebar">
+    {NAV_ITEMS.map(({ id, label, Icon }) => (
+      <button
+        key={id}
+        type="button"
+        className={`flash-nav-btn ${activeSection === id ? "is-active" : ""}`}
+        onClick={() => setActiveSection(id)}
+      >
+        <Icon />
+        <span>{label}</span>
+      </button>
+    ))}
+  </div>
 
-          {/* Display */}
-          <Layout.Section oneHalf>
+  <div className="flash-main">
+    <div className="flash-columns">
+      <div className="flash-form">
+        <BlockStack gap="400">
+          {activeSection === "display" && (
             <Card>
               <Box padding="4">
                 <BlockStack gap="400">
@@ -598,19 +1037,107 @@ export default function FlashConfigPage() {
                         alignment="horizontal"
                       />
                     </Box>
-                    <Box width="50%"><Select label="Display On Pages" options={pageOptions} value={form.showType} onChange={onField("showType")} /></Box>
                   </InlineStack>
+
+                  <Text as="h4" variant="headingSm">
+                    Show on
+                  </Text>
+                  <BlockStack gap="200">
+                    <Checkbox
+                      label="Home page"
+                      checked={visibility.showHome}
+                      onChange={(v) =>
+                        setVisibility((s) => ({ ...s, showHome: v }))
+                      }
+                    />
+                    <Checkbox
+                      label="Product page"
+                      checked={visibility.showProduct}
+                      onChange={(v) =>
+                        setVisibility((s) => ({ ...s, showProduct: v }))
+                      }
+                    />
+                
+                    <Checkbox
+                      label="Collection list"
+                      checked={visibility.showCollectionList}
+                      onChange={(v) =>
+                        setVisibility((s) => ({
+                          ...s,
+                          showCollectionList: v,
+                        }))
+                      }
+                    />
+                    <Checkbox
+                      label="Collection page"
+                      checked={visibility.showCollection}
+                      onChange={(v) =>
+                        setVisibility((s) => ({ ...s, showCollection: v }))
+                      }
+                    />
+                    
+                    <Checkbox
+                      label="Cart page"
+                      checked={visibility.showCart}
+                      onChange={(v) =>
+                        setVisibility((s) => ({ ...s, showCart: v }))
+                      }
+                    />
+                  </BlockStack>
+                  <TextField
+                    label="Delay before first notification"
+                    type="number"
+                    value={String(form.firstDelaySeconds ?? 0)}
+                    onChange={onDelayChange}
+                    suffix="seconds"
+                    min={0}
+                    max={3600}
+                    step={1}
+                    autoComplete="off"
+                  />
+                  <TextField
+                    label="Display duration"
+                    type="number"
+                    value={String(form.durationSeconds)}
+                    onChange={onDurationChange}
+                    suffix="seconds"
+                    min={1}
+                    max={60}
+                    step={1}
+                    autoComplete="off"
+                  />
                   <InlineStack gap="400" wrap={false} width="100%">
-                    <Box width="50%"><TextField label="Popup Display Duration (seconds)" type="number" value={String(form.durationSeconds)} onChange={onDurationChange} suffix="S" min={1} max={60} step={1} autoComplete="off" /></Box>
-                    <Box width="50%"><TextField label="Interval Between Sale Bars (seconds)" type="number" value={String(form.alternateSeconds)} onChange={onAlternateChange} suffix="S" min={0} max={3600} step={1} autoComplete="off" /></Box>
+                    <Box width="50%">
+                      <TextField
+                        label="Interval time"
+                        type="number"
+                        value={String(intervalValue)}
+                        onChange={onIntervalValueChange}
+                        min={0}
+                        max={intervalUnit === "minutes" ? 60 : 3600}
+                        step={1}
+                        autoComplete="off"
+                      />
+                    </Box>
+                    <Box width="50%">
+                      <Select
+                        label=" "
+                        labelHidden
+                        options={TIME_UNITS}
+                        value={intervalUnit}
+                        onChange={onIntervalUnitChange}
+                      />
+                    </Box>
                   </InlineStack>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Delay between each notification.
+                  </Text>
                 </BlockStack>
               </Box>
             </Card>
-          </Layout.Section>
+          )}
 
-          {/* Message */}
-          <Layout.Section oneHalf>
+          {activeSection === "content" && (
             <Card>
               <Box padding="4">
                 <BlockStack gap="350">
@@ -618,7 +1145,6 @@ export default function FlashConfigPage() {
                     <Text as="h3" variant="headingMd">Message</Text>
                   </InlineStack>
 
-                  {/* Banner Title */}
                   <BlockStack gap="150">
                     <div onKeyDownCapture={titlesDraft.onKeyDown}>
                       <TextField
@@ -627,15 +1153,16 @@ export default function FlashConfigPage() {
                         onChange={titlesDraft.onInputChange}
                         autoComplete="off"
                         multiline={1}
-                        placeholder="Flash Sale, Flash Sale 2 … (press Enter to add)"
+                        placeholder="Flash Sale, Flash Sale 2 ... (press Enter to add)"
                       />
                     </div>
                     <InlineStack gap="150" wrap>
-                      {titlesList.map((t, i) => (<Tag key={`title-${i}`} onRemove={() => titlesDraft.removeAt(i)}>{t}</Tag>))}
+                      {titlesList.map((t, i) => (
+                        <Tag key={`title-${i}`} onRemove={() => titlesDraft.removeAt(i)}>{t}</Tag>
+                      ))}
                     </InlineStack>
                   </BlockStack>
 
-                  {/* Offer Title */}
                   <BlockStack gap="150">
                     <div onKeyDownCapture={locationsDraft.onKeyDown}>
                       <TextField
@@ -644,15 +1171,16 @@ export default function FlashConfigPage() {
                         onChange={locationsDraft.onInputChange}
                         autoComplete="off"
                         multiline={1}
-                        placeholder="Flash Sale 10% OFF, Flash Sale 20% OFF …"
+                        placeholder="Flash Sale 10% OFF, Flash Sale 20% OFF ..."
                       />
                     </div>
                     <InlineStack gap="150" wrap>
-                      {locationsList.map((t, i) => (<Tag key={`loc-${i}`} onRemove={() => locationsDraft.removeAt(i)}>{t}</Tag>))}
+                      {locationsList.map((t, i) => (
+                        <Tag key={`loc-${i}`} onRemove={() => locationsDraft.removeAt(i)}>{t}</Tag>
+                      ))}
                     </InlineStack>
                   </BlockStack>
 
-                  {/* Urgency Text */}
                   <BlockStack gap="150">
                     <div onKeyDownCapture={namesDraft.onKeyDown}>
                       <TextField
@@ -661,45 +1189,123 @@ export default function FlashConfigPage() {
                         onChange={namesDraft.onInputChange}
                         autoComplete="off"
                         multiline={1}
-                        placeholder="ends in 01:15 hours, ends in 02:15 hours …"
+                        placeholder="ends in 01:15 hours, ends in 02:15 hours ..."
                       />
                     </div>
                     <InlineStack gap="150" wrap>
-                      {namesList.map((t, i) => (<Tag key={`name-${i}`} onRemove={() => namesDraft.removeAt(i)}>{t}</Tag>))}
+                      {namesList.map((t, i) => (
+                        <Tag key={`name-${i}`} onRemove={() => namesDraft.removeAt(i)}>{t}</Tag>
+                      ))}
                     </InlineStack>
                   </BlockStack>
                 </BlockStack>
               </Box>
             </Card>
-          </Layout.Section>
+          )}
 
-          {/* Customize */}
-          <Layout.Section oneHalf>
+          {activeSection === "layout" && (
             <Card>
               <Box padding="4">
                 <BlockStack gap="400">
                   <Text as="h3" variant="headingMd">Customize</Text>
+                  <Select
+                    label="Layout"
+                    options={LAYOUTS}
+                    value={form.layout}
+                    onChange={onField("layout")}
+                  />
+                  <BlockStack gap="200">
+                    <Text as="p">Color template</Text>
+                    <InlineStack gap="300">
+                      <RadioButton
+                        id="template-solid"
+                        name="template"
+                        label="Solid"
+                        checked={form.template === "solid"}
+                        onChange={() =>
+                          setForm((f) => ({ ...f, template: "solid" }))
+                        }
+                      />
+                      <RadioButton
+                        id="template-gradient"
+                        name="template"
+                        label="Gradient"
+                        checked={form.template === "gradient"}
+                        onChange={() =>
+                          setForm((f) => ({ ...f, template: "gradient" }))
+                        }
+                      />
+                    </InlineStack>
+                  </BlockStack>
+                  <InlineStack gap="400" wrap={false} width="100%">
+                    <Box width="50%">
+                      <ColorInput
+                        label="Background color"
+                        value={form.bgColor}
+                        onChange={(v) => setForm(f => ({ ...f, bgColor: v }))}
+                      />
+                    </Box>
+                    <Box width="50%">
+                      <ColorInput
+                        label="Background color (alt)"
+                        value={form.bgAlt}
+                        onChange={(v) => setForm(f => ({ ...f, bgAlt: v }))}
+                      />
+                    </Box>
+                  </InlineStack>
+                  <InlineStack gap="400" wrap={false} width="100%">
+                    <Box width="50%">
+                      <ColorInput
+                        label="Text color"
+                        value={form.textColor}
+                        onChange={(v) => setForm(f => ({ ...f, textColor: v }))}
+                      />
+                    </Box>
+                    <Box width="50%">
+                      <ColorInput
+                        label="Number color"
+                        value={form.numberColor}
+                        onChange={(v) => setForm(f => ({ ...f, numberColor: v }))}
+                      />
+                    </Box>
+                  </InlineStack>
+                  <InlineStack gap="400" wrap={false} width="100%">
+                    <Box width="50%">
+                      <ColorInput
+                        label="Price tag background"
+                        value={form.priceTagBg}
+                        onChange={(v) => setForm(f => ({ ...f, priceTagBg: v }))}
+                      />
+                    </Box>
+                    <Box width="50%">
+                      <ColorInput
+                        label="Compare at price color"
+                        value={form.priceTagAlt}
+                        onChange={(v) => setForm(f => ({ ...f, priceTagAlt: v }))}
+                      />
+                    </Box>
+                  </InlineStack>
+                  <InlineStack gap="400" wrap={false} width="100%">
+                    <Box width="50%">
+                      <ColorInput
+                        label="Price color"
+                        value={form.priceColor}
+                        onChange={(v) => setForm(f => ({ ...f, priceColor: v }))}
+                      />
+                    </Box>
+                    <Box width="50%">
+                      <ColorInput
+                        label="Star color"
+                        value={form.starColor}
+                        onChange={(v) => setForm(f => ({ ...f, starColor: v }))}
+                      />
+                    </Box>
+                  </InlineStack>
                   <InlineStack gap="400" wrap={false} width="100%">
                     <Box width="50%"><Select label="Flash Bar Font Family" options={fontOptions} value={form.fontFamily} onChange={onField("fontFamily")} /></Box>
                     <Box width="50%"><Select label="Text Weight / Style" options={FontweightOptions} value={form.fontWeight} onChange={onField("fontWeight")} /></Box>
                   </InlineStack>
-                  <InlineStack gap="400" wrap={false} width="100%">
-                    <Box width="50%"><Select label="Bar Position on Desktop" options={positionOptions} value={form.position} onChange={onField("position")} /></Box>
-                    <Box width="50%"><Select label="Popup Animation Style" options={animationOptions} value={form.animation} onChange={onField("animation")} /></Box>
-                  </InlineStack>
-                  <InlineStack gap="400" wrap={false} width="100%">
-                    <Box width="50%"><Select label="Mobile Bar Size" options={mobileSizeOptions} value={form.mobileSize} onChange={onField("mobileSize")} /></Box>
-                    <Box width="50%">
-                      <Select
-                        label="Bar Position on Mobile"
-                        options={[{ label: "Top", value: "top" }, { label: "Bottom", value: "bottom" }]}
-                        value={(form.mobilePosition && form.mobilePosition[0]) || "top"}
-                        onChange={(v) => setForm(f => ({ ...f, mobilePosition: [v] }))}
-                      />
-                    </Box>
-                  </InlineStack>
 
-                  {/* Icon + Font size */}
                   <InlineStack gap="400" wrap={false} width="100%" alignItems="center">
                     <Box width="50%">
                       <Select
@@ -731,8 +1337,21 @@ export default function FlashConfigPage() {
                       </BlockStack>
                     </Box>
                   </InlineStack>
+                  <ChoiceList
+                    title="Image appearance"
+                    choices={[
+                      { label: "Cover (Overflowing container)", value: "cover" },
+                      { label: "Fit within container", value: "contain" },
+                    ]}
+                    selected={[form.imageAppearance]}
+                    onChange={(v) =>
+                      setForm((f) => ({
+                        ...f,
+                        imageAppearance: v[0] || "cover",
+                      }))
+                    }
+                  />
 
-                  {/* Custom SVG Upload */}
                   <BlockStack gap="150">
                     <Text as="h4" variant="headingSm">Custom SVG Icon (optional)</Text>
                     <DropZone accept="image/svg+xml" allowMultiple={false} onDrop={handleSvgDrop}>
@@ -750,20 +1369,52 @@ export default function FlashConfigPage() {
                     </Text>
                   </BlockStack>
 
-                  {/* Colors */}
-                  <InlineStack gap="400" wrap="wrap" width="100%">
-                    <Box width="30%"><ColorInput label="Banner Title Color" value={form.titleColor} onChange={(v) => setForm(f => ({ ...f, titleColor: v }))} /></Box>
-                    <Box width="30%"><ColorInput label="Bar Background Color" value={form.bgColor} onChange={(v) => setForm(f => ({ ...f, bgColor: v }))} /></Box>
-                    <Box width="30%"><ColorInput label="Offer Text Color" value={form.msgColor} onChange={(v) => setForm(f => ({ ...f, msgColor: v }))} /></Box>
+
+                </BlockStack>
+              </Box>
+            </Card>
+          )}
+
+          {activeSection === "behavior" && (
+            <Card>
+              <Box padding="4">
+                <BlockStack gap="400">
+                  <Text as="h3" variant="headingMd">Placement & Motion</Text>
+                  <InlineStack gap="400" wrap={false} width="100%">
+                    <Box width="50%"><Select label="Bar Position on Desktop" options={positionOptions} value={form.position} onChange={onField("position")} /></Box>
+                    <Box width="50%"><Select label="Popup Animation Style" options={animationOptions} value={form.animation} onChange={onField("animation")} /></Box>
+                  </InlineStack>
+                  <InlineStack gap="400" wrap={false} width="100%">
+                    <Box width="50%"><Select label="Mobile Bar Size" options={mobileSizeOptions} value={form.mobileSize} onChange={onField("mobileSize")} /></Box>
+                    <Box width="50%">
+                      <Select
+                        label="Bar Position on Mobile"
+                        options={[{ label: "Top", value: "top" }, { label: "Bottom", value: "bottom" }]}
+                        value={(form.mobilePosition && form.mobilePosition[0]) || "top"}
+                        onChange={(v) => setForm(f => ({ ...f, mobilePosition: [v] }))}
+                      />
+                    </Box>
                   </InlineStack>
                 </BlockStack>
               </Box>
             </Card>
-          </Layout.Section>
+          )}
+        </BlockStack>
+      </div>
 
-          {/* Footer spacer */}
-          <Layout.Section oneHalf>{/* ... */}</Layout.Section>
-        </Layout>
+      <div className="flash-preview">
+        <Card>
+          <Box padding="4">
+            <div className="flash-preview-box">
+              <LivePreview form={form} />
+            </div>
+          </Box>
+        </Card>
+      </div>
+    </div>
+  </div>
+</div>
+
       </Page>
 
       {toast.active && <Toast content={toast.msg} error={toast.error} onDismiss={() => setToast(t => ({ ...t, active: false }))} duration={2000} />}

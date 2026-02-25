@@ -1,5 +1,9 @@
 {
-  "name": "m2-web-fomo-popup",
+<<<<<<< HEAD
+  "name": "pryxo-tech-fomo-popup",
+=======
+  "name": "pryxo-tech-fomoify-sales",
+>>>>>>> 02f3b15 (Initial commit from local project)
   "private": true,
   "type": "module",
   "engines": {
@@ -88,7 +92,7 @@
     "minimatch": "9.0.5",
     "vite": "^6.2.2"
   },
-  "author": "M2 Web Solutions",
+  "author": "Pryxo Tech LTD PVT",
   "license": "MIT",
-  "description": "Fomo Popup for Shopify - Boost Sales with Social Proof"
+  "description": "Fomo Popup for Shopify"
 }

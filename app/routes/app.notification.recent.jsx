@@ -19,26 +19,75 @@ import {
   Popover,
   ButtonGroup,
   Banner,
+  RadioButton,
+  Checkbox,
 } from "@shopify/polaris";
 import {
   useLoaderData,
   useNavigate,
+  useLocation,
   useRouteError,
 } from "@remix-run/react";
 import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { saveRecentPopup } from "../models/popup-config.server";
 
-/* ───────────────── constants ──────────────── */
+/* ---------------- constants ---------------- */
 const KEY = "recent";
-const PAGES = [
-  { label: "All Pages", value: "allpage" },
-  { label: "Home Page", value: "home" },
-  { label: "Product Page", value: "product" },
-  { label: "Collection Page", value: "collection" },
-  { label: "Pages", value: "pages" },
-  { label: "Cart Page", value: "cart" },
+const LAYOUTS = [
+  { label: "Landscape", value: "landscape" },
+  { label: "Portrait", value: "portrait" },
 ];
+
+const initVisibility = (showType) => {
+  const base = {
+    showHome: false,
+    showProduct: false,
+    showCollectionList: false,
+    showCollection: false,
+    showCart: false,
+  };
+  switch (showType) {
+    case "home":
+      return { ...base, showHome: true };
+    case "product":
+      return { ...base, showProduct: true };
+    case "collection":
+      return { ...base, showCollection: true, showCollectionList: true };
+    case "cart":
+      return { ...base, showCart: true };
+    case "allpage":
+    default:
+      return {
+        ...base,
+        showHome: true,
+        showProduct: true,
+        showCollection: true,
+        showCollectionList: true,
+        showCart: true,
+      };
+  }
+};
+
+const visibilityToShowType = (visibility) => {
+  const flags = [
+    visibility.showHome,
+    visibility.showProduct,
+    visibility.showCollection,
+    visibility.showCollectionList,
+    visibility.showCart,
+  ];
+  const enabledCount = flags.filter(Boolean).length;
+  if (enabledCount === 0) return "allpage";
+  if (enabledCount > 1) return "allpage";
+  if (visibility.showHome) return "home";
+  if (visibility.showProduct) return "product";
+  if (visibility.showCollection || visibility.showCollectionList)
+    return "collection";
+  if (visibility.showCart) return "cart";
+  return "allpage";
+};
 const HIDE_CHOICES = [
   { label: "Customer Name", value: "name" },
   { label: "City", value: "city" },
@@ -47,6 +96,201 @@ const HIDE_CHOICES = [
   { label: "Product Name", value: "productTitle" },
   { label: "Product Image", value: "productImage" },
   { label: "Order Time", value: "time" },
+];
+const DEFAULT_PRODUCT_NAME_LIMIT = "15";
+const TIME_UNITS = [
+  { label: "Seconds", value: "seconds" },
+  { label: "Minutes", value: "minutes" },
+];
+const intervalUnitFromSeconds = (seconds) => {
+  const n = Number(seconds || 0);
+  return n >= 60 && n % 60 === 0 ? "minutes" : "seconds";
+};
+const intervalValueFromSeconds = (seconds, unit) => {
+  const n = Number(seconds || 0);
+  if (unit === "minutes") return Math.round(n / 60);
+  return Math.round(n);
+};
+const intervalSecondsFromValue = (value, unit, maxSeconds = 3600) => {
+  const n = parseInt(String(value || "0"), 10);
+  const base = Number.isFinite(n) ? n : 0;
+  const max =
+    unit === "minutes" ? Math.max(0, Math.floor(maxSeconds / 60)) : maxSeconds;
+  const clamped = Math.max(0, Math.min(max, base));
+  return unit === "minutes" ? clamped * 60 : clamped;
+};
+
+const RECENT_STYLES = `
+.recent-shell {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+.recent-sidebar {
+  width: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.recent-nav-btn {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 4px;
+  padding: 5px 10px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+}
+.recent-nav-btn:hover {
+  border-color: #cbd5e1;
+}
+.recent-nav-btn.is-active {
+  background: #2f855a;
+  color: #ffffff;
+  border-color: #2f855a;
+}
+.recent-nav-icon {
+  width: 20px;
+  height: 20px;
+}
+.recent-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.recent-columns {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+.recent-form {
+  flex: 1;
+  min-width: 360px;
+}
+.recent-preview {
+  flex: 1;
+  min-width: 320px;
+}
+.recent-preview-box {
+  border-radius: 16px;
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+@media (max-width: 1100px) {
+  .recent-shell {
+    flex-direction: column;
+  }
+  .recent-sidebar {
+    width: 100%;
+    flex-direction: row;
+  }
+  .recent-nav-btn {
+    flex: 1;
+    flex-direction: row;
+    justify-content: center;
+  }
+  .recent-columns {
+    flex-direction: column;
+  }
+}
+@media (max-width: 640px) {
+  .recent-nav-btn {
+    padding: 10px;
+    font-size: 12px;
+  }
+  .recent-form,
+  .recent-preview {
+    min-width: 0;
+  }
+}
+`;
+
+function LayoutIcon() {
+  return (
+    <svg
+      className="recent-nav-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <line x1="9" y1="4" x2="9" y2="20" />
+      <line x1="9" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+
+function ContentIcon() {
+  return (
+    <svg
+      className="recent-nav-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="4" y="5" width="16" height="14" rx="2" />
+      <line x1="7" y1="9" x2="17" y2="9" />
+      <line x1="7" y1="13" x2="15" y2="13" />
+    </svg>
+  );
+}
+
+function DisplayIcon() {
+  return (
+    <svg
+      className="recent-nav-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="5" width="18" height="12" rx="2" />
+      <line x1="8" y1="21" x2="16" y2="21" />
+      <line x1="12" y1="17" x2="12" y2="21" />
+    </svg>
+  );
+}
+
+function BehaviorIcon() {
+  return (
+    <svg
+      className="recent-nav-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19 12a7 7 0 0 0-.08-1.06l2-1.55-2-3.46-2.44 1a7 7 0 0 0-1.84-1.06L14.4 2h-4.8l-.24 2.87a7 7 0 0 0-1.84 1.06l-2.44-1-2 3.46 2 1.55A7 7 0 0 0 5 12c0 .36.03.71.08 1.06l-2 1.55 2 3.46 2.44-1c.56.44 1.18.8 1.84 1.06L9.6 22h4.8l.24-2.87c.66-.26 1.28-.62 1.84-1.06l2.44 1 2-3.46-2-1.55c.05-.35.08-.7.08-1.06Z" />
+    </svg>
+  );
+}
+
+const NAV_ITEMS = [
+  { id: "layout", label: "Layout", Icon: LayoutIcon },
+  { id: "content", label: "Content", Icon: ContentIcon },
+  { id: "display", label: "Display", Icon: DisplayIcon },
+  { id: "behavior", label: "Behavior", Icon: BehaviorIcon },
 ];
 
 const clampDaysParam = (value, fallback = 1) => {
@@ -63,11 +307,15 @@ const DEFAULT_PREVIEW = {
   createdAt: new Date().toISOString(),
   productTitle: "Your product will show here",
   productImage: null,
+  productPrice: "99.00",
+  productCompareAt: "129.00",
   products: [
     {
       title: "Your product will show here",
       image: null,
       handle: "",
+      price: "99.00",
+      compareAt: "129.00",
     },
   ],
 };
@@ -80,11 +328,17 @@ const DEFAULT_SAVED = {
   animation: "fade",
   mobileSize: "compact",
   mobilePositionJson: '["bottom"]',
-  titleColor: "#6E62FF",
-  bgColor: "#FFFFFF",
-  msgColor: "#111111",
-  ctaBgColor: null,
-  rounded: "14",
+  template: "solid",
+  bgColor: "#FFFBD2",
+  bgAlt: "#FBCFCF",
+  textColor: "#000000",
+  numberColor: "#000000",
+  priceTagBg: "#593E3F",
+  priceTagAlt: "#E66465",
+  priceColor: "#FFFFFF",
+  starColor: "#F06663",
+  rounded: "4",
+  firstDelaySeconds: 1,
   durationSeconds: 8,
   alternateSeconds: 10,
   fontWeight: "600",
@@ -92,11 +346,13 @@ const DEFAULT_SAVED = {
   selectedProductsJson: [],
   locationsJson: [],
   messageTitlesJson: [],
+  layout: "landscape",
+  imageAppearance: "cover",
   orderDays: 1,
   createOrderTime: null,
 };
 
-/* ───────────────── date helpers ──────────────── */
+/* ---------------- date helpers ---------------- */
 const trimIso = (iso) => {
   const i = String(iso || "");
   const [date, time] = i.split("T");
@@ -141,7 +397,7 @@ async function getShopTimezone(admin) {
   }
 }
 
-/* ───────────────── Orders query + mapping (with pagination) ──────────────── */
+/* ---------------- Orders query + mapping (with pagination) ---------------- */
 const Q_ORDERS_FULL = `
   query Orders($first:Int!, $query:String, $after:String) {
     orders(first: $first, query: $query, sortKey: CREATED_AT, reverse: true, after: $after) {
@@ -158,6 +414,7 @@ const Q_ORDERS_FULL = `
             edges {
               node {
                 title
+                variant { price compareAtPrice }
                 product { handle title featuredImage { url } }
               }
             }
@@ -176,6 +433,8 @@ function mapEdgesToOrders(edges) {
       title: li?.node?.product?.title || li?.node?.title || "",
       image: li?.node?.product?.featuredImage?.url || null,
       handle: li?.node?.product?.handle || "",
+      price: li?.node?.variant?.price || "",
+      compareAt: li?.node?.variant?.compareAtPrice || "",
     }));
     return {
       id: o.id,
@@ -238,7 +497,7 @@ async function fetchLatestOrderAnyTime(admin) {
   }
 }
 
-/* ───────────────── helpers ──────────────── */
+/* ---------------- helpers ---------------- */
 function collectAllProductHandles(orders) {
   const out = [];
   for (const o of orders || []) {
@@ -297,7 +556,7 @@ function deriveBucketsFromOrders(orders) {
   };
 }
 
-/* ───────────────── persist (analytics) ──────────────── */
+/* ---------------- persist (analytics) ---------------- */
 function flattenCustomerProductRows(shop, orders) {
   const seen = new Set();
   const rows = [];
@@ -363,7 +622,7 @@ async function persistCustomerProductHandles(prismaClient, shop, orders) {
   }
 }
 
-/* ───────────────── loader ──────────────── */
+/* ---------------- loader ---------------- */
 export async function loader({ request }) {
   let admin;
   let session;
@@ -386,6 +645,7 @@ export async function loader({ request }) {
         usedDays: 1,
         hasUsableOrders: false,
         loaderError: `auth-failed: ${String(e?.message || e)}`,
+        editingId: null,
       },
       { status: 200 }
     );
@@ -402,7 +662,8 @@ export async function loader({ request }) {
         orders: [],
         usedDays: 1,
         hasUsableOrders: false,
-        loaderError: "Unauthorized – missing shop in session",
+        loaderError: "Unauthorized - missing shop in session",
+        editingId: null,
       },
       { status: 200 }
     );
@@ -411,20 +672,37 @@ export async function loader({ request }) {
   try {
     const url = new URL(request.url);
     const daysParam = url.searchParams.get("days");
+    const editIdRaw =
+      url.searchParams.get("editId") || url.searchParams.get("id");
+    const editIdNum = Number(editIdRaw);
+    const editId =
+      Number.isInteger(editIdNum) && editIdNum > 0 ? editIdNum : null;
 
-    let last = null;
+    let source = null;
+    let editingId = editId;
     try {
-      if (prisma?.notificationconfig?.findFirst) {
-        last = await prisma.notificationconfig.findFirst({
-          where: { shop, key: KEY },
-          orderBy: { id: "desc" },
-        });
+      const recentModel =
+        prisma?.recentpopupconfig || prisma?.recentPopupConfig || null;
+      if (recentModel?.findFirst) {
+        if (editId) {
+          source = await recentModel.findFirst({
+            where: { id: editId, shop },
+          });
+        }
+        if (!source) {
+          source = await recentModel.findFirst({
+            where: { shop },
+            orderBy: { id: "desc" },
+          });
+        }
+        editingId = source?.id ?? editId ?? null;
       }
     } catch (e) {
-      console.error("[Fomoify] prisma.findFirst failed (loader).", e);
+      console.error("[Fomoify] recentpopupconfig findFirst failed (loader).", e);
     }
 
     const parseArr = (s) => {
+      if (Array.isArray(s)) return s;
       try {
         const a = JSON.parse(s || "[]");
         return Array.isArray(a) ? a : [];
@@ -432,12 +710,13 @@ export async function loader({ request }) {
         return [];
       }
     };
-    const db_namesJson = parseArr(last?.namesJson);
-    const db_locationsJson = parseArr(last?.locationsJson);
-    const db_messageTitlesJson = parseArr(last?.messageTitlesJson);
+    const db_namesJson = parseArr(source?.namesJson);
+    const db_locationsJson = parseArr(source?.locationsJson);
+    const db_messageTitlesJson = parseArr(source?.messageTitlesJson);
+    const db_selectedProductsJson = parseArr(source?.selectedProductsJson);
 
-    const savedOrderDays = Number.isFinite(Number(last?.orderDays))
-      ? Number(last.orderDays)
+    const savedOrderDays = Number.isFinite(Number(source?.orderDays))
+      ? Number(source.orderDays)
       : 1;
     const urlDays = clampDaysParam(daysParam, null);
     const orderDays = urlDays ?? savedOrderDays;
@@ -461,6 +740,8 @@ export async function loader({ request }) {
           ...strictOrders[0],
           productTitle: p0.title,
           productImage: p0.image,
+          productPrice: p0.price || "",
+          productCompareAt: p0.compareAt || "",
         };
       } else {
         const latestAnyTime = await fetchLatestOrderAnyTime(admin);
@@ -470,6 +751,8 @@ export async function loader({ request }) {
             ...latestAnyTime,
             productTitle: p0.title,
             productImage: p0.image,
+            productPrice: p0.price || "",
+            productCompareAt: p0.compareAt || "",
           };
         }
       }
@@ -483,7 +766,8 @@ export async function loader({ request }) {
     const allHandlesWindow = collectAllProductHandles(strictOrders);
     const hasUsableOrders = allHandlesWindow.length > 0;
 
-    const saved_selectedProductsJson = allHandlesWindow; // duplicates kept
+    const saved_selectedProductsJson =
+      db_selectedProductsJson.length ? db_selectedProductsJson : allHandlesWindow;
     const saved_locationsJson =
       db_locationsJson.length ? db_locationsJson : buckets.locations;
     const saved_messageTitlesJson = db_messageTitlesJson.length
@@ -495,25 +779,43 @@ export async function loader({ request }) {
       preview = DEFAULT_PREVIEW;
     }
 
+    const enabledRaw = source?.enabled;
+    const enabled =
+      enabledRaw === undefined || enabledRaw === null
+        ? true
+        : enabledRaw === true || enabledRaw === 1 || enabledRaw === "1";
+
     return json({
       key: KEY,
       title: "Recent Purchases",
       saved: {
-        enabled: last?.enabled ?? true,
-        showType: last?.showType ?? "allpage",
-        fontFamily: last?.fontFamily ?? "System",
-        position: last?.position ?? "bottom-left",
-        animation: last?.animation ?? "fade",
-        mobileSize: last?.mobileSize ?? "compact",
-        mobilePositionJson: last?.mobilePositionJson ?? '["bottom"]',
-        titleColor: last?.titleColor ?? "#6E62FF",
-        bgColor: last?.bgColor ?? "#FFFFFF",
-        msgColor: last?.msgColor ?? "#111111",
-        ctaBgColor: last?.ctaBgColor ?? null,
-        rounded: String(last?.rounded ?? 14),
-        durationSeconds: Number(last?.durationSeconds ?? 1),
-        alternateSeconds: Number(last?.alternateSeconds ?? 10),
-        fontWeight: String(last?.fontWeight ?? 600),
+        enabled,
+        showType: source?.showType ?? "allpage",
+        messageText: source?.messageText ?? "bought this product recently",
+        fontFamily: source?.fontFamily ?? "System",
+        position: source?.position ?? "bottom-left",
+        animation: source?.animation ?? "fade",
+        mobileSize: source?.mobileSize ?? "compact",
+        mobilePositionJson: source?.mobilePositionJson ?? '["bottom"]',
+        template: source?.template ?? "solid",
+        layout: source?.layout ?? "landscape",
+        imageAppearance: source?.imageAppearance ?? "cover",
+        bgColor: source?.bgColor ?? "#FFFBD2",
+        bgAlt: source?.bgAlt ?? source?.ctaBgColor ?? "#FBCFCF",
+        textColor: source?.textColor ?? source?.msgColor ?? "#000000",
+        numberColor: source?.numberColor ?? source?.titleColor ?? "#000000",
+        priceTagBg: source?.priceTagBg ?? "#593E3F",
+        priceTagAlt: source?.priceTagAlt ?? "#E66465",
+        priceColor: source?.priceColor ?? "#FFFFFF",
+        starColor: source?.starColor ?? "#F06663",
+        rounded: String(source?.rounded ?? 14),
+        firstDelaySeconds: Number(source?.firstDelaySeconds ?? 1),
+        durationSeconds: Number(source?.durationSeconds ?? 1),
+        alternateSeconds: Number(source?.alternateSeconds ?? 10),
+        intervalUnit: source?.intervalUnit ?? intervalUnitFromSeconds(source?.alternateSeconds ?? 10),
+        fontWeight: String(source?.fontWeight ?? 600),
+        productNameMode: source?.productNameMode ?? "full",
+        productNameLimit: source?.productNameLimit ?? DEFAULT_PRODUCT_NAME_LIMIT,
 
         namesJson: db_namesJson,
         selectedProductsJson: saved_selectedProductsJson,
@@ -521,7 +823,7 @@ export async function loader({ request }) {
         messageTitlesJson: saved_messageTitlesJson,
 
         orderDays: orderDays,
-        createOrderTime: last?.createOrderTime ?? newestCreatedAt ?? null,
+        createOrderTime: source?.createOrderTime ?? newestCreatedAt ?? null,
       },
       newestCreatedAt,
       preview,
@@ -529,6 +831,7 @@ export async function loader({ request }) {
       usedDays: orderDays,
       hasUsableOrders,
       loaderError: null,
+      editingId,
     });
   } catch (e) {
     console.error("[Fomoify] loader fatal error:", e);
@@ -543,13 +846,14 @@ export async function loader({ request }) {
         usedDays: 1,
         hasUsableOrders: false,
         loaderError: String(e?.message || e),
+        editingId: null,
       },
       { status: 200 }
     );
   }
 }
 
-/* ───────────────── action ──────────────── */
+/* ---------------- action ---------------- */
 export async function action({ request }) {
   const { admin, session } = await authenticate.admin(request);
   const shop = session?.shop;
@@ -565,11 +869,8 @@ export async function action({ request }) {
     );
   }
   const { form } = body || {};
+  console.log("[Recent Popup] form payload:", JSON.stringify(form, null, 2));
 
-  const nullIfBlank = (v) =>
-    v === undefined || v === null || String(v).trim() === ""
-      ? null
-      : String(v);
   const intOrNull = (v, min = null, max = null) => {
     if (v === undefined || v === null || String(v).trim() === "") return null;
     let n = Number(v);
@@ -581,6 +882,17 @@ export async function action({ request }) {
 
   const url = new URL(request.url);
   const urlDays = Number(url.searchParams.get("days"));
+  const queryEditIdRaw =
+    url.searchParams.get("editId") || url.searchParams.get("id");
+  const queryEditIdNum = Number(queryEditIdRaw);
+  const queryEditId =
+    Number.isInteger(queryEditIdNum) && queryEditIdNum > 0
+      ? queryEditIdNum
+      : null;
+  const formEditIdNum = Number(form?.editId);
+  const formEditId =
+    Number.isInteger(formEditIdNum) && formEditIdNum > 0 ? formEditIdNum : null;
+  const editId = queryEditId ?? formEditId;
   const fetchDays =
     intOrNull(form?.orderDays, 1, 60) ??
     (Number.isFinite(urlDays) && urlDays >= 1 && urlDays <= 60 ? urlDays : 1);
@@ -599,7 +911,7 @@ export async function action({ request }) {
   // 2) Strong validation: require at least one product handle
   const allHandlesWindow = collectAllProductHandles(orders);
   if (!orders || orders.length === 0 || allHandlesWindow.length === 0) {
-    // No usable orders ⇒ 422 validation (not 500)
+    // No usable orders => 422 validation (not 500)
     return json(
       {
         success: false,
@@ -627,77 +939,27 @@ export async function action({ request }) {
       ? trimIso(String(orders[0].createdAt))
       : null;
 
-  const selectedProductsJson = JSON.stringify(allHandlesWindow);
-  const locationsJson = JSON.stringify(locations || []);
-  const messageTitlesJson = JSON.stringify(customerNames || []);
-  const namesJson = JSON.stringify(
-    Array.isArray(form?.namesJson) ? form.namesJson : []
-  );
-  const mobilePositionJson = JSON.stringify(
-    Array.isArray(form?.mobilePosition)
+  const recentForm = {
+    ...form,
+    editId,
+    messageTitlesJson: customerNames || [],
+    locationsJson: locations || [],
+    namesJson: Array.isArray(form?.namesJson) ? form.namesJson : [],
+    selectedProductsJson: allHandlesWindow || [],
+    mobilePosition: Array.isArray(form?.mobilePosition)
       ? form.mobilePosition
-      : [form?.mobilePosition || "bottom"]
-  );
-
-  const data = {
-    shop,
-    key: KEY,
-
-    enabled: !!(form?.enabled?.includes?.("enabled")),
-    showType: nullIfBlank(form?.showType),
-    messageText: nullIfBlank(form?.messageText),
-    fontFamily: nullIfBlank(form?.fontFamily),
-    position: nullIfBlank(form?.position),
-    animation: nullIfBlank(form?.animation),
-    mobileSize: nullIfBlank(form?.mobileSize),
-    mobilePositionJson,
-    titleColor: nullIfBlank(form?.titleColor),
-    bgColor: nullIfBlank(form?.bgColor),
-    msgColor: nullIfBlank(form?.msgColor),
-    ctaBgColor: nullIfBlank(form?.ctaBgColor),
-    rounded: intOrNull(form?.rounded, 10, 72),
-    durationSeconds: intOrNull(form?.durationSeconds, 1, 60),
-    alternateSeconds: intOrNull(form?.alternateSeconds, 0, 3600),
-    fontWeight: intOrNull(form?.fontWeight, 100, 900),
-
-    namesJson,
-    selectedProductsJson,
-    locationsJson,
-    messageTitlesJson,
-
-    orderDays: Number(fetchDays),
+      : [form?.mobilePosition || "bottom"],
     createOrderTime: newestOrderCreatedAtISO ?? null,
+    orderDays: Number(fetchDays),
   };
 
-  Object.keys(data).forEach((k) => {
-    if (data[k] === undefined) delete data[k];
-  });
-
   try {
-    if (!prisma?.notificationconfig)
-      throw new Error("Prisma model missing: notificationconfig");
-
-    const existing = await prisma.notificationconfig.findFirst({
-      where: { shop, key: KEY },
-      orderBy: { id: "desc" },
-      select: { id: true },
-    });
-
-    let saved;
-    if (existing?.id) {
-      saved = await prisma.notificationconfig.update({
-        where: { id: existing.id },
-        data,
-      });
-    } else {
-      saved = await prisma.notificationconfig.create({ data });
-    }
-
+    const saved = await saveRecentPopup(shop, recentForm);
     return json({
       success: true,
-      id: saved.id,
-      savedDays: data.orderDays,
-      savedCreateOrderTime: data.createOrderTime,
+      id: saved?.id ?? null,
+      savedDays: Number(fetchDays),
+      savedCreateOrderTime: newestOrderCreatedAtISO ?? null,
       counts: {
         products: allHandlesWindow.length,
         locations: (locations || []).length,
@@ -706,22 +968,20 @@ export async function action({ request }) {
       window: { startISO, endISO },
     });
   } catch (e) {
-    console.error("[NotificationConfig save failed]", e?.code, e?.meta, e);
+    console.error("[RecentPopup save failed]", e?.code, e?.meta, e);
     return json(
       {
         success: false,
         error: String(e?.message || e),
         code: e?.code || null,
         cause: e?.meta?.cause || null,
-        hint:
-          "If create() fails, check the DB for any legacy NOT NULL columns that are not in the Prisma model.",
       },
       { status: 500 }
     );
   }
 }
 
-/* ───────────────── color helpers ──────────────── */
+/* ---------------- color helpers ---------------- */
 const hex6 = (v) => /^#[0-9A-F]{6}$/i.test(String(v || ""));
 function hexToRgb(hex) {
   const c = hex.replace("#", "");
@@ -788,15 +1048,27 @@ function ColorInput({ label, value, onChange, placeholder = "#244E89" }) {
     if (hex6(value)) setHsb(hexToHSB(value));
   }, [value]);
   const swatch = (
-    <div
+    <span
+      role="button"
+      tabIndex={0}
       onClick={() => setOpen(true)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          setOpen(true);
+        }
+      }}
+      aria-label={`${label} color picker`}
       style={{
-        width: 28,
-        height: 28,
-        borderRadius: 10,
+        width: 34,
+        height: 31,
+        margin: "0px -12px -5px 0px",
+        borderLeft: "1px solid #c9cccf",
+        borderRadius: "0 8px 8px 0",
+        overflow: "hidden",
         cursor: "pointer",
-        border: "1px solid rgba(0,0,0,0.08)",
         background: hex6(value) ? value : "#ffffff",
+        display: "inline-block",
       }}
     />
   );
@@ -835,7 +1107,7 @@ function ColorInput({ label, value, onChange, placeholder = "#244E89" }) {
   );
 }
 
-/* ───────────────── preview components ──────────────── */
+/* ---------------- preview components ---------------- */
 const getAnimationStyle = (a) =>
   a === "slide"
     ? {
@@ -862,7 +1134,7 @@ const posToFlex = (pos) => {
     case "bottom-right":
       return { justifyContent: "flex-end", alignItems: "flex-end" };
     default:
-      return { justifyContent: "flex-start", alignItems: "flex-end" };
+      return { justifyContent: "center", alignItems: "flex-end" };
   }
 };
 const mobilePosToFlex = (pos) => ({
@@ -878,6 +1150,8 @@ function Bubble({ form, order, isMobile = false }) {
     () => getAnimationStyle(form.animation),
     [form.animation]
   );
+  const isPortrait = form.layout === "portrait";
+  const imageFit = form.imageAppearance === "contain" ? "contain" : "cover";
   const sizeBase = Number(form.rounded ?? 14) || 14;
   const sized = Math.max(
     10,
@@ -898,67 +1172,182 @@ function Bubble({ form, order, isMobile = false }) {
 
   const products = Array.isArray(order?.products) ? order.products : [];
   const first = products[0] || null;
+  const rawTitle = first?.title || order?.productTitle || "";
   const productTitle = hide.has("productTitle")
     ? ""
-    : first?.title || order?.productTitle || "";
+    : formatProductName(rawTitle, form.productNameMode, form.productNameLimit);
   const productImg = hide.has("productImage")
     ? null
     : first?.image || order?.productImage || null;
+  const priceText = formatPreviewMoney(first?.price || order?.productPrice);
+  const compareCandidate = formatPreviewMoney(
+    first?.compareAt || order?.productCompareAt || ""
+  );
+  const compareText = shouldShowPreviewCompare(priceText, compareCandidate)
+    ? alignPreviewCompareCurrency(priceText, compareCandidate)
+    : "";
   const moreCount = Math.max(0, products.length - 1);
+  const showImage = !!productImg;
+  const imageOverflow =
+    showImage && form.imageAppearance === "cover" && !isPortrait;
+  const avatarSize = isPortrait ? 56 : 64;
+  const avatarOffset = Math.round(avatarSize * 0.45);
+  const portraitImageSize = isMobile ? 120 : 160;
+  const showPortraitBlock = isPortrait && !hide.has("productImage");
+  const pad = 16;
 
   const showTime = !hide.has("time");
+  const background =
+    form.template === "gradient"
+      ? `linear-gradient(135deg, ${form.bgColor} 0%, ${form.bgAlt} 100%)`
+      : form.bgColor;
+  const orderDate = order?.createdAt ? new Date(order.createdAt) : null;
+  const daysDiffText = (() => {
+    if (!orderDate || Number.isNaN(orderDate.getTime())) return "";
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const orderStart = new Date(
+      orderDate.getFullYear(),
+      orderDate.getMonth(),
+      orderDate.getDate()
+    );
+    const days = Math.max(
+      0,
+      Math.floor((todayStart.getTime() - orderStart.getTime()) / 86400000)
+    );
+    return days === 0 ? "Today" : `${days} Day${days === 1 ? "" : "s"} Ago`;
+  })();
   return (
     <div
       style={{
         display: "flex",
-        alignItems: "center",
-        gap: 12,
+        alignItems: isPortrait ? "flex-start" : "center",
+        gap: isPortrait ? 10 : 12,
+        flexDirection: isPortrait ? "column" : "row",
         fontFamily:
           form.fontFamily === "System"
             ? "ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto"
             : form.fontFamily,
-        background: form.bgColor,
-        color: form.msgColor,
-        borderRadius: 14,
+        background,
+        color: form.textColor,
+        borderRadius: 18,
         boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-        padding: 12,
+        padding: pad,
+        paddingLeft: imageOverflow ? pad + avatarOffset : pad,
         border: "1px solid rgba(17,24,39,0.06)",
-        maxWidth: isMobile ? mobileSizeToWidth(form.mobileSize) : 560,
+        maxWidth: isMobile
+          ? mobileSizeToWidth(form.mobileSize)
+          : isPortrait
+            ? 340
+            : 560,
+        position: "relative",
         ...animStyle,
       }}
     >
-      <div>
-        {productImg ? (
+      {showPortraitBlock ? (
+        <div
+          style={{
+            width: portraitImageSize,
+            height: portraitImageSize,
+            borderRadius: 14,
+            overflow: "hidden",
+            background: "#ffffff",
+            alignSelf: "center",
+            display: "grid",
+            placeItems: "center",
+            boxShadow: "0 10px 22px rgba(0,0,0,0.12)",
+            border: "1px solid rgba(15,23,42,0.08)",
+          }}
+        >
+          {showImage ? (
+            <img
+              src={productImg}
+              alt={productTitle || "Product"}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: imageFit,
+              }}
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                background: "#f4f4f5",
+              }}
+            />
+          )}
+        </div>
+      ) : imageOverflow ? (
+        <div
+          style={{
+            position: "absolute",
+            left: pad,
+            top: isPortrait ? 24 : "50%",
+            transform: isPortrait
+              ? "translate(-50%, 0)"
+              : "translate(-50%, -50%)",
+            width: avatarSize,
+            height: avatarSize,
+            borderRadius: 12,
+            overflow: "hidden",
+            background: "#f3f4f6",
+            flexShrink: 0,
+            display: "grid",
+            placeItems: "center",
+            boxShadow: "0 8px 18px rgba(0,0,0,0.18)",
+            border: "2px solid rgba(255,255,255,0.75)",
+          }}
+        >
           <img
             src={productImg}
             alt={productTitle || "Product"}
             style={{
-              width: 60,
-              height: 60,
+              width: "100%",
+              height: "100%",
               objectFit: "cover",
-              borderRadius: 6,
-              background: "#f4f4f5",
             }}
             loading="lazy"
             decoding="async"
           />
-        ) : (
-          <div
-            style={{
-              width: 60,
-              height: 60,
-              borderRadius: 6,
-              background: "#f4f4f5",
-            }}
-          />
-        )}
-      </div>
-      <div>
+        </div>
+      ) : (
+        <div>
+          {showImage ? (
+            <img
+              src={productImg}
+              alt={productTitle || "Product"}
+              style={{
+                width: avatarSize,
+                height: avatarSize,
+                objectFit: imageFit,
+                borderRadius: 6,
+                background: "#f4f4f5",
+              }}
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <div
+              style={{
+                width: avatarSize,
+                height: avatarSize,
+                borderRadius: 6,
+                background: "#f4f4f5",
+              }}
+            />
+          )}
+        </div>
+      )}
+      <div style={{ minWidth: 0, margin: "10px" }}>
         <p style={{ margin: 0, fontSize: sized }}>
           {!hide.has("name") && (
             <span
               style={{
-                color: form.titleColor,
+                color: form.numberColor,
                 fontWeight: Number(form.fontWeight || 600),
               }}
             >
@@ -969,7 +1358,7 @@ function Bubble({ form, order, isMobile = false }) {
           {loc && (
             <span
               style={{
-                color: form.titleColor,
+                color: form.numberColor,
                 fontWeight: Number(form.fontWeight || 600),
               }}
             >
@@ -978,19 +1367,64 @@ function Bubble({ form, order, isMobile = false }) {
           )}
           <br />
           <span>
-            {productTitle ? `bought “${productTitle}”` : "placed an order"}
+            {productTitle ? `bought "${productTitle}"` : "placed an order"}
             {moreCount > 0 && !hide.has("productTitle")
               ? ` +${moreCount} more`
               : ""}
           </span>
+          {(priceText || compareText) && (
+            <>
+              <br />
+              <span
+                style={{
+                  display: "inline-flex",
+                  gap: 8,
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  marginTop: 6,
+                }}
+              >
+                {compareText && (
+                  <span
+                    style={{
+                      color: form.priceTagAlt,
+                      textDecoration: "line-through",
+                      fontSize: Math.max(10, sized - 2),
+                      fontWeight: 600,
+                    }}
+                  >
+                    {compareText}
+                  </span>
+                )}
+                {priceText && (
+                  <span
+                    style={{
+                      background: form.priceTagBg,
+                      color: form.priceColor,
+                      borderRadius: 6,
+                      padding: "2px 8px",
+                      fontSize: Math.max(10, sized - 1),
+                      fontWeight: 700,
+                    }}
+                  >
+                    {priceText}
+                  </span>
+                )}
+              </span>
+            </>
+          )}
           {showTime && (
             <>
               <br />
-              <span style={{ opacity: 0.85, fontSize: sized * 0.9 }}>
+              <span
+                style={{
+                  opacity: 0.85,
+                  fontSize: sized * 0.9,
+                  color: form.numberColor,
+                }}
+              >
                 <small>
-                  {order?.createdAt
-                    ? new Date(order.createdAt).toLocaleString()
-                    : "Timing"}
+                  {orderDate ? daysDiffText || "Today" : "Timing"}
                 </small>
               </span>
             </>
@@ -1012,13 +1446,14 @@ function DesktopPreview({ form, order }) {
         height: 400,
         borderRadius: 12,
         border: "1px solid #e5e7eb",
-        background: "linear-gradient(180deg,#fafafa 0%,#f5f5f5 100%)",
+        background: "#ffffff",
         overflow: "hidden",
         position: "relative",
         display: "flex",
+        justifyContent: "center",
         padding: 18,
         boxSizing: "border-box",
-        ...flex,
+        alignItems: "center",
       }}
     >
       <Bubble form={form} order={order} />
@@ -1066,47 +1501,81 @@ function MobilePreview({ form, order }) {
     </div>
   );
 }
+function clampNameLimit(value, fallback = 15) {
+  const n = parseInt(String(value || ""), 10);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.min(60, n);
+}
+
+function formatProductName(name, mode, limit) {
+  if (!name) return "";
+  if (mode !== "half") return name;
+  const max = clampNameLimit(limit, 15);
+  if (name.length <= max) return name;
+  return `${name.slice(0, max).trimEnd()}...`;
+}
+
+function formatPreviewMoney(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  if (/[^\d.-]/.test(raw)) return raw;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return raw;
+  return `Rs. ${n.toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function parsePreviewMoneyValue(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return NaN;
+  let cleaned = raw.replace(/[^0-9.,-]/g, "");
+  if (!cleaned) return NaN;
+  if (cleaned.includes(".") && cleaned.includes(",")) {
+    cleaned = cleaned.replace(/,/g, "");
+  } else if (cleaned.includes(",") && !cleaned.includes(".")) {
+    if (/,\d{1,2}$/.test(cleaned)) {
+      cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+    } else {
+      cleaned = cleaned.replace(/,/g, "");
+    }
+  } else {
+    cleaned = cleaned.replace(/,/g, "");
+  }
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function alignPreviewCompareCurrency(priceText, compareText) {
+  const price = String(priceText || "").trim();
+  const compare = String(compareText || "").trim();
+  if (!compare) return "";
+  if (/[^\d\s,.-]/.test(compare)) return compare;
+  const prefix = (price.match(/^[^\d-]+/) || [])[0] || "";
+  return prefix ? `${prefix}${compare}` : compare;
+}
+
+function shouldShowPreviewCompare(priceText, compareText) {
+  const price = String(priceText || "").trim();
+  const compare = String(compareText || "").trim();
+  if (!compare) return false;
+  if (!price) return true;
+  const priceNum = parsePreviewMoneyValue(price);
+  const compareNum = parsePreviewMoneyValue(compare);
+  if (Number.isFinite(priceNum) && Number.isFinite(compareNum)) {
+    return compareNum > priceNum;
+  }
+  return compare !== price;
+}
+
 function LivePreview({ form, order }) {
-  const [mode, setMode] = useState("desktop");
   return (
     <BlockStack gap="200">
-      <InlineStack align="space-between" blockAlign="center">
-        <Text as="h3" variant="headingMd">
-          Live Preview
-        </Text>
-        <ButtonGroup segmented>
-          <Button
-            pressed={mode === "desktop"}
-            onClick={() => setMode("desktop")}
-          >
-            Desktop
-          </Button>
-          <Button
-            pressed={mode === "mobile"}
-            onClick={() => setMode("mobile")}
-          >
-            Mobile
-          </Button>
-          <Button
-            pressed={mode === "both"}
-            onClick={() => setMode("both")}
-          >
-            Both
-          </Button>
-        </ButtonGroup>
-      </InlineStack>
-      {mode === "desktop" && <DesktopPreview form={form} order={order} />}
-      {mode === "mobile" && <MobilePreview form={form} order={order} />}
-      {mode === "both" && (
-        <InlineStack gap="400" align="space-between" wrap>
-          <Box width="58%">
-            <DesktopPreview form={form} order={order} />
-          </Box>
-          <Box width="40%">
-            <MobilePreview form={form} order={order} />
-          </Box>
-        </InlineStack>
-      )}
+      <Text as="h3" variant="headingMd">
+        Live Preview
+      </Text>
+      <DesktopPreview form={form} order={order} />
       <Text as="p" variant="bodySm" tone="subdued">
         Orders are pulled strictly by the selected window (shop timezone).
         Preview may show the latest order only for visual reference.
@@ -1115,7 +1584,7 @@ function LivePreview({ form, order }) {
   );
 }
 
-/* ───────────────── page ──────────────── */
+/* ---------------- page ---------------- */
 export default function RecentOrdersPopupPage() {
   const {
     title,
@@ -1126,8 +1595,12 @@ export default function RecentOrdersPopupPage() {
     hasUsableOrders,
     newestCreatedAt,
     loaderError,
+    editingId,
   } = useLoaderData();
   const navigate = useNavigate();
+  const location = useLocation();
+  const notificationUrl = `/app/notification${location.search || ""}`;
+  const notificationManageUrl = `/app/notification/manage${location.search || ""}`;
 
   useEffect(() => {
     console.log(
@@ -1141,16 +1614,24 @@ export default function RecentOrdersPopupPage() {
   }, [orders, usedDays, preview, loaderError]);
 
   const [saving, setSaving] = useState(false);
+  const [activeSection, setActiveSection] = useState("layout");
   const [toast, setToast] = useState({
     on: false,
     error: false,
     msg: "",
   });
+  const [visibility, setVisibility] = useState(() =>
+    initVisibility(saved.showType || "allpage")
+  );
 
   const [form, setForm] = useState(() => ({
+    editId:
+      Number.isInteger(Number(editingId)) && Number(editingId) > 0
+        ? Number(editingId)
+        : null,
     enabled: saved.enabled ? ["enabled"] : ["disabled"],
     showType: saved.showType,
-    messageText: "bought this product recently",
+    messageText: saved.messageText ?? "bought this product recently",
     fontFamily: saved.fontFamily,
     position: saved.position,
     animation: saved.animation,
@@ -1163,14 +1644,26 @@ export default function RecentOrdersPopupPage() {
         return ["bottom"];
       }
     })(),
-    titleColor: saved.titleColor,
-    bgColor: saved.bgColor,
-    msgColor: saved.msgColor,
-    ctaBgColor: saved.ctaBgColor,
+    template: saved.template ?? "solid",
+    bgColor: saved.bgColor ?? "#FFFBD2",
+    bgAlt: saved.bgAlt ?? "#FBCFCF",
+    textColor: saved.textColor ?? "#000000",
+    numberColor: saved.numberColor ?? "#000000",
+    priceTagBg: saved.priceTagBg ?? "#593E3F",
+    priceTagAlt: saved.priceTagAlt ?? "#E66465",
+    priceColor: saved.priceColor ?? "#FFFFFF",
+    starColor: saved.starColor ?? "#F06663",
     rounded: saved.rounded,
+    firstDelaySeconds: saved.firstDelaySeconds ?? 1,
     durationSeconds: saved.durationSeconds,
     alternateSeconds: saved.alternateSeconds,
+    intervalUnit:
+      saved.intervalUnit ?? intervalUnitFromSeconds(saved.alternateSeconds),
     fontWeight: saved.fontWeight,
+    layout: saved.layout ?? "landscape",
+    imageAppearance: saved.imageAppearance ?? "cover",
+    productNameMode: saved.productNameMode ?? "full",
+    productNameLimit: saved.productNameLimit ?? DEFAULT_PRODUCT_NAME_LIMIT,
 
     namesJson: saved.namesJson || [],
     selectedProductsJson: saved.selectedProductsJson || [],
@@ -1188,11 +1681,33 @@ export default function RecentOrdersPopupPage() {
     setForm((f) => ({ ...f, createOrderTime: newest }));
   }, [orders]);
 
+  useEffect(() => {
+    const nextShowType = visibilityToShowType(visibility);
+    setForm((f) => (f.showType === nextShowType ? f : { ...f, showType: nextShowType }));
+  }, [visibility]);
+
   const onField = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
   const onNumClamp = (k, lo, hi) => (val) => {
     const n = parseInt(String(val ?? ""), 10);
     const clamped = isNaN(n) ? lo : Math.max(lo, Math.min(hi, n));
     setForm((f) => ({ ...f, [k]: clamped }));
+  };
+  const onIntervalValueChange = (val) => {
+    setForm((f) => {
+      const unit = f.intervalUnit || intervalUnitFromSeconds(f.alternateSeconds);
+      const nextSeconds = intervalSecondsFromValue(val, unit, 3600);
+      return { ...f, alternateSeconds: nextSeconds };
+    });
+  };
+  const onIntervalUnitChange = (unit) => {
+    setForm((f) => {
+      const nextSeconds = intervalSecondsFromValue(
+        intervalValueFromSeconds(f.alternateSeconds, unit),
+        unit,
+        3600
+      );
+      return { ...f, intervalUnit: unit, alternateSeconds: nextSeconds };
+    });
   };
 
   const save = async () => {
@@ -1224,7 +1739,7 @@ export default function RecentOrdersPopupPage() {
         return;
       }
 
-      navigate("/app/dashboard?saved=1");
+      navigate(notificationManageUrl);
     } catch (e) {
       setToast({
         on: true,
@@ -1249,15 +1764,21 @@ export default function RecentOrdersPopupPage() {
   }));
 
   const unusable = !hasUsableOrders;
+  const intervalUnit =
+    form.intervalUnit || intervalUnitFromSeconds(form.alternateSeconds);
+  const intervalValue = intervalValueFromSeconds(
+    form.alternateSeconds,
+    intervalUnit
+  );
 
   return (
     <Frame>
       {saving && <Loading />}
       <Page
-        title={`Configuration – ${title}`}
+        title={`Configuration - ${title}`}
         backAction={{
           content: "Back",
-          onAction: () => navigate("/app/notification"),
+          onAction: () => navigate(notificationUrl),
         }}
         primaryAction={{
           content: "Save",
@@ -1266,16 +1787,27 @@ export default function RecentOrdersPopupPage() {
           disabled: saving || unusable,
         }}
       >
-        <Layout>
-          <Layout.Section oneHalf>
-            <Card>
-              <Box padding="4">
-                <LivePreview form={form} order={preview} />
-              </Box>
-            </Card>
-          </Layout.Section>
+        <style>{RECENT_STYLES}</style>
+<div className="recent-shell">
+  <div className="recent-sidebar">
+    {NAV_ITEMS.map(({ id, label, Icon }) => (
+      <button
+        key={id}
+        type="button"
+        className={`recent-nav-btn ${activeSection === id ? "is-active" : ""}`}
+        onClick={() => setActiveSection(id)}
+      >
+        <Icon />
+        <span>{label}</span>
+      </button>
+    ))}
+  </div>
 
-          <Layout.Section oneHalf>
+  <div className="recent-main">
+    <div className="recent-columns">
+      <div className="recent-form">
+        <BlockStack gap="400">
+          {activeSection === "content" && (
             <Card>
               <Box padding="4">
                 <BlockStack gap="300">
@@ -1284,10 +1816,7 @@ export default function RecentOrdersPopupPage() {
                   </Text>
 
                   {unusable && (
-                    <Banner
-                      status="critical"
-                      title="You have no usable orders."
-                    >
+                    <Banner status="critical" title="You have no usable orders.">
                       <p>
                         No orders with products were found in the selected
                         window. Try selecting fewer days or wait until you have
@@ -1313,7 +1842,7 @@ export default function RecentOrdersPopupPage() {
                     Last newest order time (static):{" "}
                     {form.createOrderTime
                       ? new Date(form.createOrderTime).toLocaleString()
-                      : "—"}
+                      : "-"}
                   </Text>
 
                   <ChoiceList
@@ -1323,13 +1852,56 @@ export default function RecentOrdersPopupPage() {
                     selected={form.namesJson}
                     onChange={onField("namesJson")}
                   />
+
+                  <TextField
+                    label="Message Text"
+                    value={form.messageText}
+                    onChange={onField("messageText")}
+                    helpText="Short line shown after the product name."
+                    autoComplete="off"
+                  />
+                  <BlockStack gap="200">
+                    <Text as="p" variant="bodySm">
+                      Product name display
+                    </Text>
+                    <InlineStack gap="400">
+                      <RadioButton
+                        id="product-name-full"
+                        name="product_name_mode"
+                        label="Show full product name"
+                        checked={form.productNameMode === "full"}
+                        onChange={() =>
+                          setForm((f) => ({ ...f, productNameMode: "full" }))
+                        }
+                      />
+                      <RadioButton
+                        id="product-name-half"
+                        name="product_name_mode"
+                        label="Show half product name"
+                        checked={form.productNameMode === "half"}
+                        onChange={() =>
+                          setForm((f) => ({ ...f, productNameMode: "half" }))
+                        }
+                      />
+                    </InlineStack>
+                    {form.productNameMode === "half" && (
+                      <Box width="50%">
+                        <TextField
+                          label="Character limit"
+                          type="number"
+                          value={form.productNameLimit}
+                          onChange={onField("productNameLimit")}
+                          autoComplete="off"
+                        />
+                      </Box>
+                    )}
+                  </BlockStack>
                 </BlockStack>
               </Box>
             </Card>
-          </Layout.Section>
+          )}
 
-          {/* Display & Customize */}
-          <Layout.Section oneHalf>
+          {activeSection === "display" && (
             <Card>
               <Box padding="4">
                 <BlockStack gap="300">
@@ -1349,56 +1921,241 @@ export default function RecentOrdersPopupPage() {
                         alignment="horizontal"
                       />
                     </Box>
-                    <Box width="50%">
-                      <Select
-                        label="Display On Pages"
-                        options={PAGES}
-                        value={form.showType}
-                        onChange={onField("showType")}
-                      />
-                    </Box>
                   </InlineStack>
 
+                  <Text as="h4" variant="headingSm">
+                    Show on
+                  </Text>
+                  <BlockStack gap="200">
+                    <Checkbox
+                      label="Home page"
+                      checked={visibility.showHome}
+                      onChange={(v) =>
+                        setVisibility((s) => ({ ...s, showHome: v }))
+                      }
+                    />
+                    <Checkbox
+                      label="Product page"
+                      checked={visibility.showProduct}
+                      onChange={(v) =>
+                        setVisibility((s) => ({ ...s, showProduct: v }))
+                      }
+                    />
+                    <Checkbox
+                      label="Collection list"
+                      checked={visibility.showCollectionList}
+                      onChange={(v) =>
+                        setVisibility((s) => ({
+                          ...s,
+                          showCollectionList: v,
+                        }))
+                      }
+                    />
+                    <Checkbox
+                      label="Collection page"
+                      checked={visibility.showCollection}
+                      onChange={(v) =>
+                        setVisibility((s) => ({ ...s, showCollection: v }))
+                      }
+                    />
+                    <Checkbox
+                      label="Cart page"
+                      checked={visibility.showCart}
+                      onChange={(v) =>
+                        setVisibility((s) => ({ ...s, showCart: v }))
+                      }
+                    />
+                  </BlockStack>
+
+                  <TextField
+                    label="Delay before first notification"
+                    type="number"
+                    min={0}
+                    max={3600}
+                    step={1}
+                    value={String(form.firstDelaySeconds ?? 0)}
+                    onChange={onNumClamp("firstDelaySeconds", 0, 3600)}
+                    suffix="seconds"
+                    autoComplete="off"
+                  />
+                  <TextField
+                    label="Display duration"
+                    type="number"
+                    min={1}
+                    max={120}
+                    step={1}
+                    value={String(form.durationSeconds)}
+                    onChange={onNumClamp("durationSeconds", 1, 120)}
+                    suffix="seconds"
+                    autoComplete="off"
+                  />
                   <InlineStack gap="400" wrap={false}>
                     <Box width="50%">
                       <TextField
-                        label="Popup Display Duration (seconds)"
+                        label="Interval time"
                         type="number"
-                        min={1}
-                        max={120}
+                        min={0}
+                        max={intervalUnit === "minutes" ? 60 : 3600}
                         step={1}
-                        value={String(form.durationSeconds)}
-                        onChange={onNumClamp("durationSeconds", 1, 120)}
-                        suffix="S"
+                        value={String(intervalValue)}
+                        onChange={onIntervalValueChange}
                         autoComplete="off"
                       />
                     </Box>
                     <Box width="50%">
-                      <TextField
-                        label="Interval Between Popups (seconds)"
-                        type="number"
-                        min={0}
-                        max={3600}
-                        step={1}
-                        value={String(form.alternateSeconds)}
-                        onChange={onNumClamp("alternateSeconds", 0, 3600)}
-                        suffix="S"
-                        autoComplete="off"
+                      <Select
+                        label=" "
+                        labelHidden
+                        options={TIME_UNITS}
+                        value={intervalUnit}
+                        onChange={onIntervalUnitChange}
                       />
                     </Box>
                   </InlineStack>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Delay between each notification.
+                  </Text>
                 </BlockStack>
               </Box>
             </Card>
-          </Layout.Section>
+          )}
 
-          <Layout.Section oneHalf>
+          {activeSection === "layout" && (
             <Card>
               <Box padding="4">
                 <BlockStack gap="300">
                   <Text as="h3" variant="headingMd">
                     Customize
                   </Text>
+                  <Select
+                    label="Layout"
+                    options={LAYOUTS}
+                    value={form.layout}
+                    onChange={onField("layout")}
+                  />
+                  <BlockStack gap="200">
+                    <Text as="p">Color template</Text>
+                    <InlineStack gap="300">
+                      <RadioButton
+                        id="template-solid"
+                        name="template"
+                        label="Solid"
+                        checked={form.template === "solid"}
+                        onChange={() =>
+                          setForm((f) => ({ ...f, template: "solid" }))
+                        }
+                      />
+                      <RadioButton
+                        id="template-gradient"
+                        name="template"
+                        label="Gradient"
+                        checked={form.template === "gradient"}
+                        onChange={() =>
+                          setForm((f) => ({ ...f, template: "gradient" }))
+                        }
+                      />
+                    </InlineStack>
+                  </BlockStack>
+                  <InlineStack gap="400" wrap={false}>
+                    <Box width="50%">
+                      <ColorInput
+                        label="Background color"
+                        value={form.bgColor}
+                        onChange={(v) =>
+                          setForm((f) => ({ ...f, bgColor: v }))
+                        }
+                      />
+                    </Box>
+                    <Box width="50%">
+                      <ColorInput
+                        label="Background color (alt)"
+                        value={form.bgAlt}
+                        onChange={(v) =>
+                          setForm((f) => ({ ...f, bgAlt: v }))
+                        }
+                      />
+                    </Box>
+                  </InlineStack>
+                  <InlineStack gap="400" wrap={false}>
+                    <Box width="50%">
+                      <ColorInput
+                        label="Text color"
+                        value={form.textColor}
+                        onChange={(v) =>
+                          setForm((f) => ({ ...f, textColor: v }))
+                        }
+                      />
+                    </Box>
+                    <Box width="50%">
+                      <ColorInput
+                        label="Number color"
+                        value={form.numberColor}
+                        onChange={(v) =>
+                          setForm((f) => ({ ...f, numberColor: v }))
+                        }
+                      />
+                    </Box>
+                  </InlineStack>
+                  <InlineStack gap="400" wrap={false}>
+                    <Box width="50%">
+                      <ColorInput
+                        label="Price tag background"
+                        value={form.priceTagBg}
+                        onChange={(v) =>
+                          setForm((f) => ({ ...f, priceTagBg: v }))
+                        }
+                      />
+                    </Box>
+                    <Box width="50%">
+                      <ColorInput
+                        label="Compare at price color"
+                        value={form.priceTagAlt}
+                        onChange={(v) =>
+                          setForm((f) => ({ ...f, priceTagAlt: v }))
+                        }
+                      />
+                    </Box>
+                  </InlineStack>
+                  <InlineStack gap="400" wrap={false}>
+                    <Box width="50%">
+                      <ColorInput
+                        label="Price color"
+                        value={form.priceColor}
+                        onChange={(v) =>
+                          setForm((f) => ({ ...f, priceColor: v }))
+                        }
+                      />
+                    </Box>
+                    <Box width="50%">
+                      <ColorInput
+                        label="Star color"
+                        value={form.starColor}
+                        onChange={(v) =>
+                          setForm((f) => ({ ...f, starColor: v }))
+                        }
+                      />
+                    </Box>
+                  </InlineStack>
+                  <ChoiceList
+                    title="Image appearance"
+                    choices={[
+                      {
+                        label: "Cover (Overflowing container)",
+                        value: "cover",
+                      },
+                      {
+                        label: "Fit within container",
+                        value: "contain",
+                      },
+                    ]}
+                    selected={[form.imageAppearance]}
+                    onChange={(v) =>
+                      setForm((f) => ({
+                        ...f,
+                        imageAppearance: v[0] || "cover",
+                      }))
+                    }
+                  />
                   <InlineStack gap="400" wrap={false}>
                     <Box width="50%">
                       <Select
@@ -1427,6 +2184,34 @@ export default function RecentOrdersPopupPage() {
                   </InlineStack>
                   <InlineStack gap="400" wrap={false}>
                     <Box width="50%">
+                      <TextField
+                        type="number"
+                        label="Font Size (px)"
+                        value={String(form.rounded)}
+                        onChange={(v) =>
+                          setForm((f) => ({
+                            ...f,
+                            rounded: String(v),
+                          }))
+                        }
+                        autoComplete="off"
+                      />
+                    </Box>
+                  </InlineStack>
+                </BlockStack>
+              </Box>
+            </Card>
+          )}
+
+          {activeSection === "behavior" && (
+            <Card>
+              <Box padding="4">
+                <BlockStack gap="300">
+                  <Text as="h3" variant="headingMd">
+                    Placement & Motion
+                  </Text>
+                  <InlineStack gap="400" wrap={false}>
+                    <Box width="50%">
                       <Select
                         label="Desktop Popup Position"
                         options={[
@@ -1436,7 +2221,7 @@ export default function RecentOrdersPopupPage() {
                           "bottom-right",
                         ].map((v) => ({
                           label: v
-                            .replace("-", " ")
+                            .replace("-", " " )
                             .replace(/\b\w/g, (c) => c.toUpperCase()),
                           value: v,
                         }))}
@@ -1492,56 +2277,26 @@ export default function RecentOrdersPopupPage() {
                       />
                     </Box>
                   </InlineStack>
-                  <InlineStack gap="400" wrap={false}>
-                    <Box width="50%">
-                      <TextField
-                        type="number"
-                        label="Font Size (px)"
-                        value={String(form.rounded)}
-                        onChange={(v) =>
-                          setForm((f) => ({
-                            ...f,
-                            rounded: String(v),
-                          }))
-                        }
-                        autoComplete="off"
-                      />
-                    </Box>
-                    <Box width="50%">
-                      <ColorInput
-                        label="Headline Text Color"
-                        value={form.titleColor}
-                        onChange={(v) =>
-                          setForm((f) => ({ ...f, titleColor: v }))
-                        }
-                      />
-                    </Box>
-                  </InlineStack>
-                  <InlineStack gap="400" wrap={false}>
-                    <Box width="50%">
-                      <ColorInput
-                        label="Popup Background Color"
-                        value={form.bgColor}
-                        onChange={(v) =>
-                          setForm((f) => ({ ...f, bgColor: v }))
-                        }
-                      />
-                    </Box>
-                    <Box width="50%">
-                      <ColorInput
-                        label="Message Text Color"
-                        value={form.msgColor}
-                        onChange={(v) =>
-                          setForm((f) => ({ ...f, msgColor: v }))
-                        }
-                      />
-                    </Box>
-                  </InlineStack>
                 </BlockStack>
               </Box>
             </Card>
-          </Layout.Section>
-        </Layout>
+          )}
+        </BlockStack>
+      </div>
+
+      <div className="recent-preview">
+        <Card>
+          <Box padding="4">
+            <div className="recent-preview-box">
+              <LivePreview form={form} order={preview} />
+            </div>
+          </Box>
+        </Card>
+      </div>
+    </div>
+  </div>
+</div>
+
       </Page>
 
       {toast.on && (
@@ -1556,7 +2311,7 @@ export default function RecentOrdersPopupPage() {
   );
 }
 
-/* ───────────────── ErrorBoundary ──────────────── */
+/* ---------------- ErrorBoundary ---------------- */
 export function ErrorBoundary() {
   const error = useRouteError();
   console.error("[Fomoify] RecentOrdersPopupPage route error:", error);

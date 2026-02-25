@@ -13,29 +13,29 @@
 // import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 // import { login } from "../../shopify.server";
 // import { loginErrorMessage } from "./error.server";
-
+//
 // export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
-
+//
 // export const loader = async ({ request }) => {
 //   const errors = loginErrorMessage(await login(request));
-
+//
 //   return { errors, polarisTranslations };
 // };
-
+//
 // export const action = async ({ request }) => {
 //   const errors = loginErrorMessage(await login(request));
-
+//
 //   return {
 //     errors,
 //   };
 // };
-
+//
 // export default function Auth() {
 //   const loaderData = useLoaderData();
 //   const actionData = useActionData();
 //   const [shop, setShop] = useState("");
 //   const { errors } = actionData || loaderData;
-
+//
 //   return (
 //     <PolarisAppProvider i18n={loaderData.polarisTranslations}>
 //       <Page>
@@ -64,36 +64,27 @@
 //   );
 // }
 // app/routes/auth.login/route.jsx
+import { redirect } from "@remix-run/node";
 import { authenticate } from "../../shopify.server";
 
-// Loader: Shopify helper redirect use કરો જેથી context (host, shop) preserve રહે
+// Loader: Shopify helper redirect use àª•àª°à«‹ àªœà«‡àª¥à«€ context (host, shop) preserve àª°àª¹à«‡
 export const loader = async ({ request }) => {
-  const { redirect, session } = await authenticate.admin(request);
+  const result = await authenticate.admin(request);
+  if (result instanceof Response) return result;
 
-  // Log auth result for debugging redirect loop
-  console.log('Auth result in /auth.login loader:', {
-    hasSession: !!session,
-    shop: session?.shop || null,
-    url: request.url
-  });
-
-  return redirect("/app"); // /app index loader first-time /app/theme-embed પર મોકલી દેશે
+  const url = new URL(request.url);
+  return redirect(`/app${url.search}`);
 };
 
-// (optional safety) જો POST થઈ જાય તો પણ એ જ રીતે redirect કરો
+// (optional safety) àªœà«‹ POST àª¥àªˆ àªœàª¾àª¯ àª¤à«‹ àªªàª£ àª àªœ àª°à«€àª¤à«‡ redirect àª•àª°à«‹
 export const action = async ({ request }) => {
-  const { redirect, session } = await authenticate.admin(request);
+  const result = await authenticate.admin(request);
+  if (result instanceof Response) return result;
 
-  // Log auth result for debugging redirect loop
-  console.log('Auth result in /auth.login action:', {
-    hasSession: !!session,
-    shop: session?.shop || null,
-    url: request.url
-  });
-
-  return redirect("/app");
+  const url = new URL(request.url);
+  return redirect(`/app${url.search}`);
 };
 
 export default function AuthLogin() {
-  return null; // કોઈ UI નહીં
+  return null; // àª•à«‹àªˆ UI àª¨àª¹à«€àª‚
 }
