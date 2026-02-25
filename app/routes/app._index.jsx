@@ -24,6 +24,7 @@ import {
 import { APP_EMBED_HANDLE } from "../utils/themeEmbed.shared";
 import { getEmbedPingStatus } from "../utils/embedPingStatus.server";
 import { sendOwnerEmail } from "../utils/sendOwnerEmail.server";
+import { maybeSendAnnouncementEmail } from "../utils/sendAnnouncementEmail.server";
 
 const CONTACT_SUBJECT_DEFAULT = "Support Request (FOMO Shopify App)";
 const CONTACT_ACK_SUBJECT = "We received your support request (FOMO Shopify App)";
@@ -246,10 +247,7 @@ const INDEX_SUPPORT_STYLES = `
     background-size: 36px 36px, 36px 36px, auto;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
     border-color: #c8d7f3;
-    background-image:
-    linear-gradient(0deg, rgba(255,255,255,0.3) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px),
-    linear-gradient(150deg, #eaf1ff 0%, #dce9ff 100%);
+        background-image: linear-gradient(0deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(150deg, #bca9e4 0%, #d2c4f1 100%);
 }
 .home-support-items {
   display: grid;
@@ -274,21 +272,14 @@ const INDEX_SUPPORT_STYLES = `
 }
 .home-support-item.chat {
   border-color: #c8d7f3;
-  background-image:
-    linear-gradient(0deg, rgba(255,255,255,0.3) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px),
-    linear-gradient(150deg, #eaf1ff 0%, #dce9ff 100%);
+      background-image: linear-gradient(0deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(150deg, #bca9e4 0%, #d2c4f1 100%);
 }
 .home-support-item.knowledge {
-  border-color: #c6d9ca;
   border-color: #c8d7f3;
-  background-image:
-    linear-gradient(0deg, rgba(255,255,255,0.3) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px),
-    linear-gradient(150deg, #eaf1ff 0%, #dce9ff 100%);
+      background-image: linear-gradient(0deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(150deg, #bca9e4 0%, #d2c4f1 100%);
 }
 .home-support-item:hover {
-  border-color: #96b6ff;
+  border-color: #a982fd;
   box-shadow: 0 0 0 2px rgba(47, 133, 90, 0.08);
   transform: translateY(-1px);
 }
@@ -343,10 +334,7 @@ const INDEX_SUPPORT_STYLES = `
   justify-content: space-between;
   border-color: #c8d7f3;
   border-color: #c8d7f3;
-  background-image:
-    linear-gradient(0deg, rgba(255,255,255,0.3) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px),
-    linear-gradient(150deg, #eaf1ff 0%, #dce9ff 100%);
+  background-image: linear-gradient(0deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(150deg, #bca9e4 0%, #d2c4f1 100%);
   background-size: 36px 36px, 36px 36px, auto;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
@@ -476,6 +464,11 @@ export const loader = async ({ request }) => {
     "";
   const shopDomain = toShopDomain(shop);
   const themeIdPromise = getMainThemeId({ admin, shop });
+
+  // Fire announcement email in background — does not block page load
+  maybeSendAnnouncementEmail(shopDomain, session?.email ?? null).catch((err) =>
+    console.error("[announcement email] error:", err.message)
+  );
 
   const apiKey =
     process.env.SHOPIFY_API_KEY ||
