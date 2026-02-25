@@ -1,9 +1,5 @@
 {
-<<<<<<< HEAD
-  "name": "pryxo-tech-fomo-popup",
-=======
   "name": "pryxo-tech-fomoify-sales",
->>>>>>> 02f3b15 (Initial commit from local project)
   "private": true,
   "type": "module",
   "engines": {
