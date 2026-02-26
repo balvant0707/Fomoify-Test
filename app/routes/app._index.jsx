@@ -1090,7 +1090,7 @@ export default function AppIndex() {
                   </div>
                   <div className="home-support-item-body">
                     <div className="home-support-item-link">Support Ticket</div>
-                    <Text as="p" tone="subdued">
+                    <Text as="p">
                       Support, reply, and assist instantly in office hours.
                     </Text>
                   </div>
@@ -1118,7 +1118,7 @@ export default function AppIndex() {
                   </div>
                   <div className="home-support-item-body">
                     <div className="home-support-item-link">Knowledge base</div>
-                    <Text as="p" tone="subdued">
+                    <Text as="p">
                       Find a solution for your problem with our documents.
                     </Text>
                   </div>
