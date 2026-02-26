@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   const SHOP = String((window.Shopify && window.Shopify.shop) || rootShopDomain)
     .trim()
     .toLowerCase();
-  const PROXY_BASES = ["/apps/fomo-v2"];
+  const PROXY_BASES = ["/apps/fomo"];
   const PROXY_STORE_KEY = "__fomo_proxy_base__";
   const readSavedProxyBase = () => {
     try {
