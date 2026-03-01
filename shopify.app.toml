@@ -10,24 +10,23 @@ handle = "fomoify-sales-popups-proof"
 automatically_update_urls_on_dev = true
 
 [webhooks]
-# Match this with your code. Your code uses ApiVersion.January25 → "2025-01"
 api_version = "2025-01"
 
-  # --- App lifecycle topics (already present) ---
   [[webhooks.subscriptions]]
   topics = ["app/uninstalled"]
-  uri = "/webhooks/app/uninstalled"
+  uri = "/webhooks"
 
   [[webhooks.subscriptions]]
   topics = ["app/scopes_update"]
-  uri = "/webhooks/app/scopes_update"
+  uri = "/webhooks"
 
-  # --- ✅ GDPR / Compliance (required for App Store) ---
-  # One declaration covering all 3 compliance topics
+  [[webhooks.subscriptions]]
+  topics = ["orders/create"]
+  uri = "/webhooks"
+
   [[webhooks.subscriptions]]
   compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
-  # Route can be anything under /webhooks/... because your Remix route is webhooks.$.jsx
-  uri = "/webhooks/gdpr"
+  uri = "/webhooks"
 
 [access_scopes]
 scopes = "read_products,write_products,read_themes,write_themes,write_orders,read_orders,read_customers,write_customers"

@@ -45,23 +45,48 @@ export const loader = async ({ request }) => {
     try {
       const resp = await admin.graphql(
         `#graphql
-        query AppInstallOwnerEmail {
+        query AppInstallOwnerInfo {
           shop {
             email
             contactEmail
             myshopifyDomain
             name
+            shopOwnerName
+            currencyCode
+            plan { displayName }
+            primaryDomain { host }
+            billingAddress {
+              country
+              city
+              phone
+            }
           }
         }`
       );
       const js = await resp.json();
-      ownerEmail =
-        js?.data?.shop?.contactEmail ||
-        js?.data?.shop?.email ||
-        null;
+      const shopData = js?.data?.shop || {};
 
-      shopName = js?.data?.shop?.name || shop;
-      myshopifyDomain = js?.data?.shop?.myshopifyDomain || shop;
+      ownerEmail = shopData.contactEmail || shopData.email || null;
+      shopName = shopData.name || shop;
+      myshopifyDomain = shopData.myshopifyDomain || shop;
+
+      // Persist extended owner data
+      await upsertInstalledShop({
+        shop,
+        accessToken: session.accessToken ?? null,
+        ownerData: {
+          ownerName: shopData.shopOwnerName || null,
+          email: shopData.email || null,
+          contactEmail: shopData.contactEmail || null,
+          name: shopData.name || null,
+          country: shopData.billingAddress?.country || null,
+          city: shopData.billingAddress?.city || null,
+          currency: shopData.currencyCode || null,
+          phone: shopData.billingAddress?.phone || null,
+          primaryDomain: shopData.primaryDomain?.host || null,
+          plan: shopData.plan?.displayName || null,
+        },
+      });
     } catch (e) {
       console.error("[FOMO][INSTALL EMAIL] failed to fetch shop info:", e);
     }
