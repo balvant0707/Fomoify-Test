@@ -317,7 +317,7 @@ export async function loader({ request }) {
     if (admin?.graphql) {
       const countRes = await admin.graphql(`
         query AddToCartLoaderMeta {
-          customersCount {
+          customersCount(limit: null) {
             count
           }
           customers(first: 25, sortKey: UPDATED_AT, reverse: true) {

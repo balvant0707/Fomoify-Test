@@ -107,7 +107,7 @@ export async function loader({ request }) {
 
   try {
     const resp = await admin.graphql(
-      "query { customersCount { count } }"
+      "query { customersCount(limit: null) { count } }"
     );
     const payload = await resp.json();
     const count =

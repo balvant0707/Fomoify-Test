@@ -88,7 +88,7 @@ const sessionStorage = createSessionStorage(prisma);
 export const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
-  apiVersion: ApiVersion.January25,
+  apiVersion: ApiVersion.July25,
   scopes: (process.env.SCOPES || "").split(",").filter(Boolean),
   appUrl: process.env.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
@@ -144,7 +144,7 @@ export default shopify;
 // named exports used by routes
 export const authenticate = shopify.authenticate;
 export const unauthenticated = shopify.unauthenticated;
-export const apiVersion = ApiVersion.January25;
+export const apiVersion = ApiVersion.July25;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
 export const login = shopify.login;
 export const registerWebhooks = shopify.registerWebhooks;

@@ -472,7 +472,7 @@ async function fetchProductsByIds({ shop, accessToken, productIds }) {
   const CHUNK = 100;
   for (let i = 0; i < ids.length; i += CHUNK) {
     const chunk = ids.slice(i, i + CHUNK);
-    const endpoint = `https://${shop}/admin/api/2025-01/products.json?ids=${chunk.join(",")}&fields=id,handle,image`;
+    const endpoint = `https://${shop}/admin/api/2025-07/products.json?ids=${chunk.join(",")}&fields=id,handle,image`;
     try {
       const resp = await fetch(endpoint, {
         headers: {
@@ -769,7 +769,7 @@ export const loader = async ({ request, params }) => {
           const createdAtMin = new Date(
             Date.now() - days * 24 * 60 * 60 * 1000
           ).toISOString();
-          const endpoint = `https://${shop}/admin/api/2025-01/orders.json?status=any&limit=${limit}&created_at_min=${encodeURIComponent(createdAtMin)}&fields=id,created_at,processed_at,customer,shipping_address,billing_address,line_items`;
+          const endpoint = `https://${shop}/admin/api/2025-07/orders.json?status=any&limit=${limit}&created_at_min=${encodeURIComponent(createdAtMin)}&fields=id,created_at,processed_at,customer,shipping_address,billing_address,line_items`;
 
           const resp = await fetch(endpoint, {
             headers: {
@@ -835,7 +835,7 @@ export const loader = async ({ request, params }) => {
             };
           }
 
-          const endpoint = `https://${shop}/admin/api/2025-01/customers.json?limit=${limit}&fields=first_name,last_name,default_address`;
+          const endpoint = `https://${shop}/admin/api/2025-07/customers.json?limit=${limit}&fields=first_name,last_name,default_address`;
           const resp = await fetch(endpoint, {
             headers: {
               "X-Shopify-Access-Token": shopRecord.accessToken,
