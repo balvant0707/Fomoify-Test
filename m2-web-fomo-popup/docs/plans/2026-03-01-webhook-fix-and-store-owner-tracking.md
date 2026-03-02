@@ -6,7 +6,7 @@
 
 **Architecture:** Extend the existing `shop` Prisma model with owner fields (email, name, country, etc.) and a `status` column. Consolidate two conflicting webhook route files into one. Expand the GraphQL query in `auth.$.jsx` to fetch extended owner data and persist it via `upsertInstalledShop`.
 
-**Tech Stack:** Remix 2.17, Prisma 6 (MySQL), Shopify Admin GraphQL API 2025-01
+**Tech Stack:** Remix 2.17, Prisma 6 (MySQL), Shopify Admin GraphQL API 2026-01
 
 ---
 
@@ -67,7 +67,7 @@ Replace lines 12-31 with:
 
 ```toml
 [webhooks]
-api_version = "2025-01"
+api_version = "2026-01"
 
   [[webhooks.subscriptions]]
   topics = ["app/uninstalled"]
