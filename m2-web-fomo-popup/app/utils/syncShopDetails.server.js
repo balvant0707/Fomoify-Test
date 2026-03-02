@@ -16,7 +16,6 @@ const SHOP_PROFILE_QUERY = `#graphql
       email
       contactEmail
       name
-      shopOwnerName
       currencyCode
       plan { displayName }
       primaryDomain { host }
@@ -24,6 +23,9 @@ const SHOP_PROFILE_QUERY = `#graphql
         country
         city
         phone
+      }
+      accountOwner {
+        name
       }
     }
   }`;
@@ -103,7 +105,7 @@ export async function syncShopDetails({
       shop,
       accessToken,
       ownerData: {
-        ownerName: shopData.shopOwnerName || null,
+        ownerName: shopData.accountOwner?.name || null,
         email: shopData.email || null,
         contactEmail: shopData.contactEmail || null,
         name: shopData.name || null,
