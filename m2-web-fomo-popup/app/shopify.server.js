@@ -8,8 +8,8 @@ import {
 } from "@shopify/shopify-app-remix/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
-import { upsertInstalledShop } from "./utils/upsertShop.server";
 import { ensurePrismaSessionTable } from "./utils/ensureSessionTable.server";
+import { syncShopDetails } from "./utils/syncShopDetails.server";
 
 const toPositiveInt = (value, fallback) => {
   const n = Number(value);
@@ -128,62 +128,12 @@ export const shopify = shopifyApp({
 
   hooks: {
     afterAuth: async ({ session, admin }) => {
-      const shop = session?.shop;
-      const accessToken = session?.accessToken ?? null;
-
-      const persistInstall = async (ownerData) =>
-        upsertInstalledShop({
-          shop,
-          accessToken,
-          ownerData,
-        });
-
-      await persistInstall(undefined);
-
-      // OAuth callbacks can return before custom logic in auth routes.
-      // Fetch and persist shop profile here to ensure details are stored reliably.
-      if (admin?.graphql) {
-        try {
-          const resp = await admin.graphql(
-            `#graphql
-            query AppInstallOwnerInfo {
-              shop {
-                email
-                contactEmail
-                name
-                shopOwnerName
-                currencyCode
-                plan { displayName }
-                primaryDomain { host }
-                billingAddress {
-                  country
-                  city
-                  phone
-                }
-              }
-            }`
-          );
-          const js = await resp.json();
-          const shopData = js?.data?.shop;
-
-          if (shopData) {
-            await persistInstall({
-              ownerName: shopData.shopOwnerName || null,
-              email: shopData.email || null,
-              contactEmail: shopData.contactEmail || null,
-              name: shopData.name || null,
-              country: shopData.billingAddress?.country || null,
-              city: shopData.billingAddress?.city || null,
-              currency: shopData.currencyCode || null,
-              phone: shopData.billingAddress?.phone || null,
-              primaryDomain: shopData.primaryDomain?.host || null,
-              plan: shopData.plan?.displayName || null,
-            });
-          }
-        } catch (error) {
-          console.error("[afterAuth] failed to fetch/persist shop details:", error);
-        }
-      }
+      await syncShopDetails({
+        admin,
+        shop: session?.shop,
+        accessToken: session?.accessToken,
+        force: true,
+      });
 
       const reg = await shopify.registerWebhooks({ session });
       console.log("registerWebhooks:", JSON.stringify(reg, null, 2));
