@@ -82,7 +82,9 @@ document.addEventListener("DOMContentLoaded", async function () {
   const EMBED_STATUS_ENDPOINT = appendShopQuery("embed-status", SHOP);
 
   const EMBED_PING_STORE_KEY = "__fomo_embed_ping_ts__";
-  const EMBED_PING_INTERVAL_MS = 2 * 1000;
+  const EMBED_PING_INTERVAL_MS = 60 * 1000;
+  const EMBED_PING_INIT_DELAY_MS = 15 * 1000;
+  let embedPingIntervalId = null;
   const shouldPingEmbedStatus = () => {
     try {
       const raw = window.sessionStorage.getItem(EMBED_PING_STORE_KEY);
@@ -99,6 +101,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     } catch {}
   };
   const pingEmbedStatus = () => {
+    if (document.visibilityState === "hidden") return;
     if (!SHOP || !shouldPingEmbedStatus()) return;
     const pingUrl = `${EMBED_STATUS_ENDPOINT}${
       EMBED_STATUS_ENDPOINT.includes("?") ? "&" : "?"
@@ -117,12 +120,23 @@ document.addEventListener("DOMContentLoaded", async function () {
       })
       .catch(() => { });
   };
-  pingEmbedStatus();
-  setInterval(pingEmbedStatus, EMBED_PING_INTERVAL_MS);
-  window.addEventListener("focus", pingEmbedStatus);
+  const startEmbedPingLoop = () => {
+    if (!SHOP || embedPingIntervalId !== null) return;
+    window.setTimeout(pingEmbedStatus, EMBED_PING_INIT_DELAY_MS);
+    embedPingIntervalId = window.setInterval(
+      pingEmbedStatus,
+      EMBED_PING_INTERVAL_MS
+    );
+  };
+  if (document.readyState === "complete") {
+    startEmbedPingLoop();
+  } else {
+    window.addEventListener("load", startEmbedPingLoop, { once: true });
+  }
+  window.addEventListener("focus", pingEmbedStatus, { passive: true });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") pingEmbedStatus();
-  });
+  }, { passive: true });
 
   /* ========== helpers ========== */
   const safe = (v, fb = "") =>
@@ -423,7 +437,26 @@ document.addEventListener("DOMContentLoaded", async function () {
     },
   };
 
-  const idle = () => Promise.resolve();
+  const waitForPageLoad = () =>
+    new Promise((resolve) => {
+      if (document.readyState === "complete") {
+        resolve();
+        return;
+      }
+      window.addEventListener("load", () => resolve(), { once: true });
+    });
+  const idle = (timeout = 1200) =>
+    new Promise((resolve) => {
+      if (typeof window.requestIdleCallback === "function") {
+        window.requestIdleCallback(() => resolve(), { timeout });
+        return;
+      }
+      window.setTimeout(resolve, 250);
+    });
+  const settleMainThread = async () => {
+    await waitForPageLoad();
+    await idle(1500);
+  };
 
   const VISITOR_ID_KEY = cacheKey("visitor-id");
   function ensureVisitorId() {
@@ -2263,7 +2296,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const sessionCacheKey = cacheKey("session");
     const cachedSession = cache.get(sessionCacheKey);
     if (cachedSession === true) sessionReady = true;
-    if (!sessionReady) await idle();
+    if (!sessionReady) await settleMainThread();
     while (!sessionReady && retries < maxRetries) {
       try {
         const sessionData = await fetchJson(SESSION_ENDPOINT, null, 0);
