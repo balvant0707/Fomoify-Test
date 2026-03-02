@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOMO Session Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px;
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <h1>FOMO Theme Extension Session Test</h1>
+    
+    <div class="test-section info">
+        <h3>Configuration</h3>
+        <label for="shopInput">Shop Domain:</label><br>
+        <input type="text" id="shopInput" placeholder="your-shop.myshopify.com" value="your-shop.myshopify.com">
+        <br>
+        <label for="appUrlInput">App URL:</label><br>
+        <input type="text" id="appUrlInput" placeholder="https://fomoapp.smartreminder.in" value="https://fomoapp.smartreminder.in">
+    </div>
+
+    <div class="test-section">
+        <h3>Session Tests</h3>
+        <button onclick="testSession()">Test Session Status</button>
+        <button onclick="testDebug()">Test Debug Info</button>
+        <button onclick="testPopup()">Test Popup Endpoint</button>
+        <button onclick="testAll()">Run All Tests</button>
+        <div id="sessionResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Theme Extension Simulation</h3>
+        <button onclick="simulateThemeExtension()">Simulate Theme Extension</button>
+        <div id="themeResult"></div>
+    </div>
+
+    <script>
+        function getShopDomain() {
+            return document.getElementById('shopInput').value;
+        }
+
+        function getAppUrl() {
+            return document.getElementById('appUrlInput').value;
+        }
+
+        async function makeRequest(endpoint, description) {
+            const shop = getShopDomain();
+            const appUrl = getAppUrl();
+            const url = `${appUrl}${endpoint}?shop=${encodeURIComponent(shop)}`;
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                return {
+                    success: response.ok,
+                    status: response.status,
+                    data: data,
+                    url: url
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error.message,
+                    url: url
+                };
+            }
+        }
+
+        function displayResult(elementId, result, description) {
+            const element = document.getElementById(elementId);
+            const className = result.success ? 'success' : 'error';
+            
+            element.innerHTML = `
+                <div class="${className}">
+                    <h4>${description}</h4>
+                    <p><strong>URL:</strong> ${result.url}</p>
+                    <p><strong>Status:</strong> ${result.status || 'Error'}</p>
+                    <pre>${JSON.stringify(result.data || result.error, null, 2)}</pre>
+                </div>
+            `;
+        }
+
+        async function testSession() {
+            const result = await makeRequest('/apps/fomo/session', 'Session Status Test');
+            displayResult('sessionResult', result, 'Session Status Test');
+        }
+
+        async function testDebug() {
+            const result = await makeRequest('/apps/fomo/debug', 'Debug Info Test');
+            displayResult('sessionResult', result, 'Debug Info Test');
+        }
+
+        async function testPopup() {
+            const result = await makeRequest('/apps/fomo/popup', 'Popup Endpoint Test');
+            displayResult('sessionResult', result, 'Popup Endpoint Test');
+        }
+
+        async function testAll() {
+            const tests = [
+                { endpoint: '/apps/fomo/session', name: 'Session Status' },
+                { endpoint: '/apps/fomo/debug', name: 'Debug Info' },
+                { endpoint: '/apps/fomo/popup', name: 'Popup Endpoint' }
+            ];
+
+            let allResults = '<h4>All Tests Results</h4>';
+            
+            for (const test of tests) {
+                const result = await makeRequest(test.endpoint, test.name);
+                const className = result.success ? 'success' : 'error';
+                allResults += `
+                    <div class="${className}" style="margin: 10px 0; padding: 10px;">
+                        <strong>${test.name}:</strong> ${result.success ? 'SUCCESS' : 'FAILED'}
+                        <br><small>${result.url}</small>
+                        <pre style="font-size: 12px; margin: 5px 0;">${JSON.stringify(result.data || result.error, null, 2)}</pre>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('sessionResult').innerHTML = allResults;
+        }
+
+        async function simulateThemeExtension() {
+            const shop = getShopDomain();
+            const appUrl = getAppUrl();
+            
+            // Simulate the theme extension session checking process
+            let result = '<h4>Theme Extension Simulation</h4>';
+            
+            // Step 1: Check session
+            result += '<h5>Step 1: Checking Session...</h5>';
+            const sessionResult = await makeRequest('/apps/fomo/session', 'Session Check');
+            result += `<div class="${sessionResult.success ? 'success' : 'error'}">
+                Session Check: ${sessionResult.success ? 'PASSED' : 'FAILED'}
+                <pre>${JSON.stringify(sessionResult.data || sessionResult.error, null, 2)}</pre>
+            </div>`;
+            
+            if (sessionResult.success && sessionResult.data.sessionReady) {
+                // Step 2: Get popup data
+                result += '<h5>Step 2: Getting Popup Data...</h5>';
+                const popupResult = await makeRequest('/apps/fomo/popup', 'Popup Data');
+                result += `<div class="${popupResult.success ? 'success' : 'error'}">
+                    Popup Data: ${popupResult.success ? 'PASSED' : 'FAILED'}
+                    <pre>${JSON.stringify(popupResult.data || popupResult.error, null, 2)}</pre>
+                </div>`;
+                
+                if (popupResult.success && popupResult.data.showPopup) {
+                    result += '<div class="success"><strong>✅ Theme Extension would work correctly!</strong></div>';
+                } else {
+                    result += '<div class="info"><strong>ℹ️ No popup data available, but session is working.</strong></div>';
+                }
+            } else {
+                result += '<div class="error"><strong>❌ Session not ready - Theme Extension would fail!</strong></div>';
+            }
+            
+            document.getElementById('themeResult').innerHTML = result;
+        }
+    </script>
+</body>
+</html>
+

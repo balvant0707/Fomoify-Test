@@ -1,0 +1,459 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "mysql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+model session {
+  id            String    @id @db.VarChar(255)
+  shop          String    @db.VarChar(255)
+  state         String    @db.VarChar(255)
+  isOnline      Boolean   @default(false)
+  scope         String?   @db.Text
+  expires       DateTime?
+  accessToken   String    @db.Text
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?   @db.VarChar(320)
+  accountOwner  Boolean   @default(false)
+  locale        String?   @db.VarChar(20)
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+}
+
+model shop {
+  id                      Int       @id @default(autoincrement())
+  shop                    String    @unique(map: "Shop_shop_key")
+  accessToken             String?
+  installed               Boolean   @default(false)
+  status                  String?   @default("installed") @db.VarChar(32)
+  ownerName               String?   @db.VarChar(255)
+  email                   String?   @db.VarChar(320)
+  contactEmail            String?   @db.VarChar(320)
+  name                    String?   @db.VarChar(255)
+  country                 String?   @db.VarChar(100)
+  city                    String?   @db.VarChar(100)
+  currency                String?   @db.VarChar(10)
+  phone                   String?   @db.VarChar(50)
+  primaryDomain           String?   @db.VarChar(255)
+  plan                    String?   @db.VarChar(100)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  onboardedAt             DateTime?
+  uninstalledAt           DateTime?
+  announcementEmailSentAt DateTime?
+}
+
+model notificationconfig {
+  id                   Int      @id @default(autoincrement())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @default(now()) @updatedAt
+  shop                 String
+  key                  String
+  enabled              Boolean  @default(false)
+  showType             String?
+  messageText          String?
+  fontFamily           String?
+  position             String?
+  animation            String?
+  mobileSize           String?
+  mobilePositionJson   String?
+  titleColor           String?
+  bgColor              String?
+  msgColor             String?
+  ctaBgColor           String?
+  rounded              Int?
+  durationSeconds      Int?
+  alternateSeconds     Int?
+  firstDelaySeconds    Int?
+  fontWeight           Int?
+  messageTitlesJson    String?  @db.LongText
+  orderDays            Int?     @default(7)
+  createOrderTime      String?  @db.VarChar(32)
+  orderDate            String?  @db.VarChar(32)
+  locationsJson        String?  @db.LongText
+  namesJson            String?  @db.LongText
+  selectedProductsJson String?  @db.LongText
+  iconKey              String?
+  iconSvg              String?  @db.LongText
+
+  @@index([shop, key], map: "NotificationConfig_shop_key_idx")
+}
+
+model visitorpopupconfig {
+  id                     Int      @id @default(autoincrement())
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @default(now()) @updatedAt
+  shop                   String
+  enabled                Boolean  @default(false)
+
+  notiType               String?
+  layout                 String?
+  size                   Int?
+  transparent            Int?
+  template               String?
+  imageAppearance        String?
+  bgColor                String?
+  bgAlt                  String?
+  textColor              String?
+  timestampColor         String?
+  priceTagBg             String?
+  priceTagAlt            String?
+  priceColor             String?
+  starColor              String?
+
+  textSizeContent        Int?
+  textSizeCompareAt      Int?
+  textSizePrice          Int?
+
+  message                String?  @db.LongText
+  timestamp              String?
+  avgTime                String?
+  avgUnit                String?
+
+  productNameMode        String?
+  productNameLimit       Int?
+
+  directProductPage      Boolean?
+  showProductImage       Boolean?
+  showPriceTag           Boolean?
+  showRating             Boolean?
+  ratingSource           String?
+  customerInfo           String?
+
+  showHome               Boolean?
+  showProduct            Boolean?
+  productScope           String?
+  showCollectionList     Boolean?
+  showCollection         Boolean?
+  collectionScope        String?
+  showCart               Boolean?
+  position               String?
+
+  showClose              Boolean?
+  hideOnMobile           Boolean?
+  delay                  Int?
+  duration               Int?
+  interval               Int?
+  intervalUnit           String?
+  randomize              Boolean?
+
+  /// Data tab product pool used for popup content generation.
+  selectedDataProductsJson String?  @db.LongText
+  /// Display tab product scope used to decide where popup may appear.
+  selectedVisibilityProductsJson String? @db.LongText
+  selectedProductsJson   String?  @db.LongText
+  selectedCollectionsJson String? @db.LongText
+
+  @@index([shop], map: "VisitorPopupConfig_shop_idx")
+}
+
+model lowstockpopupconfig {
+  id                     Int      @id @default(autoincrement())
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @default(now()) @updatedAt
+  shop                   String
+  enabled                Boolean  @default(false)
+
+  layout                 String?
+  size                   Int?
+  transparent            Int?
+  template               String?
+  imageAppearance        String?
+  bgColor                String?
+  bgAlt                  String?
+  textColor              String?
+  numberColor            String?
+  priceTagBg             String?
+  priceTagAlt            String?
+  priceColor             String?
+  starColor              String?
+
+  textSizeContent        Int?
+  textSizeCompareAt      Int?
+  textSizePrice          Int?
+
+  message                String?  @db.LongText
+  productNameMode        String?
+  productNameLimit       Int?
+
+  dataSource             String?
+  stockUnder             Int?
+  hideOutOfStock         Boolean?
+  directProductPage      Boolean?
+  showProductImage       Boolean?
+  showPriceTag           Boolean?
+  showRating             Boolean?
+
+  showHome               Boolean?
+  showProduct            Boolean?
+  productScope           String?
+  showCollectionList     Boolean?
+  showCollection         Boolean?
+  collectionScope        String?
+  showCart               Boolean?
+  position               String?
+
+  showClose              Boolean?
+  hideOnMobile           Boolean?
+  delay                  Int?
+  duration               Int?
+  interval               Int?
+  intervalUnit           String?
+  randomize              Boolean?
+
+  /// Data tab product pool used for low-stock popup content generation.
+  selectedDataProductsJson String?  @db.LongText
+  /// Display tab product scope used to decide where low-stock popup may appear.
+  selectedVisibilityProductsJson String? @db.LongText
+  selectedProductsJson   String?  @db.LongText
+  selectedCollectionsJson String? @db.LongText
+
+  @@index([shop], map: "LowStockPopupConfig_shop_idx")
+}
+
+model addtocartpopupconfig {
+  id                     Int      @id @default(autoincrement())
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @default(now()) @updatedAt
+  shop                   String
+  enabled                Boolean  @default(false)
+
+  layout                 String?
+  size                   Int?
+  transparent            Int?
+  template               String?
+  imageAppearance        String?
+  bgColor                String?
+  bgAlt                  String?
+  textColor              String?
+  timestampColor         String?
+  priceTagBg             String?
+  priceTagAlt            String?
+  priceColor             String?
+  starColor              String?
+
+  textSizeContent        Int?
+  textSizeCompareAt      Int?
+  textSizePrice          Int?
+
+  message                String?  @db.LongText
+  timestamp              String?
+  avgTime                String?
+  avgUnit                String?
+  productNameMode        String?
+  productNameLimit       Int?
+
+  dataSource             String?
+  customerInfo           String?
+  stockUnder             Int?
+  hideOutOfStock         Boolean?
+  directProductPage      Boolean?
+  showProductImage       Boolean?
+  showPriceTag           Boolean?
+  showRating             Boolean?
+
+  showHome               Boolean?
+  showProduct            Boolean?
+  productScope           String?
+  showCollectionList     Boolean?
+  showCollection         Boolean?
+  collectionScope        String?
+  showCart               Boolean?
+  position               String?
+
+  showClose              Boolean?
+  hideOnMobile           Boolean?
+  delay                  Int?
+  duration               Int?
+  interval               Int?
+  intervalUnit           String?
+  randomize              Boolean?
+
+  /// Data tab product pool used for add-to-cart popup content generation.
+  selectedDataProductsJson String?  @db.LongText
+  /// Display tab product scope used to decide where add-to-cart popup may appear.
+  selectedVisibilityProductsJson String? @db.LongText
+  selectedProductsJson   String?  @db.LongText
+  selectedCollectionsJson String? @db.LongText
+
+  @@index([shop], map: "AddToCartPopupConfig_shop_idx")
+}
+
+model reviewpopupconfig {
+  id                     Int      @id @default(autoincrement())
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @default(now()) @updatedAt
+  shop                   String
+  enabled                Boolean  @default(false)
+
+  reviewType             String?
+  template               String?
+  imageAppearance        String?
+  bgColor                String?
+  bgAlt                  String?
+  textColor              String?
+  timestampColor         String?
+  priceTagBg             String?
+  priceTagAlt            String?
+  priceColor             String?
+  starColor              String?
+
+  textSizeContent        Int?
+  textSizeCompareAt      Int?
+  textSizePrice          Int?
+
+  message                String?  @db.LongText
+  timestamp              String?
+  productNameMode        String?
+  productNameLimit       Int?
+
+  dataSource             String?
+  directProductPage      Boolean?
+  showProductImage       Boolean?
+  showPriceTag           Boolean?
+  showRating             Boolean?
+
+  showHome               Boolean?
+  showProduct            Boolean?
+  productScope           String?
+  showCollectionList     Boolean?
+  showCollection         Boolean?
+  collectionScope        String?
+  showCart               Boolean?
+  position               String?
+
+  showClose              Boolean?
+  hideOnMobile           Boolean?
+  delay                  Int?
+  duration               Int?
+  interval               Int?
+  intervalUnit           String?
+  randomize              Boolean?
+
+  selectedDataProductsJson String?  @db.LongText
+  selectedVisibilityProductsJson String? @db.LongText
+  selectedProductsJson   String?  @db.LongText
+  selectedCollectionsJson String? @db.LongText
+
+  @@index([shop], map: "ReviewPopupConfig_shop_idx")
+}
+
+model recentpopupconfig {
+  id             Int      @id @default(autoincrement())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+  shop           String
+  enabled        Boolean  @default(false)
+
+  showType             String?
+  messageText          String?  @db.LongText
+  fontFamily           String?
+  position             String?
+  animation            String?
+  mobileSize           String?
+  mobilePositionJson   String?  @db.LongText
+  template             String?
+  layout               String?
+  imageAppearance      String?
+  bgColor              String?
+  bgAlt                String?
+  textColor            String?
+  numberColor          String?
+  priceTagBg           String?
+  priceTagAlt          String?
+  priceColor           String?
+  starColor            String?
+  rounded              Int?
+  firstDelaySeconds    Int?
+  durationSeconds      Int?
+  alternateSeconds     Int?
+  intervalUnit         String?
+  fontWeight           Int?
+  productNameMode      String?
+  productNameLimit     Int?
+  orderDays            Int?
+  createOrderTime      String?  @db.VarChar(32)
+  messageTitlesJson    String?  @db.LongText
+  locationsJson        String?  @db.LongText
+  namesJson            String?  @db.LongText
+  selectedProductsJson String?  @db.LongText
+
+  @@index([shop], map: "RecentPopupConfig_shop_idx")
+}
+
+model flashpopupconfig {
+  id             Int      @id @default(autoincrement())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+  shop           String
+  enabled        Boolean  @default(false)
+
+  showType             String?
+  messageTitle         String?
+  name                 String?
+  messageText          String?  @db.LongText
+  fontFamily           String?
+  fontWeight           Int?
+  layout               String?
+  imageAppearance      String?
+  template             String?
+  position             String?
+  animation            String?
+  mobileSize           String?
+  mobilePositionJson   String?  @db.LongText
+  bgColor              String?
+  bgAlt                String?
+  textColor            String?
+  numberColor          String?
+  priceTagBg           String?
+  priceTagAlt          String?
+  priceColor           String?
+  starColor            String?
+  rounded              Int?
+  firstDelaySeconds    Int?
+  durationSeconds      Int?
+  alternateSeconds     Int?
+  intervalUnit         String?
+  iconKey              String?
+  iconSvg              String?  @db.LongText
+  messageTitlesJson    String?  @db.LongText
+  locationsJson        String?  @db.LongText
+  namesJson            String?  @db.LongText
+  selectedProductsJson String?  @db.LongText
+
+  @@index([shop], map: "FlashPopupConfig_shop_idx")
+}
+
+model popupanalyticsevent {
+  id            Int      @id @default(autoincrement())
+  shop          String   @db.VarChar(255)
+  popupType     String   @db.VarChar(32)
+  eventType     String   @db.VarChar(32)
+  visitorId     String?  @db.VarChar(128)
+  productHandle String?  @db.VarChar(128)
+  pagePath      String?  @db.VarChar(255)
+  sourceUrl     String?  @db.VarChar(500)
+  createdAt     DateTime @default(now())
+
+  @@index([shop, createdAt], map: "PopupAnalyticsEvent_shop_createdAt_idx")
+  @@index([shop, popupType, eventType, createdAt], map: "PopupAnalyticsEvent_shop_type_event_createdAt_idx")
+  @@index([shop, visitorId], map: "PopupAnalyticsEvent_shop_visitorId_idx")
+}
+
+model EmbedPing {
+  id         Int      @id @default(autoincrement())
+  shop       String   @unique(map: "EmbedPing_shop_key") @db.VarChar(255)
+  lastPingAt DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("embedping")
+}

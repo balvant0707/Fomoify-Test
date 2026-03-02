@@ -1,0 +1,23 @@
+# Quick Fix Commands for Plesk Server
+
+## 1. Check if route file exists
+ls -la app/routes/proxy.fomo.$subpath.jsx
+
+## 2. Restart Node.js application
+npm restart
+# OR
+pm2 restart all
+
+## 3. Check application logs
+tail -f /var/log/plesk-php74-fpm/error.log
+# OR
+tail -f /var/log/apache2/error.log
+
+## 4. Test basic connectivity
+curl https://fomoapp.smartreminder.in/apps/fomo/popup?shop=testing-m2web.myshopify.com
+
+## 5. Check if Node.js is running
+ps aux | grep node
+
+## 6. Alternative: Direct database update
+mysql -u m2websol_fomoapp -p m2websol_fomoapp -e "UPDATE Shop SET themeExtensionEnabled = 1 WHERE shop = 'testing-m2web.myshopify.com';"
