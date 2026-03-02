@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme Extension Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px;
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Theme Extension Backend Control Test</h1>
+    
+    <div class="test-section info">
+        <h3>Configuration</h3>
+        <label for="shopInput">Shop Domain:</label><br>
+        <input type="text" id="shopInput" placeholder="your-shop.myshopify.com" value="your-shop.myshopify.com">
+        <br>
+        <label for="appUrlInput">App URL:</label><br>
+        <input type="text" id="appUrlInput" placeholder="https://fomoapp.smartreminder.in" value="https://fomoapp.smartreminder.in">
+    </div>
+
+    <div class="test-section">
+        <h3>Theme Extension Status</h3>
+        <button onclick="checkStatus()">Check Theme Extension Status</button>
+        <button onclick="testPopup()">Test Popup Endpoint</button>
+        <div id="statusResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Admin Control</h3>
+        <p>Go to your app admin panel and navigate to "Theme Extension" to enable/disable the theme extension.</p>
+        <button onclick="openAdmin()">Open App Admin</button>
+    </div>
+
+    <script>
+        function getShopDomain() {
+            return document.getElementById('shopInput').value;
+        }
+
+        function getAppUrl() {
+            return document.getElementById('appUrlInput').value;
+        }
+
+        async function makeRequest(endpoint, description) {
+            const shop = getShopDomain();
+            const appUrl = getAppUrl();
+            const url = `${appUrl}${endpoint}?shop=${encodeURIComponent(shop)}`;
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                return {
+                    success: response.ok,
+                    status: response.status,
+                    data: data,
+                    url: url
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error.message,
+                    url: url
+                };
+            }
+        }
+
+        function displayResult(elementId, result, description) {
+            const element = document.getElementById(elementId);
+            const className = result.success ? 'success' : 'error';
+            
+            element.innerHTML = `
+                <div class="${className}">
+                    <h4>${description}</h4>
+                    <p><strong>URL:</strong> ${result.url}</p>
+                    <p><strong>Status:</strong> ${result.status || 'Error'}</p>
+                    <pre>${JSON.stringify(result.data || result.error, null, 2)}</pre>
+                </div>
+            `;
+        }
+
+        async function checkStatus() {
+            const result = await makeRequest('/apps/fomo/status', 'Theme Extension Status Check');
+            displayResult('statusResult', result, 'Theme Extension Status Check');
+        }
+
+        async function testPopup() {
+            const result = await makeRequest('/apps/fomo/popup', 'Popup Endpoint Test');
+            displayResult('statusResult', result, 'Popup Endpoint Test');
+        }
+
+        function openAdmin() {
+            const appUrl = getAppUrl();
+            window.open(`${appUrl}/app/theme-extension-toggle`, '_blank');
+        }
+    </script>
+</body>
+</html>

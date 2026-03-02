@@ -1,0 +1,20 @@
+CREATE TABLE `Session` (
+  `id`            varchar(255)  NOT NULL,
+  `shop`          varchar(255)  NOT NULL,
+  `state`         varchar(255)  NOT NULL,
+  `isOnline`      tinyint(1)    NOT NULL DEFAULT 0,
+  `scope`         text          NULL,
+  `expires`       datetime(3)   NULL,
+  `accessToken`   text          NOT NULL,
+  `userId`        bigint        NULL,
+  `firstName`     varchar(191)  NULL,
+  `lastName`      varchar(191)  NULL,
+  `email`         varchar(320)  NULL,
+  `accountOwner`  tinyint(1)    NOT NULL DEFAULT 0,
+  `locale`        varchar(20)   NULL,
+  `collaborator`  tinyint(1)    DEFAULT 0,
+  `emailVerified` tinyint(1)    DEFAULT 0,
+  `createdAt`     datetime(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updatedAt`     datetime(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

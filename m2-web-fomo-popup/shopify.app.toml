@@ -1,0 +1,47 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "19bf03bfbf8995bb1bb05e7a45b1b062"
+name = "Fomoify Sales Popup & Proof"
+application_url = "https://shopify-fomo-app.vercel.app/app"
+embedded = true
+handle = "fomoify-sales-popups-proof"
+
+[build]
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2025-07"
+
+  [[webhooks.subscriptions]]
+  topics = ["app/uninstalled"]
+  uri = "/webhooks"
+
+  [[webhooks.subscriptions]]
+  topics = ["app/scopes_update"]
+  uri = "/webhooks"
+
+  [[webhooks.subscriptions]]
+  topics = ["orders/create"]
+  uri = "/webhooks"
+
+  [[webhooks.subscriptions]]
+  compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
+  uri = "/webhooks"
+
+[access_scopes]
+scopes = "read_products,write_products,read_themes,write_themes,write_orders,read_orders,read_customers,write_customers"
+
+[auth]
+redirect_urls = [
+  "https://shopify-fomo-app.vercel.app/auth/callback",
+  "https://shopify-fomo-app.vercel.app/shopify/callback",
+  "https://shopify-fomo-app-test.vercel.app/api/auth/callback"
+]
+
+[app_proxy]
+url = "https://shopify-fomo-app.vercel.app/proxy/fomo"
+subpath = "fomo"
+prefix = "apps"
+
+[pos]
+embedded = true

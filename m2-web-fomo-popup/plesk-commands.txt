@@ -1,0 +1,19 @@
+# Plesk Server Commands
+
+## 1. Navigate to your project directory
+cd /var/www/vhosts/fomoapp.smartreminder.in/httpdocs
+
+## 2. Install dependencies (if needed)
+npm install
+
+## 3. Generate Prisma client
+npx prisma generate
+
+## 4. Update database schema
+npx prisma db push
+
+## 5. Restart application
+npm restart
+
+## Alternative: If Prisma doesn't work, run this SQL directly in MySQL:
+ALTER TABLE `Shop` ADD COLUMN `themeExtensionEnabled` BOOLEAN NOT NULL DEFAULT false;
