@@ -6,15 +6,16 @@ import { sendOwnerEmail } from "../utils/sendOwnerEmail.server";
 const norm = (s) => (s || "").toLowerCase();
 
 export const action = async ({ request }) => {
-  let parsed;
+  let topic, shop, payload;
   try {
-    parsed = await authenticate.webhook(request);
+    ({ topic, shop, payload } = await authenticate.webhook(request));
   } catch (err) {
+    // Re-throw Response objects so Remix returns the library's intended status
+    // (e.g. 401 for bad HMAC, 410 for uninstalled shop) instead of swallowing it.
+    if (err instanceof Response) return err;
     console.error("[webhook] verify/parse failed:", err);
     return new Response("Unauthorized", { status: 401 });
   }
-
-  const { topic, shop, payload } = parsed;
   const s = norm(shop);
 
   console.log("[WEBHOOK]", topic, s);
