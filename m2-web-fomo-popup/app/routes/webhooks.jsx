@@ -5,14 +5,50 @@ import { sendOwnerEmail } from "../utils/sendOwnerEmail.server";
 
 const norm = (s) => (s || "").toLowerCase();
 
+// Topics we can handle without an active session (no Admin API call needed)
+const SESSION_LESS_TOPICS = new Set([
+  "ORDERS_CREATE",
+  "SHOP_REDACT",
+  "CUSTOMERS_DATA_REQUEST",
+  "CUSTOMERS_REDACT",
+]);
+
 export const action = async ({ request }) => {
+  // Clone before authenticate.webhook() consumes the body, so we can read
+  // headers if the library throws a 410 (HMAC valid, shop session missing).
+  const rawRequest = request.clone();
+
   let topic, shop, payload;
   try {
     ({ topic, shop, payload } = await authenticate.webhook(request));
   } catch (err) {
-    // Re-throw Response objects so Remix returns the library's intended status
-    // (e.g. 401 for bad HMAC, 410 for uninstalled shop) instead of swallowing it.
-    if (err instanceof Response) return err;
+    if (err instanceof Response) {
+      // 410 = HMAC verified but shop has no session (uninstalled / never re-authed).
+      // For topics that don't require admin access, handle them anyway and
+      // return 200 so Shopify stops marking deliveries as failed.
+      if (err.status === 410) {
+        const shopHeader = rawRequest.headers.get("X-Shopify-Shop-Domain");
+        const topicHeader = rawRequest.headers.get("X-Shopify-Topic");
+        if (shopHeader && topicHeader) {
+          const t = topicHeader.toUpperCase().replace(/\//g, "_");
+          const s = norm(shopHeader);
+          if (SESSION_LESS_TOPICS.has(t)) {
+            console.log(`[webhook] 410-fallback topic=${t} shop=${s}`);
+            if (t === "SHOP_REDACT") {
+              try {
+                await prisma.shop.deleteMany({ where: { shop: s } });
+                console.log("GDPR SHOP_REDACT (no-session):", s);
+              } catch (e) {
+                console.error("[SHOP_REDACT] failed:", e);
+              }
+            }
+            // ORDERS_CREATE, CUSTOMERS_DATA_REQUEST, CUSTOMERS_REDACT: ack only
+            return new Response(null, { status: 200 });
+          }
+        }
+      }
+      return err;
+    }
     console.error("[webhook] verify/parse failed:", err);
     return new Response("Unauthorized", { status: 401 });
   }
@@ -116,4 +152,8 @@ export const action = async ({ request }) => {
   return new Response(null, { status: 200 });
 };
 
-export const loader = () => new Response("Method Not Allowed", { status: 405 });
+export const loader = () =>
+  new Response(JSON.stringify({ ok: true, webhook: "ready" }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });

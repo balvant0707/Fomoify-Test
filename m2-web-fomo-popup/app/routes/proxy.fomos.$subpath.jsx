@@ -44,6 +44,23 @@ const SELECT_KEY_CACHE = new Map();
 const analyticsModel = () =>
   prisma.popupanalyticsevent || prisma.popupAnalyticsEvent || null;
 const embedPingModel = () => prisma.embedPing || prisma.embedping || null;
+
+async function upsertEmbedPing(model, shop, now) {
+  try {
+    await model.upsert({
+      where: { shop },
+      create: { shop, lastPingAt: now },
+      update: { lastPingAt: now },
+    });
+  } catch (err) {
+    if (err?.code === "P2002") {
+      // Race condition: another request created the row first, just update
+      await model.update({ where: { shop }, data: { lastPingAt: now } });
+    } else {
+      throw err;
+    }
+  }
+}
 const tableModel = (key) => {
   switch (key) {
     case "visitor":
@@ -695,11 +712,7 @@ export const loader = async ({ request, params }) => {
         return bad({ error: "EmbedPing model unavailable" }, 500);
       }
       const now = new Date();
-      await model.upsert({
-        where: { shop },
-        create: { shop, lastPingAt: now },
-        update: { lastPingAt: now },
-      });
+      await upsertEmbedPing(model, shop, now);
       return ok(
         {
           ok: true,
@@ -1037,11 +1050,7 @@ export const action = async ({ request, params }) => {
       const model = embedPingModel();
       if (!model?.upsert) return bad({ error: "EmbedPing model unavailable" }, 500);
       const now = new Date();
-      await model.upsert({
-        where: { shop },
-        create: { shop, lastPingAt: now },
-        update: { lastPingAt: now },
-      });
+      await upsertEmbedPing(model, shop, now);
       return ok({ ok: true, shop, lastPingAt: now.toISOString() });
     }
 
