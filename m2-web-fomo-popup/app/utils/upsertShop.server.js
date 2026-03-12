@@ -13,10 +13,10 @@ export async function upsertInstalledShop({ shop: rawShop, accessToken, ownerDat
 
   const owner = ownerData || {};
   const updateData = {
+    accessToken: accessToken ?? null,
     installed: true,
     status: "installed",
     uninstalledAt: null,
-    ...(accessToken !== undefined && { accessToken: accessToken ?? null }),
     ...(owner.ownerName !== undefined && { ownerName: owner.ownerName }),
     ...(owner.email !== undefined && { email: owner.email }),
     ...(owner.contactEmail !== undefined && { contactEmail: owner.contactEmail }),
@@ -35,7 +35,6 @@ export async function upsertInstalledShop({ shop: rawShop, accessToken, ownerDat
       update: updateData,
       create: {
         shop,
-        accessToken: accessToken ?? null,
         ...updateData,
       },
     });

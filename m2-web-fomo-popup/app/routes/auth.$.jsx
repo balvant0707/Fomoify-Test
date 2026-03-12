@@ -51,6 +51,7 @@ export const loader = async ({ request }) => {
             contactEmail
             myshopifyDomain
             name
+            shopOwnerName
             currencyCode
             plan { displayName }
             primaryDomain { host }
@@ -58,9 +59,6 @@ export const loader = async ({ request }) => {
               country
               city
               phone
-            }
-            accountOwner {
-              name
             }
           }
         }`
@@ -77,7 +75,7 @@ export const loader = async ({ request }) => {
         shop,
         accessToken: session.accessToken ?? null,
         ownerData: {
-          ownerName: shopData.accountOwner?.name || null,
+          ownerName: shopData.shopOwnerName || null,
           email: shopData.email || null,
           contactEmail: shopData.contactEmail || null,
           name: shopData.name || null,

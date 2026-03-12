@@ -6,7 +6,7 @@ import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import { authenticate } from "../shopify.server";
 import LcpObserver from "../components/LcpObserver";
-import { syncShopDetails } from "../utils/syncShopDetails.server";
+import { upsertInstalledShop } from "../utils/upsertShop.server";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
@@ -33,20 +33,18 @@ const toShopDomain = (value) => {
 };
 
 export const loader = async ({ request }) => {
-  const { session, admin } = await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
 
   const shop = norm(session?.shop);
   try {
     if (shop) {
-      await syncShopDetails({
-        admin,
+      await upsertInstalledShop({
         shop,
-        accessToken: session.accessToken,
-        force: true,
+        accessToken: session.accessToken ?? null,
       });
     }
   } catch (e) {
-    console.error("Shop sync failed:", e);
+    console.error("Prisma upsert(shop) failed:", e);
   }
 
   const apiKey =
