@@ -8,8 +8,8 @@ import {
 } from "@shopify/shopify-app-remix/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
+import { upsertInstalledShop } from "./utils/upsertShop.server";
 import { ensurePrismaSessionTable } from "./utils/ensureSessionTable.server";
-import { syncShopDetails } from "./utils/syncShopDetails.server";
 
 const toPositiveInt = (value, fallback) => {
   const n = Number(value);
@@ -88,7 +88,7 @@ const sessionStorage = createSessionStorage(prisma);
 export const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
-  apiVersion: "2026-04",
+  apiVersion: ApiVersion.January26,
   scopes: (process.env.SCOPES || "").split(",").filter(Boolean),
   appUrl: process.env.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
@@ -127,12 +127,10 @@ export const shopify = shopifyApp({
   },
 
   hooks: {
-    afterAuth: async ({ session, admin }) => {
-      await syncShopDetails({
-        admin,
-        shop: session?.shop,
-        accessToken: session?.accessToken,
-        force: true,
+    afterAuth: async ({ session }) => {
+      await upsertInstalledShop({
+        shop: session.shop,
+        accessToken: session.accessToken ?? null,
       });
 
       const reg = await shopify.registerWebhooks({ session });
@@ -146,7 +144,7 @@ export default shopify;
 // named exports used by routes
 export const authenticate = shopify.authenticate;
 export const unauthenticated = shopify.unauthenticated;
-export const apiVersion = "2026-04";
+export const apiVersion = ApiVersion.January26;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
 export const login = shopify.login;
 export const registerWebhooks = shopify.registerWebhooks;
