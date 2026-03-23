@@ -51,7 +51,7 @@ export const loader = async ({ request }) => {
           `#graphql
           query ShopOwnerInfo {
             shop {
-              name email contactEmail myshopifyDomain shopOwnerName currencyCode
+              name email contactEmail myshopifyDomain currencyCode
               plan { displayName }
               primaryDomain { host }
               billingAddress { country city phone }
@@ -59,13 +59,16 @@ export const loader = async ({ request }) => {
           }`
         );
         const js = await resp.json();
+        if (js.errors) {
+          console.error("[FOMO][app.jsx] GraphQL errors:", JSON.stringify(js.errors));
+        }
         const sd = js?.data?.shop || {};
         if (sd.name) {
           await upsertInstalledShop({
             shop,
             accessToken: session.accessToken ?? null,
             ownerData: {
-              ownerName: sd.shopOwnerName || null,
+              ownerName: sd.contactEmail || null,
               email: sd.email || null,
               contactEmail: sd.contactEmail || null,
               name: sd.name || null,
@@ -77,6 +80,9 @@ export const loader = async ({ request }) => {
               plan: sd.plan?.displayName || null,
             },
           });
+          console.log("[FOMO][app.jsx] shop data saved for", shop, sd.name);
+        } else {
+          console.warn("[FOMO][app.jsx] no shop data returned for", shop, JSON.stringify(js));
         }
       } catch (e) {
         console.error("[FOMO][app.jsx] failed to fetch shop owner data:", e);
