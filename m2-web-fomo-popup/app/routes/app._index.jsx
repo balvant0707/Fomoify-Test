@@ -8,6 +8,7 @@ import {
 import { useEffect, useState, useCallback } from "react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { upsertInstalledShop } from "../utils/upsertShop.server";
 import {
   Page,
   Card,
@@ -466,6 +467,55 @@ export const loader = async ({ request }) => {
   maybeSendAnnouncementEmail(shopDomain, session?.email ?? null).catch((err) =>
     console.error("[announcement email] error:", err.message)
   );
+
+  // Backfill shop owner data in background if any field is missing
+  prisma.shop
+    .findUnique({ where: { shop }, select: { name: true, email: true } })
+    .then(async (shopRow) => {
+      if (!shopRow?.name || !shopRow?.email) {
+        try {
+          const resp = await admin.graphql(
+            `#graphql
+            query ShopOwnerInfo {
+              shop {
+                name email contactEmail myshopifyDomain currencyCode
+                plan { displayName }
+                primaryDomain { host }
+                billingAddress { country city phone }
+              }
+            }`
+          );
+          const js = await resp.json();
+          if (js.errors) {
+            console.error("[FOMO][index] GraphQL errors:", JSON.stringify(js.errors));
+            return;
+          }
+          const sd = js?.data?.shop || {};
+          if (sd.name) {
+            await upsertInstalledShop({
+              shop,
+              accessToken: session.accessToken ?? null,
+              ownerData: {
+                ownerName: sd.contactEmail || null,
+                email: sd.email || null,
+                contactEmail: sd.contactEmail || null,
+                name: sd.name || null,
+                country: sd.billingAddress?.country || null,
+                city: sd.billingAddress?.city || null,
+                currency: sd.currencyCode || null,
+                phone: sd.billingAddress?.phone || null,
+                primaryDomain: sd.primaryDomain?.host || null,
+                plan: sd.plan?.displayName || null,
+              },
+            });
+            console.log("[FOMO][index] shop data backfilled for", shop, sd.name);
+          }
+        } catch (e) {
+          console.error("[FOMO][index] failed to backfill shop data:", e);
+        }
+      }
+    })
+    .catch((e) => console.error("[FOMO][index] shop lookup failed:", e));
 
   const apiKey =
     process.env.SHOPIFY_API_KEY ||
