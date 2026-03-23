@@ -128,11 +128,63 @@ export const shopify = shopifyApp({
 
   hooks: {
     afterAuth: async ({ session }) => {
+      // 1) Persist basic shop row immediately
       await upsertInstalledShop({
         shop: session.shop,
         accessToken: session.accessToken ?? null,
       });
 
+      // 2) Fetch store details from Shopify and persist owner data
+      try {
+        const gqlResp = await fetch(
+          `https://${session.shop}/admin/api/2025-01/graphql.json`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Shopify-Access-Token": session.accessToken,
+            },
+            body: JSON.stringify({
+              query: `{
+                shop {
+                  name
+                  email
+                  contactEmail
+                  myshopifyDomain
+                  shopOwnerName
+                  currencyCode
+                  plan { displayName }
+                  primaryDomain { host }
+                  billingAddress { country city phone }
+                }
+              }`,
+            }),
+          }
+        );
+        const js = await gqlResp.json();
+        const sd = js?.data?.shop || {};
+        await upsertInstalledShop({
+          shop: session.shop,
+          accessToken: session.accessToken ?? null,
+          ownerData: {
+            ownerName: sd.shopOwnerName || null,
+            email: sd.email || null,
+            contactEmail: sd.contactEmail || null,
+            name: sd.name || null,
+            country: sd.billingAddress?.country || null,
+            city: sd.billingAddress?.city || null,
+            currency: sd.currencyCode || null,
+            phone: sd.billingAddress?.phone || null,
+            primaryDomain: sd.primaryDomain?.host || null,
+            plan: sd.plan?.displayName || null,
+          },
+        });
+        console.log("[FOMO][afterAuth] shop data saved for", session.shop);
+      } catch (e) {
+        console.error("[FOMO][afterAuth] failed to fetch shop info:", e);
+      }
+
+      // 3) Register webhooks
       const reg = await shopify.registerWebhooks({ session });
       console.log("registerWebhooks:", JSON.stringify(reg, null, 2));
     },
