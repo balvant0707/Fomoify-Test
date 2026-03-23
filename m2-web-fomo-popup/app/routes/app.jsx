@@ -7,6 +7,7 @@ import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import { authenticate } from "../shopify.server";
 import LcpObserver from "../components/LcpObserver";
 import { upsertInstalledShop } from "../utils/upsertShop.server";
+import prisma from "../db.server";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
@@ -33,7 +34,7 @@ const toShopDomain = (value) => {
 };
 
 export const loader = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
 
   const shop = norm(session?.shop);
   try {
@@ -42,6 +43,44 @@ export const loader = async ({ request }) => {
         shop,
         accessToken: session.accessToken ?? null,
       });
+
+      // Fetch owner data only if not yet populated in DB
+      const shopRow = await prisma.shop.findUnique({ where: { shop }, select: { name: true } });
+      if (!shopRow?.name) try {
+        const resp = await admin.graphql(
+          `#graphql
+          query ShopOwnerInfo {
+            shop {
+              name email contactEmail myshopifyDomain shopOwnerName currencyCode
+              plan { displayName }
+              primaryDomain { host }
+              billingAddress { country city phone }
+            }
+          }`
+        );
+        const js = await resp.json();
+        const sd = js?.data?.shop || {};
+        if (sd.name) {
+          await upsertInstalledShop({
+            shop,
+            accessToken: session.accessToken ?? null,
+            ownerData: {
+              ownerName: sd.shopOwnerName || null,
+              email: sd.email || null,
+              contactEmail: sd.contactEmail || null,
+              name: sd.name || null,
+              country: sd.billingAddress?.country || null,
+              city: sd.billingAddress?.city || null,
+              currency: sd.currencyCode || null,
+              phone: sd.billingAddress?.phone || null,
+              primaryDomain: sd.primaryDomain?.host || null,
+              plan: sd.plan?.displayName || null,
+            },
+          });
+        }
+      } catch (e) {
+        console.error("[FOMO][app.jsx] failed to fetch shop owner data:", e);
+      }
     }
   } catch (e) {
     console.error("Prisma upsert(shop) failed:", e);
