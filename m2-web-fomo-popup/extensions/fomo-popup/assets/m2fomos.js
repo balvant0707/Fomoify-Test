@@ -49,7 +49,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         const res = await fetch(candidate, options);
         const isLast = i === candidates.length - 1;
         const contentType = res.headers?.get("content-type") || "";
-        const isProxyApi = /\/(session|popup|orders|customers|products|track|embed-status)(\?|$)/.test(candidate);
+        const isProxyApi = /\/(session|popup|orders|customers|products|track|embed-status|submit-review|review-request)(\?|$)/.test(candidate);
 
         if (!res.ok && !isLast) continue;
         if (res.ok && isProxyApi && !contentType.includes("application/json") && !isLast) {
@@ -4377,6 +4377,186 @@ document.addEventListener("DOMContentLoaded", async function () {
   } catch (err) {
     console.error("[FOMO] build error:", err);
   }
+
+  // ===== REVIEW REQUEST FORM =====
+  // Shows on every page until the visitor submits a review (tracked in localStorage).
+  (function initReviewForm() {
+    const DONE_KEY = "__fomo_review_done__";
+    const hasDone = () => {
+      try { return window.localStorage.getItem(DONE_KEY) === "1"; } catch { return false; }
+    };
+    const markDone = () => {
+      try { window.localStorage.setItem(DONE_KEY, "1"); } catch {}
+    };
+
+    if (hasDone() || toBool(window.Shopify?.designMode) || !SHOP) return;
+
+    // Inject CSS once
+    if (!document.getElementById("kf-fomo-rf")) {
+      const st = document.createElement("style");
+      st.id = "kf-fomo-rf";
+      st.textContent = `
+        @keyframes fomoRfIn  { from{opacity:0;transform:translateY(18px) scale(.97)} to{opacity:1;transform:none} }
+        @keyframes fomoRfOut { to{opacity:0;transform:translateY(10px) scale(.98)} }
+        .fomo-rf-star{background:none;border:none;cursor:pointer;font-size:30px;padding:1px 3px;transition:transform .12s,color .1s;line-height:1;}
+        .fomo-rf-star:hover{transform:scale(1.2);}
+        .fomo-rf-field{width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:8px;padding:9px 12px;font-size:14px;font-family:inherit;outline:none;color:#111;transition:border-color .15s;margin-bottom:10px;}
+        .fomo-rf-field:focus{border-color:#6366f1;}
+        .fomo-rf-ta{resize:vertical;margin-bottom:12px;}
+        .fomo-rf-btn{width:100%;padding:12px;background:#6366f1;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;transition:background .15s;}
+        .fomo-rf-btn:hover:not(:disabled){background:#4f46e5;}
+        .fomo-rf-btn:disabled{background:#a5b4fc;cursor:not-allowed;}
+      `;
+      document.head.appendChild(st);
+    }
+
+    function buildReviewForm() {
+      const wrap = document.createElement("div");
+      wrap.id = "fomo-review-form";
+      wrap.style.cssText = `
+        position:fixed;z-index:99999;bottom:24px;right:24px;
+        width:min(320px,calc(100vw - 32px));
+        background:#fff;border-radius:14px;
+        box-shadow:0 16px 48px rgba(0,0,0,.14),0 4px 12px rgba(0,0,0,.08);
+        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+        animation:fomoRfIn 380ms ease-out both;overflow:hidden;
+      `;
+
+      // Header
+      const hdr = document.createElement("div");
+      hdr.style.cssText = `background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:16px 20px 14px;position:relative;`;
+
+      const htitle = document.createElement("div");
+      htitle.textContent = "How was your experience?";
+      htitle.style.cssText = `color:#fff;font-size:15px;font-weight:700;line-height:1.3;`;
+
+      const hsub = document.createElement("div");
+      hsub.textContent = "Share your thoughts \u2013 it helps others!";
+      hsub.style.cssText = `color:rgba(255,255,255,.8);font-size:12px;margin-top:3px;`;
+
+      const xcl = document.createElement("button");
+      xcl.type = "button"; xcl.innerHTML = "&times;"; xcl.setAttribute("aria-label", "Close");
+      xcl.style.cssText = `position:absolute;top:8px;right:12px;background:none;border:none;color:rgba(255,255,255,.85);font-size:22px;line-height:1;padding:0 4px;cursor:pointer;`;
+      xcl.onclick = () => dismiss(wrap);
+
+      hdr.appendChild(htitle); hdr.appendChild(hsub); hdr.appendChild(xcl);
+
+      // Body
+      const bd = document.createElement("div");
+      bd.style.cssText = `padding:18px 20px 20px;`;
+
+      // Star label + row
+      const slbl = document.createElement("div");
+      slbl.textContent = "Your rating";
+      slbl.style.cssText = `font-size:13px;color:#6b7280;font-weight:500;margin-bottom:6px;`;
+
+      const srow = document.createElement("div");
+      srow.style.cssText = `display:flex;gap:2px;margin-bottom:14px;`;
+
+      let rating = 0;
+      const stars = [];
+      const paintStars = (n, hover) => {
+        stars.forEach((s, i) => { s.style.color = i < n ? (hover ? "#f59e0b" : "#f5a623") : "#d1d5db"; });
+      };
+      for (let i = 1; i <= 5; i++) {
+        const btn = document.createElement("button");
+        btn.type = "button"; btn.className = "fomo-rf-star";
+        btn.setAttribute("aria-label", `${i} star${i > 1 ? "s" : ""}`);
+        btn.textContent = "\u2605"; btn.style.color = "#d1d5db";
+        const n = i;
+        btn.onclick = () => { rating = n; paintStars(n); errEl.style.display = "none"; };
+        btn.onmouseenter = () => paintStars(n, true);
+        btn.onmouseleave = () => paintStars(rating);
+        stars.push(btn); srow.appendChild(btn);
+      }
+
+      // Name field
+      const nameEl = document.createElement("input");
+      nameEl.type = "text"; nameEl.className = "fomo-rf-field";
+      nameEl.placeholder = "Your name (optional)";
+
+      // Textarea
+      const taEl = document.createElement("textarea");
+      taEl.className = "fomo-rf-field fomo-rf-ta";
+      taEl.placeholder = "Tell us what you liked\u2026"; taEl.rows = 3;
+
+      // Error line
+      const errEl = document.createElement("div");
+      errEl.style.cssText = `color:#ef4444;font-size:13px;margin-bottom:8px;display:none;`;
+      errEl.textContent = "Please select a star rating before submitting.";
+
+      // Submit button
+      const btnEl = document.createElement("button");
+      btnEl.type = "button"; btnEl.className = "fomo-rf-btn";
+      btnEl.textContent = "Submit Review";
+
+      btnEl.onclick = async () => {
+        if (!rating) { errEl.style.display = "block"; return; }
+        errEl.style.display = "none";
+        btnEl.disabled = true; btnEl.textContent = "Submitting\u2026";
+
+        try {
+          await fetchWithProxyFallback(
+            `${ACTIVE_PROXY_BASE}/submit-review?shop=${encodeURIComponent(SHOP)}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                shop: SHOP,
+                rating,
+                reviewText: taEl.value.trim(),
+                reviewerName: nameEl.value.trim(),
+                pagePath: safe(window.location.pathname, "/"),
+                sourceUrl: safe(window.location.href, ""),
+                visitorId: ensureVisitorId(),
+              }),
+              keepalive: true,
+            }
+          );
+        } catch {}
+
+        markDone();
+        sendTrack({ eventType: "click", popupType: "review", productHandle: "" });
+
+        // Thank-you screen
+        bd.innerHTML = "";
+        const ty = document.createElement("div");
+        ty.style.cssText = `text-align:center;padding:8px 0 6px;`;
+        ty.innerHTML = `
+          <div style="font-size:40px;margin-bottom:10px;">\uD83C\uDF1F</div>
+          <div style="font-size:16px;font-weight:700;color:#111;margin-bottom:6px;">Thank you!</div>
+          <div style="font-size:14px;color:#6b7280;line-height:1.5;margin-bottom:16px;">Your review has been received.<br>We really appreciate it!</div>
+          <a href="https://apps.shopify.com/fomoify-sales-popup-proof#modal-show=WriteReviewModal"
+             target="_blank" rel="noopener noreferrer"
+             style="display:inline-block;background:#6366f1;color:#fff;padding:10px 22px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700;letter-spacing:.2px;">
+            Also review us on Shopify &#8599;
+          </a>
+        `;
+        bd.appendChild(ty);
+        setTimeout(() => dismiss(wrap), 2200);
+      };
+
+      bd.appendChild(slbl); bd.appendChild(srow);
+      bd.appendChild(nameEl); bd.appendChild(taEl);
+      bd.appendChild(errEl); bd.appendChild(btnEl);
+      wrap.appendChild(hdr); wrap.appendChild(bd);
+      return wrap;
+    }
+
+    function dismiss(el) {
+      if (!el) return;
+      el.style.animation = "fomoRfOut 280ms ease-in forwards";
+      setTimeout(() => { try { el.remove(); } catch {} }, 300);
+    }
+
+    // Delay first appearance by 5 seconds
+    setTimeout(() => {
+      if (hasDone()) return;
+      const form = buildReviewForm();
+      document.body.appendChild(form);
+      sendTrack({ eventType: "view", popupType: "review", productHandle: "" });
+    }, 5000);
+  })();
 
   /* ===== local helpers ===== */
   function interleaveList(a, b) {

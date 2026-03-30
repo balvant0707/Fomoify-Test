@@ -456,3 +456,30 @@ model EmbedPing {
 
   @@map("embedping")
 }
+
+model uninstallfeedback {
+  id                  Int       @id @default(autoincrement())
+  shop                String    @db.VarChar(255)
+  ownerName           String?   @db.VarChar(255)
+  email               String?   @db.VarChar(320)
+  contactEmail        String?   @db.VarChar(320)
+  feedbackText        String?   @db.Text
+  feedbackToken       String?   @unique @db.VarChar(128)
+  feedbackSubmittedAt DateTime?
+  uninstalledAt       DateTime  @default(now())
+
+  @@index([shop], map: "UninstallFeedback_shop_idx")
+}
+
+model customerreview {
+  id           Int      @id @default(autoincrement())
+  shop         String   @db.VarChar(255)
+  reviewerName String?  @db.VarChar(255)
+  rating       Int      @default(0)
+  reviewText   String?  @db.Text
+  pagePath     String?  @db.VarChar(255)
+  visitorId    String?  @db.VarChar(128)
+  createdAt    DateTime @default(now())
+
+  @@index([shop, createdAt], map: "CustomerReview_shop_createdAt_idx")
+}

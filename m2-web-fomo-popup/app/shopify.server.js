@@ -152,7 +152,6 @@ export const shopify = shopifyApp({
                   email
                   contactEmail
                   myshopifyDomain
-                  shopOwnerName
                   currencyCode
                   plan { displayName }
                   primaryDomain { host }
@@ -163,24 +162,31 @@ export const shopify = shopifyApp({
           }
         );
         const js = await gqlResp.json();
+        if (js.errors) {
+          console.error("[FOMO][afterAuth] GraphQL errors:", JSON.stringify(js.errors));
+        }
         const sd = js?.data?.shop || {};
-        await upsertInstalledShop({
-          shop: session.shop,
-          accessToken: session.accessToken ?? null,
-          ownerData: {
-            ownerName: sd.shopOwnerName || null,
-            email: sd.email || null,
-            contactEmail: sd.contactEmail || null,
-            name: sd.name || null,
-            country: sd.billingAddress?.country || null,
-            city: sd.billingAddress?.city || null,
-            currency: sd.currencyCode || null,
-            phone: sd.billingAddress?.phone || null,
-            primaryDomain: sd.primaryDomain?.host || null,
-            plan: sd.plan?.displayName || null,
-          },
-        });
-        console.log("[FOMO][afterAuth] shop data saved for", session.shop);
+        if (sd.name) {
+          await upsertInstalledShop({
+            shop: session.shop,
+            accessToken: session.accessToken ?? null,
+            ownerData: {
+              ownerName: sd.contactEmail || null,
+              email: sd.email || null,
+              contactEmail: sd.contactEmail || null,
+              name: sd.name || null,
+              country: sd.billingAddress?.country || null,
+              city: sd.billingAddress?.city || null,
+              currency: sd.currencyCode || null,
+              phone: sd.billingAddress?.phone || null,
+              primaryDomain: sd.primaryDomain?.host || null,
+              plan: sd.plan?.displayName || null,
+            },
+          });
+          console.log("[FOMO][afterAuth] shop data saved for", session.shop, sd.name);
+        } else {
+          console.warn("[FOMO][afterAuth] no shop data returned for", session.shop, JSON.stringify(js));
+        }
       } catch (e) {
         console.error("[FOMO][afterAuth] failed to fetch shop info:", e);
       }

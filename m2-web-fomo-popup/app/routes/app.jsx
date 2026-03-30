@@ -1,4 +1,5 @@
 // app/routes/app.jsx
+// Updated: 2026-03-30 — Shop data robustness fixes and owner tracking improvements
 import { Outlet, useLoaderData, useRouteError, useLocation } from "@remix-run/react";
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
@@ -51,32 +52,38 @@ export const loader = async ({ request }) => {
           `#graphql
           query ShopOwnerInfo {
             shop {
-              name email contactEmail myshopifyDomain shopOwnerName currencyCode
-              plan { displayName }
+              name email contactEmail myshopifyDomain currencyCode
+              plan { publicDisplayName }
               primaryDomain { host }
-              billingAddress { country city phone }
+              shopAddress { country city phone }
             }
           }`
         );
         const js = await resp.json();
+        if (js.errors) {
+          console.error("[FOMO][app.jsx] GraphQL errors:", JSON.stringify(js.errors));
+        }
         const sd = js?.data?.shop || {};
         if (sd.name) {
           await upsertInstalledShop({
             shop,
             accessToken: session.accessToken ?? null,
             ownerData: {
-              ownerName: sd.shopOwnerName || null,
+              ownerName: sd.contactEmail || null,
               email: sd.email || null,
               contactEmail: sd.contactEmail || null,
               name: sd.name || null,
-              country: sd.billingAddress?.country || null,
-              city: sd.billingAddress?.city || null,
+              country: sd.shopAddress?.country || null,
+              city: sd.shopAddress?.city || null,
               currency: sd.currencyCode || null,
-              phone: sd.billingAddress?.phone || null,
+              phone: sd.shopAddress?.phone || null,
               primaryDomain: sd.primaryDomain?.host || null,
-              plan: sd.plan?.displayName || null,
+              plan: sd.plan?.publicDisplayName || null,
             },
           });
+          console.log("[FOMO][app.jsx] shop data saved for", shop, sd.name);
+        } else {
+          console.warn("[FOMO][app.jsx] no shop data returned for", shop, JSON.stringify(js));
         }
       } catch (e) {
         console.error("[FOMO][app.jsx] failed to fetch shop owner data:", e);
