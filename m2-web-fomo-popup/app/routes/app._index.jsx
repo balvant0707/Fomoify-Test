@@ -1178,7 +1178,6 @@ export default function AppIndex() {
   };
 
   const closeReviewModal = () => {
-    markReviewDismissed();
     setReviewHoverRating(0);
     setIsReviewModalOpen(false);
   };
