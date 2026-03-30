@@ -39,6 +39,7 @@ const CONTACT_FORM_INITIAL = {
 const WRITE_REVIEW_URL =
   "https://apps.shopify.com/fomoify-sales-popup-proof#modal-show=WriteReviewModal";
 const REVIEW_MODAL_APP_NAME = "Fomoify Sales Popup & Proof";
+const REVIEW_DISMISSED_KEY = "__fomo_review_dismissed__";
 const POPUPS_PER_SLIDE = 2;
 const POPUP_AUTOSLIDE_MS = 3500;
 const POPUP_CARD_DATA = [
@@ -988,7 +989,6 @@ export default function AppIndex() {
     embedContext,
   } = useLoaderData();
   const contactFetcher = useFetcher();
-  const reviewPopupStatusFetcher = useFetcher();
   const navigate = useNavigate();
   const location = useLocation();
   const [resolvedThemeId, setResolvedThemeId] = useState(null);
@@ -1012,7 +1012,6 @@ export default function AppIndex() {
   const [reviewPopupCount, setReviewPopupCount] = useState(
     Number(dashboardReviewPopupStatus?.popupOrderCount || 0)
   );
-  const [lastShownReviewPopupCount, setLastShownReviewPopupCount] = useState(0);
   const [isReviewPopupDelayElapsed, setIsReviewPopupDelayElapsed] = useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [contactForm, setContactForm] = useState(CONTACT_FORM_INITIAL);
@@ -1164,6 +1163,14 @@ export default function AppIndex() {
     setContactForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const reviewDismissedSlot = `${REVIEW_DISMISSED_KEY}:${shopDomain || slug || "store"}`;
+  const isReviewDismissed = useCallback(() => {
+    try { return localStorage.getItem(reviewDismissedSlot) === "1"; } catch { return false; }
+  }, [reviewDismissedSlot]);
+  const markReviewDismissed = useCallback(() => {
+    try { localStorage.setItem(reviewDismissedSlot, "1"); } catch {}
+  }, [reviewDismissedSlot]);
+
   const resetReviewDraft = () => {
     setReviewRating(0);
     setReviewHoverRating(0);
@@ -1171,6 +1178,7 @@ export default function AppIndex() {
   };
 
   const closeReviewModal = () => {
+    markReviewDismissed();
     setReviewHoverRating(0);
     setIsReviewModalOpen(false);
   };
@@ -1192,45 +1200,26 @@ export default function AppIndex() {
   const submitReviewModal = () => {
     if (!reviewRating) return;
     window.open(WRITE_REVIEW_URL, "_blank", "noopener,noreferrer");
-    closeReviewModal();
+    markReviewDismissed();
+    setReviewHoverRating(0);
+    setIsReviewModalOpen(false);
   };
 
-  // Step 1: 20-second delay before any review popup logic runs
+  // Start 20s delay only if not already permanently dismissed
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsReviewPopupDelayElapsed(true);
-    }, 20000);
+    if (isReviewDismissed()) return;
+    const timer = setTimeout(() => setIsReviewPopupDelayElapsed(true), 20000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [isReviewDismissed]);
 
-  // Step 2: Start polling /app/review-popup-status every 30s after delay
-  useEffect(() => {
-    if (!isReviewPopupDelayElapsed) return;
-    const loadStatus = () =>
-      reviewPopupStatusFetcher.load("/app/review-popup-status");
-    loadStatus();
-    const interval = setInterval(loadStatus, 30000);
-    return () => clearInterval(interval);
-  }, [isReviewPopupDelayElapsed]);
-
-  // Step 3: Keep reviewPopupCount updated from poll results (only ever goes up)
-  useEffect(() => {
-    const nextCount = Number(
-      reviewPopupStatusFetcher.data?.popupOrderCount || 0
-    );
-    if (!nextCount) return;
-    setReviewPopupCount((prev) => Math.max(prev, nextCount));
-  }, [reviewPopupStatusFetcher.data]);
-
-  // Step 4: Open modal when there is at least 1 order and the count is new
+  // Open modal once after delay — loader already fetched the count on page load
   useEffect(() => {
     if (!isReviewPopupDelayElapsed) return;
     if (reviewPopupCount < 1) return;
-    if (reviewPopupCount <= lastShownReviewPopupCount) return;
+    if (isReviewDismissed()) return;
     resetReviewDraft();
     setIsReviewModalOpen(true);
-    setLastShownReviewPopupCount(reviewPopupCount);
-  }, [isReviewPopupDelayElapsed, reviewPopupCount, lastShownReviewPopupCount]);
+  }, [isReviewPopupDelayElapsed, reviewPopupCount, isReviewDismissed]);
 
   const submitContactIssue = () => {
     setContactError("");
