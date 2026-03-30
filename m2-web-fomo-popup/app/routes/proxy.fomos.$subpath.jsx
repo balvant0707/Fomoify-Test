@@ -4,6 +4,8 @@ import prisma from "../db.server";                // <-- default import (IMPORTA
 import { ensureShopRow } from "../utils/ensureShop.server";
 import { normalizeShopDomain } from "../utils/shopDomain.server";
 import { getOrSetCache } from "../utils/serverCache.server";
+import { sendCustomerReviewEmail } from "../utils/sendCustomerReviewEmail.server";
+import { sendOwnerEmail } from "../utils/sendOwnerEmail.server";
 
 const norm = (s) =>
   (s || "")
@@ -711,6 +713,36 @@ export const loader = async ({ request, params }) => {
       );
     }
 
+    if (subpath === "review-request") {
+      const email = url.searchParams.get("email") || "";
+      const name = url.searchParams.get("name") || "";
+      const orderId = url.searchParams.get("orderId") || "";
+
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return bad({ error: "Invalid or missing customer email" });
+      }
+
+      const shopRecord =
+        (await prisma.shop.findUnique({ where: { shop } })) ||
+        (await ensureShopRow(shop));
+
+      const shopName = shopRecord?.name || shop;
+
+      try {
+        await sendCustomerReviewEmail({
+          shop,
+          shopName,
+          customerEmail: email,
+          customerName: name,
+          orderId,
+        });
+        return ok({ sent: true, to: email });
+      } catch (err) {
+        console.error("[review-request] email send failed:", err);
+        return bad({ error: "Failed to send review request email" }, 500);
+      }
+    }
+
     if (subpath === "session") {
       const payload = await getOrSetCache(
         `proxy:session:${shop}`,
@@ -1043,6 +1075,106 @@ export const action = async ({ request, params }) => {
         update: { lastPingAt: now },
       });
       return ok({ ok: true, shop, lastPingAt: now.toISOString() });
+    }
+
+    if (subpath === "submit-review") {
+      if (request.method !== "POST") return bad({ error: "Method not allowed" }, 405);
+
+      let body = {};
+      try {
+        body = await request.json();
+      } catch {
+        return bad({ error: "Invalid JSON" });
+      }
+
+      const ratingNum = Number(body?.rating || 0);
+      if (!Number.isFinite(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+        return bad({ error: "Rating must be 1–5" });
+      }
+
+      const reviewText = String(body?.reviewText || "").trim().slice(0, 2000);
+      const reviewerName = String(body?.reviewerName || "").trim().slice(0, 255);
+      const pagePath = clean(body?.pagePath, 255) || "/";
+      const visitorId = clean(body?.visitorId, 128) || null;
+
+      // Persist review
+      try {
+        const reviewModel = prisma.customerreview || prisma.customerReview || null;
+        if (reviewModel) {
+          await reviewModel.create({
+            data: {
+              shop,
+              rating: Math.round(ratingNum),
+              reviewerName: reviewerName || null,
+              reviewText: reviewText || null,
+              pagePath,
+              visitorId,
+            },
+          });
+        }
+      } catch (err) {
+        console.error("[submit-review] DB save failed:", err);
+      }
+
+      // Email shop owner
+      try {
+        const shopRecord =
+          (await prisma.shop.findUnique({ where: { shop } })) ||
+          (await ensureShopRow(shop));
+        const ownerEmail =
+          shopRecord?.email ||
+          shopRecord?.contactEmail ||
+          process.env.APP_OWNER_FALLBACK_EMAIL;
+
+        if (ownerEmail) {
+          const displayName = reviewerName || "Anonymous";
+          const stars = "★".repeat(ratingNum) + "☆".repeat(5 - ratingNum);
+          const reviewHtml = reviewText
+            ? `<div style="background:#f9fafb;border-left:4px solid #6366f1;padding:14px 16px;border-radius:0 6px 6px 0;font-size:14px;line-height:1.6;color:#374151;font-style:italic;">"${reviewText}"</div>`
+            : `<p style="color:#6b7280;font-size:14px;">No review text provided.</p>`;
+
+          await sendOwnerEmail({
+            to: ownerEmail,
+            subject: `New ${ratingNum}★ Review from ${displayName} — ${shop}`,
+            text: `New review from ${displayName} (${stars})\nPage: ${pagePath}\n\n${reviewText}`,
+            html: `
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
+  <div style="max-width:540px;margin:0 auto;">
+    <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:22px 24px;border-radius:10px 10px 0 0;">
+      <h2 style="color:#fff;margin:0;font-size:18px;">New Review Received!</h2>
+      <p style="color:rgba(255,255,255,.8);margin:6px 0 0;font-size:14px;">${shop}</p>
+    </div>
+    <div style="background:#fff;padding:24px;border:1px solid #e5e7eb;border-top:none;">
+      <table style="border-collapse:collapse;font-size:14px;margin-bottom:20px;">
+        <tr>
+          <td style="padding:5px 16px 5px 0;color:#6b7280;white-space:nowrap;">Reviewer</td>
+          <td style="padding:5px 0;color:#111;font-weight:700;">${displayName}</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 16px 5px 0;color:#6b7280;">Rating</td>
+          <td style="padding:5px 0;color:#f5a623;font-size:20px;letter-spacing:2px;">${stars}</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 16px 5px 0;color:#6b7280;">Page</td>
+          <td style="padding:5px 0;color:#111;">${pagePath}</td>
+        </tr>
+      </table>
+      ${reviewHtml}
+    </div>
+    <div style="padding:14px 24px;background:#f9fafb;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 10px 10px;text-align:center;font-size:12px;color:#9ca3af;">
+      Fomoify Sales Popup &amp; Proof &mdash; ${shop}
+    </div>
+  </div>
+</body></html>`,
+          });
+        }
+      } catch (err) {
+        console.error("[submit-review] email failed:", err);
+      }
+
+      return ok({ submitted: true });
     }
 
     if (subpath !== "track") return bad({ error: "Unknown proxy path" }, 404);

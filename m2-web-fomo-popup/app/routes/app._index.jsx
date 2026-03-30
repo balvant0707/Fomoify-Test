@@ -1,3 +1,5 @@
+// app/routes/app._index.jsx
+// Updated: 2026-03-30 — Backfill shop owner data on index page load for existing users
 import { defer, json, redirect } from "@remix-run/node";
 import {
   useLoaderData,
