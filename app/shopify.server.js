@@ -29,6 +29,7 @@ const sessionConnectionRetryIntervalMs = toPositiveInt(
   1000
 );
 
+
 function createSessionStorage(prismaClient) {
   let storagePromise;
 
@@ -88,7 +89,7 @@ const sessionStorage = createSessionStorage(prisma);
 export const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
-  apiVersion: ApiVersion.July25,
+  apiVersion: ApiVersion.January26,
   scopes: (process.env.SCOPES || "").split(",").filter(Boolean),
   appUrl: process.env.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
@@ -128,11 +129,69 @@ export const shopify = shopifyApp({
 
   hooks: {
     afterAuth: async ({ session }) => {
+      // 1) Persist basic shop row immediately
       await upsertInstalledShop({
         shop: session.shop,
         accessToken: session.accessToken ?? null,
       });
 
+      // 2) Fetch store details from Shopify and persist owner data
+      try {
+        const gqlResp = await fetch(
+          `https://${session.shop}/admin/api/2025-01/graphql.json`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Shopify-Access-Token": session.accessToken,
+            },
+            body: JSON.stringify({
+              query: `{
+                shop {
+                  name
+                  email
+                  contactEmail
+                  myshopifyDomain
+                  currencyCode
+                  plan { displayName }
+                  primaryDomain { host }
+                  billingAddress { country city phone }
+                }
+              }`,
+            }),
+          }
+        );
+        const js = await gqlResp.json();
+        if (js.errors) {
+          console.error("[FOMO][afterAuth] GraphQL errors:", JSON.stringify(js.errors));
+        }
+        const sd = js?.data?.shop || {};
+        if (sd.name) {
+          await upsertInstalledShop({
+            shop: session.shop,
+            accessToken: session.accessToken ?? null,
+            ownerData: {
+              ownerName: sd.contactEmail || null,
+              email: sd.email || null,
+              contactEmail: sd.contactEmail || null,
+              name: sd.name || null,
+              country: sd.billingAddress?.country || null,
+              city: sd.billingAddress?.city || null,
+              currency: sd.currencyCode || null,
+              phone: sd.billingAddress?.phone || null,
+              primaryDomain: sd.primaryDomain?.host || null,
+              plan: sd.plan?.displayName || null,
+            },
+          });
+          console.log("[FOMO][afterAuth] shop data saved for", session.shop, sd.name);
+        } else {
+          console.warn("[FOMO][afterAuth] no shop data returned for", session.shop, JSON.stringify(js));
+        }
+      } catch (e) {
+        console.error("[FOMO][afterAuth] failed to fetch shop info:", e);
+      }
+
+      // 3) Register webhooks
       const reg = await shopify.registerWebhooks({ session });
       console.log("registerWebhooks:", JSON.stringify(reg, null, 2));
     },
@@ -144,7 +203,7 @@ export default shopify;
 // named exports used by routes
 export const authenticate = shopify.authenticate;
 export const unauthenticated = shopify.unauthenticated;
-export const apiVersion = ApiVersion.July25;
+export const apiVersion = ApiVersion.January26;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
 export const login = shopify.login;
 export const registerWebhooks = shopify.registerWebhooks;

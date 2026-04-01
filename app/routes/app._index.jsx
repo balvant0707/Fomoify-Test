@@ -1,3 +1,5 @@
+// app/routes/app._index.jsx
+// Updated: 2026-03-30 — Backfill shop owner data on index page load for existing users
 import { defer, json, redirect } from "@remix-run/node";
 import {
   useLoaderData,
@@ -8,6 +10,7 @@ import {
 import { useEffect, useState, useCallback } from "react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { upsertInstalledShop } from "../utils/upsertShop.server";
 import {
   Page,
   Card,
@@ -23,6 +26,7 @@ import { APP_EMBED_HANDLE } from "../utils/themeEmbed.shared";
 import { getEmbedPingStatus } from "../utils/embedPingStatus.server";
 import { sendOwnerEmail } from "../utils/sendOwnerEmail.server";
 import { maybeSendAnnouncementEmail } from "../utils/sendAnnouncementEmail.server";
+import { getDashboardReviewPopupStatus } from "../utils/reviewPopupStatus.server";
 
 const CONTACT_SUBJECT_DEFAULT = "Support Request (FOMO Shopify App)";
 const CONTACT_ACK_SUBJECT = "We received your support request (FOMO Shopify App)";
@@ -34,6 +38,8 @@ const CONTACT_FORM_INITIAL = {
 };
 const WRITE_REVIEW_URL =
   "https://apps.shopify.com/fomoify-sales-popup-proof#modal-show=WriteReviewModal";
+const REVIEW_MODAL_APP_NAME = "Fomoify Sales Popup & Proof";
+const REVIEW_DISMISSED_KEY = "__fomo_review_dismissed__";
 const POPUPS_PER_SLIDE = 2;
 const POPUP_AUTOSLIDE_MS = 3500;
 const POPUP_CARD_DATA = [
@@ -137,6 +143,33 @@ function PopupSliderCard({
           style={{ borderRadius: 8, objectFit: "contain" }}
         />
       </div>
+    </div>
+  );
+}
+
+function ReviewStars({ rating, hoverRating, onHover, onLeave, onSelect }) {
+  const activeValue = hoverRating || rating;
+
+  return (
+    <div className="review-app-stars" aria-label="Rate this app">
+      {[1, 2, 3, 4, 5].map((value) => {
+        const active = value <= activeValue;
+        return (
+          <button
+            key={value}
+            type="button"
+            className={`review-app-star${active ? " is-active" : ""}`}
+            aria-label={`${value} star${value > 1 ? "s" : ""}`}
+            onMouseEnter={() => onHover(value)}
+            onMouseLeave={onLeave}
+            onFocus={() => onHover(value)}
+            onBlur={onLeave}
+            onClick={() => onSelect(value)}
+          >
+            ★
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -381,6 +414,132 @@ const INDEX_SUPPORT_STYLES = `
   color: #111827;
   border-color: #d8dadd;
 }
+.review-app-modal {
+  display: grid;
+  gap: 18px;
+}
+.review-app-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #e9f2ff;
+  color: #2f6fad;
+  font-size: 14px;
+  font-weight: 600;
+}
+.review-app-banner svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+.review-app-rating-card {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.review-app-rating-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  border: 1px solid #d8dadd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8c9196;
+  background: #f6f6f7;
+}
+.review-app-rating-icon svg {
+  width: 24px;
+  height: 24px;
+}
+.review-app-rating-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #202223;
+  margin-bottom: 10px;
+}
+.review-app-stars {
+  display: inline-flex;
+  gap: 8px;
+}
+.review-app-star {
+  border: 0;
+  background: transparent;
+  color: #c9cccf;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+.review-app-star.is-active {
+  color: #ffb800;
+}
+.review-app-field-label {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+  color: #202223;
+  margin-bottom: 10px;
+}
+.review-app-textarea {
+  width: 100%;
+  min-height: 160px;
+  resize: vertical;
+  border-radius: 12px;
+  border: 1px solid #c9cccf;
+  padding: 16px;
+  font: inherit;
+  color: #202223;
+  background: #ffffff;
+}
+.review-app-textarea:focus {
+  outline: none;
+  border-color: #5c6ac4;
+  box-shadow: 0 0 0 1px #5c6ac4;
+}
+.review-app-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  border-top: 1px solid #e1e3e5;
+  padding-top: 16px;
+}
+.review-app-footer-copy {
+  font-size: 13px;
+  color: #6d7175;
+}
+.review-app-footer-copy strong {
+  color: #202223;
+}
+.review-app-footer-actions {
+  display: inline-flex;
+  gap: 12px;
+}
+.review-app-action {
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid #c9cccf;
+}
+.review-app-action.secondary {
+  background: #ffffff;
+  color: #202223;
+}
+.review-app-action.primary {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+}
+.review-app-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 @media (max-width: 980px) {
   .home-support-grid {
     grid-template-columns: 1fr;
@@ -411,6 +570,19 @@ const INDEX_SUPPORT_STYLES = `
   }
   .home-review-btn {
     font-size: 15px;
+  }
+  .review-app-rating-card {
+    grid-template-columns: 1fr;
+  }
+  .review-app-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .review-app-footer-actions {
+    width: 100%;
+  }
+  .review-app-action {
+    flex: 1 1 0;
   }
 }
 @media (max-width: 420px) {
@@ -467,6 +639,55 @@ export const loader = async ({ request }) => {
     console.error("[announcement email] error:", err.message)
   );
 
+  // Backfill shop owner data in background if any field is missing
+  prisma.shop
+    .findUnique({ where: { shop }, select: { name: true, email: true } })
+    .then(async (shopRow) => {
+      if (!shopRow?.name || !shopRow?.email) {
+        try {
+          const resp = await admin.graphql(
+            `#graphql
+            query ShopOwnerInfo {
+              shop {
+                name email contactEmail myshopifyDomain currencyCode
+                plan { displayName }
+                primaryDomain { host }
+                billingAddress { country city phone }
+              }
+            }`
+          );
+          const js = await resp.json();
+          if (js.errors) {
+            console.error("[FOMO][index] GraphQL errors:", JSON.stringify(js.errors));
+            return;
+          }
+          const sd = js?.data?.shop || {};
+          if (sd.name) {
+            await upsertInstalledShop({
+              shop,
+              accessToken: session.accessToken ?? null,
+              ownerData: {
+                ownerName: sd.contactEmail || null,
+                email: sd.email || null,
+                contactEmail: sd.contactEmail || null,
+                name: sd.name || null,
+                country: sd.billingAddress?.country || null,
+                city: sd.billingAddress?.city || null,
+                currency: sd.currencyCode || null,
+                phone: sd.billingAddress?.phone || null,
+                primaryDomain: sd.primaryDomain?.host || null,
+                plan: sd.plan?.displayName || null,
+              },
+            });
+            console.log("[FOMO][index] shop data backfilled for", shop, sd.name);
+          }
+        } catch (e) {
+          console.error("[FOMO][index] failed to backfill shop data:", e);
+        }
+      }
+    })
+    .catch((e) => console.error("[FOMO][index] shop lookup failed:", e));
+
   const apiKey =
     process.env.SHOPIFY_API_KEY ||
     process.env.SHOPIFY_APP_BRIDGE_APP_ID ||
@@ -480,11 +701,13 @@ export const loader = async ({ request }) => {
     : Promise.resolve({ themeId: null, appEmbedEnabled: false, appEmbedFound: false, appEmbedChecked: false });
 
   const embedPingStatusPromise = getEmbedPingStatus(shop);
+  const dashboardReviewPopupStatus = await getDashboardReviewPopupStatus(shop);
 
   return defer({
     slug,
     shopDomain,
     apiKey,
+    dashboardReviewPopupStatus,
     embedPingStatus: embedPingStatusPromise,
     embedContext: embedContextPromise,
   });
@@ -757,7 +980,14 @@ export async function action({ request }) {
 }
 
 export default function AppIndex() {
-  const { slug, shopDomain, apiKey, embedPingStatus, embedContext } = useLoaderData();
+  const {
+    slug,
+    shopDomain,
+    apiKey,
+    dashboardReviewPopupStatus,
+    embedPingStatus,
+    embedContext,
+  } = useLoaderData();
   const contactFetcher = useFetcher();
   const navigate = useNavigate();
   const location = useLocation();
@@ -775,6 +1005,14 @@ export default function AppIndex() {
     lastPingAt: null,
     checkedAt: null,
   });
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewHoverRating, setReviewHoverRating] = useState(0);
+  const [reviewMessage, setReviewMessage] = useState("");
+  const [reviewPopupCount, setReviewPopupCount] = useState(
+    Number(dashboardReviewPopupStatus?.popupOrderCount || 0)
+  );
+  const [isReviewPopupDelayElapsed, setIsReviewPopupDelayElapsed] = useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [contactForm, setContactForm] = useState(CONTACT_FORM_INITIAL);
   const [contactError, setContactError] = useState("");
@@ -925,6 +1163,25 @@ export default function AppIndex() {
     setContactForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const reviewDismissedSlot = `${REVIEW_DISMISSED_KEY}:${shopDomain || slug || "store"}`;
+  const isReviewDismissed = useCallback(() => {
+    try { return localStorage.getItem(reviewDismissedSlot) === "1"; } catch { return false; }
+  }, [reviewDismissedSlot]);
+  const markReviewDismissed = useCallback(() => {
+    try { localStorage.setItem(reviewDismissedSlot, "1"); } catch {}
+  }, [reviewDismissedSlot]);
+
+  const resetReviewDraft = () => {
+    setReviewRating(0);
+    setReviewHoverRating(0);
+    setReviewMessage("");
+  };
+
+  const closeReviewModal = () => {
+    setReviewHoverRating(0);
+    setIsReviewModalOpen(false);
+  };
+
   const openContactModal = () => {
     setContactError("");
     setIsContactModalOpen(true);
@@ -933,6 +1190,35 @@ export default function AppIndex() {
   const closeContactModal = () => {
     setIsContactModalOpen(false);
   };
+
+  const openSupportFromReview = () => {
+    closeReviewModal();
+    openContactModal();
+  };
+
+  const submitReviewModal = () => {
+    if (!reviewRating) return;
+    window.open(WRITE_REVIEW_URL, "_blank", "noopener,noreferrer");
+    markReviewDismissed();
+    setReviewHoverRating(0);
+    setIsReviewModalOpen(false);
+  };
+
+  // Start 20s delay only if not already permanently dismissed
+  useEffect(() => {
+    if (isReviewDismissed()) return;
+    const timer = setTimeout(() => setIsReviewPopupDelayElapsed(true), 20000);
+    return () => clearTimeout(timer);
+  }, [isReviewDismissed]);
+
+  // Open modal once after delay — loader already fetched the count on page load
+  useEffect(() => {
+    if (!isReviewPopupDelayElapsed) return;
+    if (reviewPopupCount < 1) return;
+    if (isReviewDismissed()) return;
+    resetReviewDraft();
+    setIsReviewModalOpen(true);
+  }, [isReviewPopupDelayElapsed, reviewPopupCount, isReviewDismissed]);
 
   const submitContactIssue = () => {
     setContactError("");
@@ -1161,6 +1447,87 @@ export default function AppIndex() {
             </div>
           </div>
         </div>
+
+        <Modal
+          open={isReviewModalOpen}
+          onClose={closeReviewModal}
+          title="Review this app"
+          size="large"
+        >
+          <Modal.Section>
+            <div className="review-app-modal">
+              <div className="review-app-banner">
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden>
+                  <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.8" />
+                  <path d="M10 8v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  <circle cx="10" cy="5.6" r="1" fill="currentColor" />
+                </svg>
+                <span>
+                  Development stores aren't eligible to review apps. This is for testing purposes only.
+                </span>
+              </div>
+
+              <div className="review-app-rating-card">
+                <div className="review-app-rating-icon" aria-hidden>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <rect x="3.5" y="3.5" width="7" height="7" rx="1.8" />
+                    <rect x="13.5" y="3.5" width="7" height="7" rx="1.8" />
+                    <rect x="3.5" y="13.5" width="7" height="7" rx="1.8" />
+                    <path d="M17 13.5v7M13.5 17h7" strokeLinecap="round" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="review-app-rating-title">
+                    {`How would you rate ${REVIEW_MODAL_APP_NAME}?`}
+                  </div>
+                  <ReviewStars
+                    rating={reviewRating}
+                    hoverRating={reviewHoverRating}
+                    onHover={setReviewHoverRating}
+                    onLeave={() => setReviewHoverRating(0)}
+                    onSelect={setReviewRating}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="review-app-field-label" htmlFor="review-app-message">
+                  Describe your experience (optional)
+                </label>
+                <textarea
+                  id="review-app-message"
+                  className="review-app-textarea"
+                  placeholder="What should other merchants know about this app?"
+                  value={reviewMessage}
+                  onChange={(event) => setReviewMessage(event.target.value)}
+                />
+              </div>
+
+              <div className="review-app-footer">
+                <div className="review-app-footer-copy">
+                  If your review is published on the Shopify App Store, we'll include some details about your store.
+                </div>
+                <div className="review-app-footer-actions">
+                  <button
+                    type="button"
+                    className="review-app-action secondary"
+                    onClick={openSupportFromReview}
+                  >
+                    Get support
+                  </button>
+                  <button
+                    type="button"
+                    className="review-app-action primary"
+                    onClick={submitReviewModal}
+                    disabled={!reviewRating}
+                  >
+                    Submit
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Modal.Section>
+        </Modal>
 
         <Modal
           open={isContactModalOpen}
