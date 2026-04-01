@@ -81,11 +81,12 @@ const POPUP_CARD_DATA = [
   {
     key: "review",
     title: "Review Notification",
-    desc: "Show new product reviews to build trust and social proof.",
+    desc: "Show new product reviews to build trust and social proof,
     path: "/app/notification/review",
     imageName: "Review notification.png",
   },
 ];
+
 
 function splitIntoSlides(items, perSlide) {
   const out = [];
