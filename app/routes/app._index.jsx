@@ -36,10 +36,14 @@ const CONTACT_FORM_INITIAL = {
   subject: CONTACT_SUBJECT_DEFAULT,
   message: "",
 };
+const SUPPORT_HELP_URL = "https://fomoifysalespopupproof.tawk.help/category/features";
+const PROMOTED_UPSELL_APP_URL = "https://apps.shopify.com";
 const WRITE_REVIEW_URL =
   "https://apps.shopify.com/fomoify-sales-popup-proof#modal-show=WriteReviewModal";
 const REVIEW_MODAL_APP_NAME = "Fomoify Sales Popup & Proof";
-const REVIEW_DISMISSED_KEY = "__fomo_review_dismissed__";
+const REVIEW_SNOOZE_UNTIL_KEY = "__fomo_review_snooze_until__";
+const REVIEW_SUBMITTED_KEY = "__fomo_review_submitted__";
+const REVIEW_TOP_BANNER_DISMISSED_KEY = "__fomo_review_top_banner_dismissed__";
 const POPUPS_PER_SLIDE = 2;
 const POPUP_AUTOSLIDE_MS = 3500;
 const POPUP_CARD_DATA = [
@@ -176,6 +180,71 @@ function ReviewStars({ rating, hoverRating, onHover, onLeave, onSelect }) {
 }
 
 const INDEX_SUPPORT_STYLES = `
+.home-review-top-banner {
+  border: 1px solid #c8b8ec;
+  border-radius: 16px;
+  padding: 16px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background-image:
+    linear-gradient(0deg, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+    linear-gradient(145deg, #b4a2e3 0%, #c9bae9 100%);
+  background-size: 42px 42px, 42px 42px, auto;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+.home-review-top-copy {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+.home-review-top-title {
+  color: #174294;
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 700;
+}
+.home-review-top-subtitle {
+  color: #1d3f80;
+  font-size: 15px;
+  line-height: 1.35;
+}
+.home-review-top-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+.home-review-top-write {
+  border: 0;
+  border-radius: 14px;
+  background: #2758df;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1;
+  padding: 14px 22px;
+  cursor: pointer;
+}
+.home-review-top-close {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid #d9dcf1;
+  background: #f3f5ff;
+  color: #4b5563;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+.home-review-top-write:hover {
+  background: #1d4ccd;
+}
+.home-review-top-close:hover {
+  background: #e8ebfd;
+}
 .home-popup-slider {
   display: grid;
   gap: 14px;
@@ -415,6 +484,286 @@ const INDEX_SUPPORT_STYLES = `
   color: #111827;
   border-color: #d8dadd;
 }
+.home-growth-stack {
+  display: grid;
+  gap: 16px;
+}
+.home-success-card {
+  border: 1px solid #d6dae0;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #ffffff;
+}
+.home-success-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.home-success-title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.home-success-title-wrap svg {
+  width: 24px;
+  height: 24px;
+  color: #22a3e8;
+}
+.home-success-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1f3048;
+  line-height: 1.2;
+}
+.home-success-close {
+  border: 0;
+  background: transparent;
+  color: #b3124e;
+  font-size: 42px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.home-success-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr);
+  gap: 16px;
+  padding: 22px 20px 18px;
+}
+.home-success-call {
+  display: grid;
+  gap: 12px;
+}
+.home-success-call-title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.home-success-call-title-wrap svg {
+  width: 22px;
+  height: 22px;
+  color: #16a8e8;
+}
+.home-success-call-title {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #1f3048;
+}
+.home-success-copy {
+  font-size: 16px;
+  line-height: 1.45;
+  color: #40506a;
+}
+.home-success-bullets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+}
+.home-success-bullets span {
+  position: relative;
+  padding-left: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1f3048;
+}
+.home-success-bullets span::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: #1f3048;
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.home-success-call-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  margin-top: 4px;
+}
+.home-success-call-btn {
+  border: 0;
+  border-radius: 14px;
+  background: #1f3048;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
+  padding: 16px 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.home-success-call-btn svg {
+  width: 20px;
+  height: 20px;
+}
+.home-success-call-meta {
+  font-size: 14px;
+  font-weight: 600;
+  color: #40506a;
+}
+.home-success-quick {
+  border: 1px solid #d8dde6;
+  border-radius: 16px;
+  background: #f2f4f8;
+  padding: 16px 18px;
+  display: grid;
+  gap: 12px;
+}
+.home-success-quick-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #1f3048;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.home-success-quick-title svg {
+  width: 24px;
+  height: 24px;
+  color: #16a8e8;
+}
+.home-success-quick-copy {
+  font-size: 16px;
+  line-height: 1.45;
+  color: #40506a;
+}
+.home-success-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.home-success-quick-btn {
+  border: 1px solid #ccd3df;
+  border-radius: 14px;
+  background: #f8fafc;
+  color: #1f3048;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 12px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.home-success-quick-btn svg {
+  width: 20px;
+  height: 20px;
+}
+.home-growth-card {
+  border: 1px solid #d6dae0;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #ffffff;
+}
+.home-growth-head {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 18px 20px;
+}
+.home-growth-title {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #1f3048;
+}
+.home-growth-body {
+  padding: 16px 20px 22px;
+}
+.home-growth-app-card {
+  max-width: 360px;
+  border: 1px solid #d6dae0;
+  border-radius: 18px;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+.home-growth-app-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.home-growth-app-top-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.home-growth-app-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #86efac 0%, #22c55e 55%, #16a34a 100%);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+}
+.home-growth-app-icon svg {
+  width: 24px;
+  height: 24px;
+}
+.home-growth-app-chip {
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #dce8ff;
+  color: #3d5f9b;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+}
+.home-growth-app-rate {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #1f3048;
+  font-size: 14px;
+  font-weight: 700;
+}
+.home-growth-app-rate svg {
+  width: 15px;
+  height: 15px;
+  color: #f7c948;
+}
+.home-growth-app-name {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #1f3048;
+}
+.home-growth-app-copy {
+  font-size: 16px;
+  line-height: 1.45;
+  color: #51607a;
+}
+.home-growth-app-btn {
+  width: fit-content;
+  border: 0;
+  border-radius: 14px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 12px 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.home-growth-app-btn svg {
+  width: 16px;
+  height: 16px;
+}
 .review-app-modal {
   display: grid;
   gap: 18px;
@@ -545,8 +894,29 @@ const INDEX_SUPPORT_STYLES = `
   .home-support-grid {
     grid-template-columns: 1fr;
   }
+  .home-success-body {
+    grid-template-columns: 1fr;
+  }
+  .home-growth-title {
+    font-size: 18px;
+  }
+  .home-growth-app-name {
+    font-size: 16px;
+  }
 }
 @media (max-width: 740px) {
+  .home-review-top-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 14px 12px;
+  }
+  .home-review-top-title {
+    font-size: 22px;
+  }
+  .home-review-top-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
   .home-popup-slide-grid {
     grid-template-columns: 1fr;
   }
@@ -571,6 +941,61 @@ const INDEX_SUPPORT_STYLES = `
   }
   .home-review-btn {
     font-size: 15px;
+  }
+  .home-success-head {
+    padding: 14px 14px;
+  }
+  .home-success-title {
+    font-size: 18px;
+  }
+  .home-success-close {
+    font-size: 34px;
+  }
+  .home-success-body {
+    padding: 14px 14px 16px;
+  }
+  .home-success-call-title {
+    font-size: 16px;
+  }
+  .home-success-bullets {
+    gap: 8px 14px;
+  }
+  .home-success-bullets span {
+    font-size: 14px;
+  }
+  .home-success-call-btn {
+    width: 100%;
+    justify-content: center;
+    font-size: 14px;
+  }
+  .home-success-call-meta {
+    font-size: 14px;
+  }
+  .home-success-quick-title {
+    font-size: 18px;
+  }
+  .home-success-quick-btn {
+    font-size: 14px;
+    width: 100%;
+    justify-content: center;
+  }
+  .home-growth-head {
+    padding: 14px;
+  }
+  .home-growth-title {
+    font-size: 18px;
+  }
+  .home-growth-body {
+    padding: 14px;
+  }
+  .home-growth-app-card {
+    max-width: 100%;
+  }
+  .home-growth-app-name {
+    font-size: 16px;
+  }
+  .home-growth-app-rate {
+    font-size: 14px;
   }
   .review-app-rating-card {
     grid-template-columns: 1fr;
@@ -1010,13 +1435,11 @@ export default function AppIndex() {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewHoverRating, setReviewHoverRating] = useState(0);
   const [reviewMessage, setReviewMessage] = useState("");
-  const [reviewPopupCount, setReviewPopupCount] = useState(
-    Number(dashboardReviewPopupStatus?.popupOrderCount || 0)
-  );
-  const [isReviewPopupDelayElapsed, setIsReviewPopupDelayElapsed] = useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [contactForm, setContactForm] = useState(CONTACT_FORM_INITIAL);
   const [contactError, setContactError] = useState("");
+  const [showTopReviewBanner, setShowTopReviewBanner] = useState(true);
+  const [showSuccessHelpSection, setShowSuccessHelpSection] = useState(true);
   const [popupLoadingKey, setPopupLoadingKey] = useState(null);
   const [popupSlideIndex, setPopupSlideIndex] = useState(0);
   const [isPopupSliderPaused, setIsPopupSliderPaused] = useState(false);
@@ -1031,6 +1454,9 @@ export default function AppIndex() {
     : hasFreshPingSignal;
   const embedBadgeTone = isEmbedActive ? "success" : "critical";
   const embedBadgeText = `App embed: ${isEmbedActive ? "ON" : "OFF"}`;
+  const allPopupConfigsSaved = Boolean(
+    dashboardReviewPopupStatus?.allPopupConfigsSaved
+  );
 
   useEffect(() => {
     let active = true;
@@ -1164,13 +1590,40 @@ export default function AppIndex() {
     setContactForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const reviewDismissedSlot = `${REVIEW_DISMISSED_KEY}:${shopDomain || slug || "store"}`;
-  const isReviewDismissed = useCallback(() => {
-    try { return localStorage.getItem(reviewDismissedSlot) === "1"; } catch { return false; }
-  }, [reviewDismissedSlot]);
-  const markReviewDismissed = useCallback(() => {
-    try { localStorage.setItem(reviewDismissedSlot, "1"); } catch {}
-  }, [reviewDismissedSlot]);
+  const reviewSnoozeUntilSlot = `${REVIEW_SNOOZE_UNTIL_KEY}:${shopDomain || slug || "store"}`;
+  const reviewSubmittedSlot = `${REVIEW_SUBMITTED_KEY}:${shopDomain || slug || "store"}`;
+  const reviewTopBannerDismissedSlot = `${REVIEW_TOP_BANNER_DISMISSED_KEY}:${shopDomain || slug || "store"}`;
+  const isReviewSubmitted = useCallback(() => {
+    try {
+      return localStorage.getItem(reviewSubmittedSlot) === "1";
+    } catch {
+      return false;
+    }
+  }, [reviewSubmittedSlot]);
+  const isReviewSnoozed = useCallback(() => {
+    try {
+      const until = Number(localStorage.getItem(reviewSnoozeUntilSlot) || 0);
+      return Number.isFinite(until) && until > Date.now();
+    } catch {
+      return false;
+    }
+  }, [reviewSnoozeUntilSlot]);
+  const snoozeReviewPrompt = useCallback((days = 3) => {
+    const millis = Number(days) * 24 * 60 * 60 * 1000;
+    try {
+      localStorage.setItem(reviewSnoozeUntilSlot, String(Date.now() + millis));
+    } catch {}
+  }, [reviewSnoozeUntilSlot]);
+  const markReviewSubmitted = useCallback(() => {
+    try {
+      localStorage.setItem(reviewSubmittedSlot, "1");
+      localStorage.removeItem(reviewSnoozeUntilSlot);
+    } catch {}
+  }, [reviewSubmittedSlot, reviewSnoozeUntilSlot]);
+  const dismissTopReviewBanner = useCallback(() => {
+    setShowTopReviewBanner(false);
+    try { localStorage.setItem(reviewTopBannerDismissedSlot, "1"); } catch {}
+  }, [reviewTopBannerDismissedSlot]);
 
   const resetReviewDraft = () => {
     setReviewRating(0);
@@ -1181,6 +1634,7 @@ export default function AppIndex() {
   const closeReviewModal = () => {
     setReviewHoverRating(0);
     setIsReviewModalOpen(false);
+    snoozeReviewPrompt(3);
   };
 
   const openContactModal = () => {
@@ -1200,26 +1654,27 @@ export default function AppIndex() {
   const submitReviewModal = () => {
     if (!reviewRating) return;
     window.open(WRITE_REVIEW_URL, "_blank", "noopener,noreferrer");
-    markReviewDismissed();
+    markReviewSubmitted();
     setReviewHoverRating(0);
     setIsReviewModalOpen(false);
   };
-
-  // Start 20s delay only if not already permanently dismissed
+  // Open review modal only after all popup configurations are saved.
+  // If the merchant closes it, snooze for 3 days. If they submit, never show again.
   useEffect(() => {
-    if (isReviewDismissed()) return;
-    const timer = setTimeout(() => setIsReviewPopupDelayElapsed(true), 20000);
-    return () => clearTimeout(timer);
-  }, [isReviewDismissed]);
-
-  // Open modal once after delay — loader already fetched the count on page load
-  useEffect(() => {
-    if (!isReviewPopupDelayElapsed) return;
-    if (reviewPopupCount < 1) return;
-    if (isReviewDismissed()) return;
+    if (!allPopupConfigsSaved) return;
+    if (isReviewSubmitted()) return;
+    if (isReviewSnoozed()) return;
     resetReviewDraft();
     setIsReviewModalOpen(true);
-  }, [isReviewPopupDelayElapsed, reviewPopupCount, isReviewDismissed]);
+  }, [allPopupConfigsSaved, isReviewSubmitted, isReviewSnoozed]);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(reviewTopBannerDismissedSlot) === "1") {
+        setShowTopReviewBanner(false);
+      }
+    } catch {}
+  }, [reviewTopBannerDismissedSlot]);
 
   const submitContactIssue = () => {
     setContactError("");
@@ -1248,6 +1703,35 @@ export default function AppIndex() {
     <Page>
       <BlockStack gap="400">
         <style>{INDEX_SUPPORT_STYLES}</style>
+        {showTopReviewBanner ? (
+          <div className="home-review-top-banner">
+            <div className="home-review-top-copy">
+              <div className="home-review-top-title">
+                Loving Fomoify Sales Popup?
+              </div>
+              <div className="home-review-top-subtitle">
+                We'd love to hear your feedback. Your review helps us improve and support more merchants like you.
+              </div>
+            </div>
+            <div className="home-review-top-actions">
+              <button
+                type="button"
+                className="home-review-top-write"
+                onClick={() => window.open(WRITE_REVIEW_URL, "_blank", "noopener,noreferrer")}
+              >
+                Write Review
+              </button>
+              <button
+                type="button"
+                className="home-review-top-close"
+                aria-label="Dismiss review banner"
+                onClick={dismissTopReviewBanner}
+              >
+                x
+              </button>
+            </div>
+          </div>
+        ) : null}
         <Card>
           <BlockStack gap="300">
             <InlineStack align="space-between" blockAlign="center">
@@ -1359,7 +1843,7 @@ export default function AppIndex() {
               <button
                 type="button"
                 className="home-support-item chat"
-                onClick={() => window.open("https://fomoifysalespopupproof.tawk.help/category/features", "_blank", "noopener,noreferrer")}
+                onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}
               >
                 <div className="home-support-item-row">
                   <div className="home-support-item-icon" aria-hidden>
@@ -1386,7 +1870,7 @@ export default function AppIndex() {
               <button
                 type="button"
                 className="home-support-item knowledge"
-                onClick={() => window.open("https://fomoifysalespopupproof.tawk.help/category/features", "_blank")}
+                onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}
               >
                 <div className="home-support-item-row">
                   <div className="home-support-item-icon" aria-hidden>
@@ -1447,6 +1931,145 @@ export default function AppIndex() {
               </button>
             </div>
           </div>
+        </div>
+
+        <div className="home-growth-stack">
+          {showSuccessHelpSection ? (
+            <section className="home-success-card">
+              <div className="home-success-head">
+                <div className="home-success-title-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.4A4 4 0 0 1 19 11c0 5.6-7 10-7 10z" />
+                  </svg>
+                  <div className="home-success-title">We're Here to Help You Succeed</div>
+                </div>
+                <button
+                  type="button"
+                  className="home-success-close"
+                  aria-label="Dismiss success help section"
+                  onClick={() => setShowSuccessHelpSection(false)}
+                >
+                  x
+                </button>
+              </div>
+
+              <div className="home-success-body">
+                <div className="home-success-call">
+                  <div className="home-success-call-title-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="4" width="18" height="17" rx="3" />
+                      <path d="M8 2v4M16 2v4M3 10h18" />
+                    </svg>
+                    <div className="home-success-call-title">Book a Free 30-Minute Setup Call</div>
+                  </div>
+                  <div className="home-success-copy">
+                    Get personalized guidance to accelerate your growth.
+                  </div>
+                  <div className="home-success-bullets">
+                    <span>App configuration</span>
+                    <span>Best practices</span>
+                    <span>Growth strategy</span>
+                  </div>
+                  <div className="home-success-call-actions">
+                    <button
+                      type="button"
+                      className="home-success-call-btn"
+                      onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="4" width="18" height="17" rx="3" />
+                        <path d="M8 2v4M16 2v4M3 10h18" />
+                      </svg>
+                      Schedule Free Call
+                    </button>
+                    <div className="home-success-call-meta">Free | 30 mins | No commitment</div>
+                  </div>
+                </div>
+
+                <div className="home-success-quick">
+                  <div className="home-success-quick-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M4 5h16v10H8l-4 4V5z" />
+                      <path d="M8 9h8M8 12h5" />
+                    </svg>
+                    Need Quick Help?
+                  </div>
+                  <div className="home-success-quick-copy">
+                    Reach out anytime for support, feedback, or just to share your progress.
+                  </div>
+                  <div className="home-success-quick-actions">
+                    <button
+                      type="button"
+                      className="home-success-quick-btn"
+                      onClick={openContactModal}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12z" />
+                      </svg>
+                      WhatsApp
+                    </button>
+                    <button
+                      type="button"
+                      className="home-success-quick-btn"
+                      onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M4 5h16v10H8l-4 4V5z" />
+                        <path d="M8 9h8M8 12h5" />
+                      </svg>
+                      Live Chat
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          <section className="home-growth-card">
+            <div className="home-growth-head">
+              <div className="home-growth-title">
+                Boost your store performance with our apps
+              </div>
+            </div>
+            <div className="home-growth-body">
+              <div className="home-growth-app-card">
+                <div className="home-growth-app-top">
+                  <div className="home-growth-app-top-left">
+                    <div className="home-growth-app-icon" aria-hidden>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="18.5" cy="5.5" r="3.5" />
+                        <path d="M17 5.5h3M18.5 4v3" />
+                        <path d="M3 4h2l2.1 10.5a2 2 0 0 0 2 1.5h8.4a2 2 0 0 0 2-1.6L21 8H8" />
+                        <circle cx="10" cy="20" r="1.5" />
+                        <circle cx="17" cy="20" r="1.5" />
+                      </svg>
+                    </div>
+                    <span className="home-growth-app-chip">Upsell</span>
+                  </div>
+                  <div className="home-growth-app-rate">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10 2.5l2.32 4.7 5.18.75-3.75 3.66.88 5.17L10 14.35 5.37 16.8l.88-5.17L2.5 7.95l5.18-.75L10 2.5z" />
+                    </svg>
+                    5.0
+                  </div>
+                </div>
+                <div className="home-growth-app-name">CartLift: Cart Drawer &amp; Upsell</div>
+                <div className="home-growth-app-copy">
+                  Grow average order value with cart drawer upsells and smart cart offers.
+                </div>
+                <button
+                  type="button"
+                  className="home-growth-app-btn"
+                  onClick={() => window.open(PROMOTED_UPSELL_APP_URL, "_blank", "noopener,noreferrer")}
+                >
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2">
+                    <path d="M10 4v12M4 10h12" />
+                  </svg>
+                  Add app
+                </button>
+              </div>
+            </div>
+          </section>
         </div>
 
         <Modal
@@ -1594,3 +2217,4 @@ export default function AppIndex() {
     </Page>
   );
 }
+
