@@ -205,13 +205,13 @@ const INDEX_SUPPORT_STYLES = `
 }
 .home-review-top-title {
   color: #174294;
-  font-size: 28px;
+  font-size: 20px;
   line-height: 1.15;
   font-weight: 700;
 }
 .home-review-top-subtitle {
   color: #1d3f80;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.35;
 }
 .home-review-top-actions {
@@ -223,24 +223,24 @@ const INDEX_SUPPORT_STYLES = `
 .home-review-top-write {
   border: 0;
   border-radius: 14px;
-  background: #2758df;
+  background: #000000 !important;
   color: #ffffff;
   font-weight: 700;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1;
   padding: 14px 22px;
   cursor: pointer;
 }
 .home-review-top-close {
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  border: 1px solid #d9dcf1;
-  background: #f3f5ff;
-  color: #4b5563;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    border: none !important;
+    background: transparent !important;
+    color: #000000;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
 }
 .home-review-top-write:hover {
   background: #1d4ccd;
@@ -516,7 +516,7 @@ const INDEX_SUPPORT_STYLES = `
   color: #22a3e8;
 }
 .home-success-title {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 800;
   color: #1f3048;
   line-height: 1.2;
@@ -637,7 +637,7 @@ const INDEX_SUPPORT_STYLES = `
   color: #16a8e8;
 }
 .home-success-quick-copy {
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.45;
   color: #40506a;
 }
@@ -907,7 +907,7 @@ const INDEX_SUPPORT_STYLES = `
     padding: 14px 12px;
   }
   .home-review-top-title {
-    font-size: 22px;
+    font-size: 18px;
   }
   .home-review-top-actions {
     width: 100%;
@@ -2030,7 +2030,6 @@ export default function AppIndex() {
                     </svg>
                   </div>
                   <div className="home-growth-app-meta">
-                    <span className="home-growth-app-chip">Apps</span>
                     <a
                       className="home-growth-app-name home-growth-app-name-link"
                       href={PROMOTED_UPSELL_APP_URL}
@@ -2040,6 +2039,7 @@ export default function AppIndex() {
                       CartLift: Cart Drawer &amp; Upsell
                     </a>
                   </div>
+                  <span className="home-growth-app-chip">Upsell</span>
                 </div>
                 <div className="home-growth-app-copy">
                   Grow average order value with cart drawer upsells and smart cart offers.
