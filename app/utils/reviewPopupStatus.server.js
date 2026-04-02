@@ -9,6 +9,16 @@ const POPUP_CONFIG_MODELS = [
   ["addtocartpopupconfig", "addToCartPopupConfig"],
   ["reviewpopupconfig", "reviewPopupConfig"],
 ];
+const REVIEW_POPUP_DELAY_DAYS = Number(process.env.REVIEW_POPUP_DELAY_DAYS || 7);
+
+function getDaysSince(dateLike) {
+  if (!dateLike) return null;
+  const then = new Date(dateLike).getTime();
+  if (!Number.isFinite(then)) return null;
+  const diffMs = Date.now() - then;
+  if (!Number.isFinite(diffMs) || diffMs < 0) return 0;
+  return Math.floor(diffMs / (24 * 60 * 60 * 1000));
+}
 
 function resolveModel(keys) {
   for (const key of keys) {
@@ -31,6 +41,17 @@ async function hasSavedPopupConfig(shop, keys) {
 export async function getDashboardReviewPopupStatus(shop) {
   let popupOrderCount = 0;
   let hasOrderReviewCount = false;
+  let shopCreatedAt = null;
+
+  try {
+    if (shop && prisma?.shop?.findUnique) {
+      const shopRow = await prisma.shop.findUnique({
+        where: { shop },
+        select: { createdAt: true },
+      });
+      shopCreatedAt = shopRow?.createdAt || null;
+    }
+  } catch {}
 
   // Try orderreviewrequest table first
   try {
@@ -66,12 +87,22 @@ export async function getDashboardReviewPopupStatus(shop) {
   );
   const configuredPopupCount = popupConfigChecks.filter(Boolean).length;
   const requiredPopupConfigCount = POPUP_CONFIG_MODELS.length;
+  const allPopupConfigsSaved = configuredPopupCount >= requiredPopupConfigCount;
+  const daysSinceInstall = getDaysSince(shopCreatedAt);
+  const installAgeReached =
+    daysSinceInstall === null ? true : daysSinceInstall >= REVIEW_POPUP_DELAY_DAYS;
+  const shouldShowReviewPopup =
+    popupOrderCount >= 1 && allPopupConfigsSaved && installAgeReached;
 
   return {
     popupOrderCount,
-    shouldShowReviewPopup: popupOrderCount >= 1,
+    shouldShowReviewPopup,
     configuredPopupCount,
     requiredPopupConfigCount,
-    allPopupConfigsSaved: configuredPopupCount >= requiredPopupConfigCount,
+    allPopupConfigsSaved,
+    shopCreatedAt,
+    daysSinceInstall,
+    reviewPopupDelayDays: REVIEW_POPUP_DELAY_DAYS,
+    installAgeReached,
   };
 }
