@@ -2290,7 +2290,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     const tableVisitor = Array.isArray(tables.visitor) ? tables.visitor : [];
     const tableLowStock = Array.isArray(tables.lowstock) ? tables.lowstock : [];
     const tableAddToCart = Array.isArray(tables.addtocart) ? tables.addtocart : [];
-    const tableReview = Array.isArray(tables.review) ? tables.review : [];
+    // Frontend requirement: disable review popup/form rendering on storefront.
+    const tableReview = [];
     const useFlashLegacy = tableFlash.length === 0;
     // Recent popup must always come from recentpopupconfig (tables.recent).
     const useRecentLegacy = false;
