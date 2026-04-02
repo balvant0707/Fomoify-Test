@@ -37,10 +37,13 @@ const CONTACT_FORM_INITIAL = {
   message: "",
 };
 const SUPPORT_HELP_URL = "https://fomoifysalespopupproof.tawk.help/category/features";
-const PROMOTED_UPSELL_APP_URL = "https://apps.shopify.com";
+const SCHEDULE_CALL_URL =
+  "https://outlook.office.com/book/ShopifyGrowthConsultationCall@m2webdesigning.com/";
+const PROMOTED_UPSELL_APP_URL = "https://apps.shopify.com/cartlift-cart-drawer-upsell";
 const WRITE_REVIEW_URL =
   "https://apps.shopify.com/fomoify-sales-popup-proof#modal-show=WriteReviewModal";
 const REVIEW_MODAL_APP_NAME = "Fomoify Sales Popup & Proof";
+const AUTO_REVIEW_MODAL_ENABLED = true;
 const REVIEW_SNOOZE_UNTIL_KEY = "__fomo_review_snooze_until__";
 const REVIEW_SUBMITTED_KEY = "__fomo_review_submitted__";
 const REVIEW_TOP_BANNER_DISMISSED_KEY = "__fomo_review_top_banner_dismissed__";
@@ -513,7 +516,7 @@ const INDEX_SUPPORT_STYLES = `
   color: #22a3e8;
 }
 .home-success-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 800;
   color: #1f3048;
   line-height: 1.2;
@@ -548,13 +551,13 @@ const INDEX_SUPPORT_STYLES = `
   color: #16a8e8;
 }
 .home-success-call-title {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 800;
   line-height: 1.2;
   color: #1f3048;
 }
 .home-success-copy {
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.45;
   color: #40506a;
 }
@@ -624,7 +627,7 @@ const INDEX_SUPPORT_STYLES = `
   align-items: center;
   gap: 10px;
   color: #1f3048;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 800;
   line-height: 1.1;
 }
@@ -691,12 +694,7 @@ const INDEX_SUPPORT_STYLES = `
 .home-growth-app-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.home-growth-app-top-left {
-  display: inline-flex;
-  align-items: center;
+  justify-content: flex-start;
   gap: 12px;
 }
 .home-growth-app-icon {
@@ -712,6 +710,10 @@ const INDEX_SUPPORT_STYLES = `
   width: 24px;
   height: 24px;
 }
+.home-growth-app-meta {
+  display: grid;
+  gap: 8px;
+}
 .home-growth-app-chip {
   border-radius: 999px;
   padding: 8px 12px;
@@ -721,24 +723,18 @@ const INDEX_SUPPORT_STYLES = `
   font-weight: 700;
   line-height: 1;
 }
-.home-growth-app-rate {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #1f3048;
-  font-size: 14px;
-  font-weight: 700;
-}
-.home-growth-app-rate svg {
-  width: 15px;
-  height: 15px;
-  color: #f7c948;
-}
 .home-growth-app-name {
   font-size: 16px;
   font-weight: 800;
   line-height: 1.2;
   color: #1f3048;
+}
+.home-growth-app-name-link {
+  color: inherit;
+  text-decoration: none;
+}
+.home-growth-app-name-link:hover {
+  text-decoration: underline;
 }
 .home-growth-app-copy {
   font-size: 16px;
@@ -993,9 +989,6 @@ const INDEX_SUPPORT_STYLES = `
   }
   .home-growth-app-name {
     font-size: 16px;
-  }
-  .home-growth-app-rate {
-    font-size: 14px;
   }
   .review-app-rating-card {
     grid-template-columns: 1fr;
@@ -1439,7 +1432,7 @@ export default function AppIndex() {
   const [contactForm, setContactForm] = useState(CONTACT_FORM_INITIAL);
   const [contactError, setContactError] = useState("");
   const [showTopReviewBanner, setShowTopReviewBanner] = useState(true);
-  const [showSuccessHelpSection, setShowSuccessHelpSection] = useState(true);
+  const [showSuccessHelpSection] = useState(true);
   const [popupLoadingKey, setPopupLoadingKey] = useState(null);
   const [popupSlideIndex, setPopupSlideIndex] = useState(0);
   const [isPopupSliderPaused, setIsPopupSliderPaused] = useState(false);
@@ -1454,8 +1447,8 @@ export default function AppIndex() {
     : hasFreshPingSignal;
   const embedBadgeTone = isEmbedActive ? "success" : "critical";
   const embedBadgeText = `App embed: ${isEmbedActive ? "ON" : "OFF"}`;
-  const allPopupConfigsSaved = Boolean(
-    dashboardReviewPopupStatus?.allPopupConfigsSaved
+  const shouldShowReviewPopup = Boolean(
+    dashboardReviewPopupStatus?.shouldShowReviewPopup
   );
 
   useEffect(() => {
@@ -1658,15 +1651,16 @@ export default function AppIndex() {
     setReviewHoverRating(0);
     setIsReviewModalOpen(false);
   };
-  // Open review modal only after all popup configurations are saved.
-  // If the merchant closes it, snooze for 3 days. If they submit, never show again.
+  // Auto-open review modal only when backend status allows it
+  // (including install age from shop.createdAt). If merchant closes, snooze 3 days.
   useEffect(() => {
-    if (!allPopupConfigsSaved) return;
+    if (!AUTO_REVIEW_MODAL_ENABLED) return;
+    if (!shouldShowReviewPopup) return;
     if (isReviewSubmitted()) return;
     if (isReviewSnoozed()) return;
     resetReviewDraft();
     setIsReviewModalOpen(true);
-  }, [allPopupConfigsSaved, isReviewSubmitted, isReviewSnoozed]);
+  }, [shouldShowReviewPopup, isReviewSubmitted, isReviewSnoozed]);
 
   useEffect(() => {
     try {
@@ -1943,14 +1937,6 @@ export default function AppIndex() {
                   </svg>
                   <div className="home-success-title">We're Here to Help You Succeed</div>
                 </div>
-                <button
-                  type="button"
-                  className="home-success-close"
-                  aria-label="Dismiss success help section"
-                  onClick={() => setShowSuccessHelpSection(false)}
-                >
-                  x
-                </button>
               </div>
 
               <div className="home-success-body">
@@ -1974,7 +1960,7 @@ export default function AppIndex() {
                     <button
                       type="button"
                       className="home-success-call-btn"
-                      onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}
+                      onClick={() => window.open(SCHEDULE_CALL_URL, "_blank", "noopener,noreferrer")}
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <rect x="3" y="4" width="18" height="17" rx="3" />
@@ -2034,26 +2020,27 @@ export default function AppIndex() {
             <div className="home-growth-body">
               <div className="home-growth-app-card">
                 <div className="home-growth-app-top">
-                  <div className="home-growth-app-top-left">
-                    <div className="home-growth-app-icon" aria-hidden>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="18.5" cy="5.5" r="3.5" />
-                        <path d="M17 5.5h3M18.5 4v3" />
-                        <path d="M3 4h2l2.1 10.5a2 2 0 0 0 2 1.5h8.4a2 2 0 0 0 2-1.6L21 8H8" />
-                        <circle cx="10" cy="20" r="1.5" />
-                        <circle cx="17" cy="20" r="1.5" />
-                      </svg>
-                    </div>
-                    <span className="home-growth-app-chip">Upsell</span>
-                  </div>
-                  <div className="home-growth-app-rate">
-                    <svg viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M10 2.5l2.32 4.7 5.18.75-3.75 3.66.88 5.17L10 14.35 5.37 16.8l.88-5.17L2.5 7.95l5.18-.75L10 2.5z" />
+                  <div className="home-growth-app-icon" aria-hidden>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="18.5" cy="5.5" r="3.5" />
+                      <path d="M17 5.5h3M18.5 4v3" />
+                      <path d="M3 4h2l2.1 10.5a2 2 0 0 0 2 1.5h8.4a2 2 0 0 0 2-1.6L21 8H8" />
+                      <circle cx="10" cy="20" r="1.5" />
+                      <circle cx="17" cy="20" r="1.5" />
                     </svg>
-                    5.0
+                  </div>
+                  <div className="home-growth-app-meta">
+                    <span className="home-growth-app-chip">Apps</span>
+                    <a
+                      className="home-growth-app-name home-growth-app-name-link"
+                      href={PROMOTED_UPSELL_APP_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      CartLift: Cart Drawer &amp; Upsell
+                    </a>
                   </div>
                 </div>
-                <div className="home-growth-app-name">CartLift: Cart Drawer &amp; Upsell</div>
                 <div className="home-growth-app-copy">
                   Grow average order value with cart drawer upsells and smart cart offers.
                 </div>
