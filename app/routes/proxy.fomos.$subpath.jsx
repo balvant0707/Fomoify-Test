@@ -460,6 +460,20 @@ const uniqueProductIdsFromOrders = (orders) => {
   return Array.from(ids);
 };
 
+const PRODUCTS_BY_IDS_QUERY = `
+  query GetProductsByIds($ids: [ID!]!) {
+    nodes(ids: $ids) {
+      ... on Product {
+        id
+        handle
+        featuredImage {
+          url
+        }
+      }
+    }
+  }
+`;
+
 async function fetchProductsByIds({ shop, accessToken, productIds }) {
   const ids = Array.isArray(productIds)
     ? productIds
@@ -469,16 +483,19 @@ async function fetchProductsByIds({ shop, accessToken, productIds }) {
   const out = new Map();
   if (!ids.length) return out;
 
-  const CHUNK = 100;
+  const endpoint = `https://${shop}/admin/api/2025-07/graphql.json`;
+  const CHUNK = 250;
   for (let i = 0; i < ids.length; i += CHUNK) {
     const chunk = ids.slice(i, i + CHUNK);
-    const endpoint = `https://${shop}/admin/api/2025-07/products.json?ids=${chunk.join(",")}&fields=id,handle,image`;
+    const gids = chunk.map((id) => `gid://shopify/Product/${id}`);
     try {
       const resp = await fetch(endpoint, {
+        method: "POST",
         headers: {
           "X-Shopify-Access-Token": accessToken,
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({ query: PRODUCTS_BY_IDS_QUERY, variables: { ids: gids } }),
       });
       if (!resp.ok) {
         const body = await resp.text();
@@ -486,13 +503,14 @@ async function fetchProductsByIds({ shop, accessToken, productIds }) {
         continue;
       }
       const payload = await resp.json();
-      const products = Array.isArray(payload?.products) ? payload.products : [];
-      for (const product of products) {
-        const productId = toInt(product?.id);
+      const nodes = Array.isArray(payload?.data?.nodes) ? payload.data.nodes : [];
+      for (const node of nodes) {
+        if (!node) continue;
+        const productId = toProductNumericId(node?.id);
         if (!productId || productId <= 0) continue;
         out.set(productId, {
-          handle: String(product?.handle || "").trim(),
-          image: normalizeImageUrl(product?.image),
+          handle: String(node?.handle || "").trim(),
+          image: normalizeImageUrl(node?.featuredImage),
         });
       }
     } catch (err) {
@@ -769,13 +787,66 @@ export const loader = async ({ request, params }) => {
           const createdAtMin = new Date(
             Date.now() - days * 24 * 60 * 60 * 1000
           ).toISOString();
-          const endpoint = `https://${shop}/admin/api/2025-07/orders.json?status=any&limit=${limit}&created_at_min=${encodeURIComponent(createdAtMin)}&fields=id,created_at,processed_at,customer,shipping_address,billing_address,line_items`;
 
-          const resp = await fetch(endpoint, {
+          const ORDERS_QUERY = `
+            query GetOrders($first: Int!, $query: String!) {
+              orders(first: $first, query: $query, sortKey: CREATED_AT, reverse: true) {
+                nodes {
+                  id
+                  createdAt
+                  processedAt
+                  customer {
+                    firstName
+                    lastName
+                    defaultAddress {
+                      city
+                      province
+                      country
+                    }
+                  }
+                  shippingAddress {
+                    city
+                    province
+                    country
+                  }
+                  billingAddress {
+                    city
+                    province
+                    country
+                  }
+                  lineItems(first: 50) {
+                    nodes {
+                      title
+                      quantity
+                      originalUnitPriceSet {
+                        presentmentMoney {
+                          amount
+                        }
+                      }
+                      image {
+                        url
+                      }
+                      product {
+                        id
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          `;
+
+          const ordersEndpoint = `https://${shop}/admin/api/2025-07/graphql.json`;
+          const resp = await fetch(ordersEndpoint, {
+            method: "POST",
             headers: {
               "X-Shopify-Access-Token": shopRecord.accessToken,
               "Content-Type": "application/json",
             },
+            body: JSON.stringify({
+              query: ORDERS_QUERY,
+              variables: { first: limit, query: `created_at:>='${createdAtMin}'` },
+            }),
           });
 
           if (!resp.ok) {
@@ -791,7 +862,65 @@ export const loader = async ({ request, params }) => {
           }
 
           const data = await resp.json();
-          const rawOrders = Array.isArray(data?.orders) ? data.orders : [];
+          const gqlErrors = Array.isArray(data?.errors) ? data.errors : [];
+          if (gqlErrors.length) {
+            const errMsg = gqlErrors.map((e) => String(e?.message || "")).filter(Boolean).join("; ");
+            console.warn("[FOMO Orders API] GraphQL errors:", errMsg);
+            return {
+              orders: [],
+              sessionReady: true,
+              shop,
+              error: `Orders API errors: ${errMsg}`,
+              timestamp,
+            };
+          }
+
+          const rawOrders = (
+            Array.isArray(data?.data?.orders?.nodes) ? data.data.orders.nodes : []
+          ).map((node) => {
+            if (!node) return null;
+            const lineItems = Array.isArray(node.lineItems?.nodes) ? node.lineItems.nodes : [];
+            return {
+              id: toProductNumericId(node.id),
+              created_at: node.createdAt || null,
+              processed_at: node.processedAt || null,
+              customer: node.customer
+                ? {
+                    first_name: node.customer.firstName || "",
+                    last_name: node.customer.lastName || "",
+                    default_address: node.customer.defaultAddress
+                      ? {
+                          city: node.customer.defaultAddress.city || "",
+                          province: node.customer.defaultAddress.province || "",
+                          country: node.customer.defaultAddress.country || "",
+                        }
+                      : null,
+                  }
+                : null,
+              shipping_address: node.shippingAddress
+                ? {
+                    city: node.shippingAddress.city || "",
+                    province: node.shippingAddress.province || "",
+                    country: node.shippingAddress.country || "",
+                  }
+                : null,
+              billing_address: node.billingAddress
+                ? {
+                    city: node.billingAddress.city || "",
+                    province: node.billingAddress.province || "",
+                    country: node.billingAddress.country || "",
+                  }
+                : null,
+              line_items: lineItems.map((item) => ({
+                title: item.title || "",
+                quantity: item.quantity || 1,
+                price: item.originalUnitPriceSet?.presentmentMoney?.amount || "",
+                product_id: item.product?.id ? toProductNumericId(item.product.id) : null,
+                image: normalizeImageUrl(item.image),
+                product_handle: "",
+              })),
+            };
+          }).filter(Boolean);
           const productIds = uniqueProductIdsFromOrders(rawOrders);
           const productMap = await fetchProductsByIds({
             shop,
