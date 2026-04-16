@@ -7,6 +7,127 @@ import { sendOrderReviewEmail } from "../utils/sendOrderReviewEmail.server";
 const norm = (s) => (s || "").toLowerCase();
 const AUTO_UNINSTALL_FEEDBACK_TEXT = "[AUTO] App uninstalled. Feedback form not yet submitted.";
 
+const normText = (value, max = 3000) => {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  return text.length > max ? text.slice(0, max) : text;
+};
+
+const pickFirstText = (...values) => {
+  for (const value of values) {
+    const text = normText(value);
+    if (text) return text;
+  }
+  return "";
+};
+
+const collectKeyedStrings = (input, maxDepth = 5, maxNodes = 300) => {
+  const out = [];
+  const queue = [{ value: input, path: "", depth: 0 }];
+  let visited = 0;
+
+  while (queue.length && visited < maxNodes) {
+    const current = queue.shift();
+    visited += 1;
+    if (!current) continue;
+
+    const { value, path, depth } = current;
+    if (value === null || value === undefined) continue;
+
+    if (typeof value === "string") {
+      const text = normText(value);
+      if (text) out.push({ path, value: text });
+      continue;
+    }
+
+    if (depth >= maxDepth) continue;
+
+    if (Array.isArray(value)) {
+      value.forEach((item, index) => {
+        queue.push({
+          value: item,
+          path: path ? `${path}[${index}]` : `[${index}]`,
+          depth: depth + 1,
+        });
+      });
+      continue;
+    }
+
+    if (typeof value === "object") {
+      Object.entries(value).forEach(([k, v]) => {
+        queue.push({
+          value: v,
+          path: path ? `${path}.${k}` : k,
+          depth: depth + 1,
+        });
+      });
+    }
+  }
+
+  return out;
+};
+
+const extractUninstallFeedback = (payload) => {
+  const reasonDirect = pickFirstText(
+    payload?.reason,
+    payload?.uninstall_reason,
+    payload?.uninstallReason,
+    payload?.app_uninstall_reason,
+    payload?.survey_reason,
+    payload?.surveyReason,
+    payload?.feedback_reason,
+    payload?.feedbackReason
+  );
+
+  const messageDirect = pickFirstText(
+    payload?.feedback,
+    payload?.feedback_text,
+    payload?.feedbackText,
+    payload?.feedback_message,
+    payload?.feedbackMessage,
+    payload?.private_feedback,
+    payload?.privateFeedback,
+    payload?.comment,
+    payload?.details,
+    payload?.note
+  );
+
+  const keyedStrings = collectKeyedStrings(payload);
+  const reasonFromKeys =
+    keyedStrings.find((entry) =>
+      /(^|\.)(uninstall_?reason|survey_?reason|feedback_?reason|reason)$/i.test(entry.path)
+    )?.value || "";
+  const messageFromKeys =
+    keyedStrings.find((entry) =>
+      /(^|\.)(feedback(_text|_message)?|private_?feedback|comment|details?|message|note)$/i.test(
+        entry.path
+      )
+    )?.value || "";
+
+  const reason = pickFirstText(reasonDirect, reasonFromKeys);
+  const message = pickFirstText(messageDirect, messageFromKeys);
+
+  if (!reason && !message) {
+    return {
+      hasFeedback: false,
+      reason: "",
+      message: "",
+      feedbackText: "",
+    };
+  }
+
+  const combined = [];
+  if (reason) combined.push(`Reason: ${reason}`);
+  if (message && message !== reason) combined.push(`Message: ${message}`);
+
+  return {
+    hasFeedback: true,
+    reason,
+    message,
+    feedbackText: combined.join("\n\n"),
+  };
+};
+
 export const action = async ({ request }) => {
   // Do NOT wrap in try/catch — authenticate.webhook throws a Response on failure.
   // Catching it and returning 401 causes Shopify to retry, creating thousands of failures.
@@ -19,6 +140,7 @@ export const action = async ({ request }) => {
     switch (topic) {
       case "APP_UNINSTALLED": {
         const now = new Date();
+        const uninstallFeedback = extractUninstallFeedback(payload);
 
         // Read existing shop record before zeroing it out
         const existingShop = await prisma.shop.findUnique({ where: { shop: s } });
@@ -53,7 +175,8 @@ export const action = async ({ request }) => {
               ownerName,
               email: ownerEmail,
               contactEmail,
-              feedbackText: AUTO_UNINSTALL_FEEDBACK_TEXT,
+              feedbackText:
+                uninstallFeedback.feedbackText || AUTO_UNINSTALL_FEEDBACK_TEXT,
               feedbackToken,
               feedbackSubmittedAt: now,
               uninstalledAt: now,
@@ -132,6 +255,14 @@ export const action = async ({ request }) => {
           } catch (err) {
             console.error("[APP_UNINSTALLED] merchant feedback email failed:", err);
           }
+        }
+
+        if (uninstallFeedback.hasFeedback) {
+          console.log("[APP_UNINSTALLED] feedback captured from payload:", {
+            shop: s,
+            reason: uninstallFeedback.reason || null,
+            hasMessage: Boolean(uninstallFeedback.message),
+          });
         }
 
         console.log(`[APP_UNINSTALLED] ${s}`);
