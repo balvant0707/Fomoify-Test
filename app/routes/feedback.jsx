@@ -5,6 +5,8 @@ import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
 import prisma from "../db.server";
 
+const AUTO_UNINSTALL_FEEDBACK_TEXT = "[AUTO] App uninstalled. Feedback form not yet submitted.";
+
 const REASONS = [
   "Missing features I need",
   "Too expensive / not enough value",
@@ -29,7 +31,10 @@ export async function loader({ request }) {
     .catch(() => null);
 
   if (!record) return json({ status: "invalid" });
-  if (record.feedbackSubmittedAt) return json({ status: "done", shop: record.shop });
+  const hasRealFeedback =
+    Boolean(record.feedbackSubmittedAt) &&
+    String(record.feedbackText || "").trim() !== AUTO_UNINSTALL_FEEDBACK_TEXT;
+  if (hasRealFeedback) return json({ status: "done", shop: record.shop });
 
   return json({ status: "open", token, shop: record.shop, ownerName: record.ownerName });
 }
@@ -48,7 +53,10 @@ export async function action({ request }) {
     .catch(() => null);
 
   if (!record) return json({ ok: false, error: "Invalid token" });
-  if (record.feedbackSubmittedAt) return json({ ok: true, alreadyDone: true });
+  const hasRealFeedback =
+    Boolean(record.feedbackSubmittedAt) &&
+    String(record.feedbackText || "").trim() !== AUTO_UNINSTALL_FEEDBACK_TEXT;
+  if (hasRealFeedback) return json({ ok: true, alreadyDone: true });
 
   const combined = [reason, feedbackText].filter(Boolean).join("\n\n");
 

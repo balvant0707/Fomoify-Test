@@ -183,6 +183,41 @@ function ReviewStars({ rating, hoverRating, onHover, onLeave, onSelect }) {
 }
 
 const INDEX_SUPPORT_STYLES = `
+.home-index-shell {
+  --home-heading-size: 20px;
+  --home-heading-line: 1.2;
+  --home-text-size: 14px;
+  --home-text-line: 1.45;
+  border-radius: 18px;
+  padding: 4px;
+  background:
+    radial-gradient(circle at 6% 8%, rgba(59, 130, 246, 0.14), transparent 22%),
+    radial-gradient(circle at 92% 18%, rgba(16, 185, 129, 0.1), transparent 24%),
+    linear-gradient(180deg, #f8fbff 0%, #ffffff 55%);
+}
+.home-index-shell .home-review-top-title,
+.home-index-shell .home-popup-card-title,
+.home-index-shell .home-success-title,
+.home-index-shell .home-success-call-title,
+.home-index-shell .home-success-quick-title,
+.home-index-shell .home-growth-title,
+.home-index-shell .home-growth-app-name,
+.home-index-shell .review-app-rating-title,
+.home-index-shell .review-app-field-label {
+  font-size: var(--home-heading-size) !important;
+  line-height: var(--home-heading-line) !important;
+}
+.home-index-shell .home-review-top-subtitle,
+.home-index-shell .home-popup-card-desc,
+.home-index-shell .home-review-copy,
+.home-index-shell .home-success-copy,
+.home-index-shell .home-success-call-meta,
+.home-index-shell .home-success-quick-copy,
+.home-index-shell .home-growth-app-copy,
+.home-index-shell .review-app-footer-copy {
+  font-size: var(--home-text-size) !important;
+  line-height: var(--home-text-line) !important;
+}
 .home-review-top-banner {
   border: 1px solid #c8b8ec;
   border-radius: 16px;
@@ -307,12 +342,12 @@ const INDEX_SUPPORT_STYLES = `
   gap: 8px;
 }
 .home-popup-card-title {
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 700;
   color: #111827;
 }
 .home-popup-card-desc {
-  font-size: 13px;
+  font-size: 14px;
   color: #6b7280;
 }
 .home-popup-card-actions {
@@ -461,7 +496,7 @@ const INDEX_SUPPORT_STYLES = `
   max-width: 290px;
   margin: 0 auto;
   color: #1f2937;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.35;
 }
 .home-review-actions {
@@ -675,7 +710,7 @@ const INDEX_SUPPORT_STYLES = `
   padding: 18px 20px;
 }
 .home-growth-title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 800;
   line-height: 1.15;
   color: #1f3048;
@@ -701,14 +736,16 @@ const INDEX_SUPPORT_STYLES = `
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: linear-gradient(145deg, #86efac 0%, #22c55e 55%, #16a34a 100%);
-  color: #ffffff;
+  background: #ffffff;
+  border: 1px solid #d6dae0;
   display: grid;
   place-items: center;
+  overflow: hidden;
 }
-.home-growth-app-icon svg {
-  width: 24px;
-  height: 24px;
+.home-growth-app-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .home-growth-app-meta {
   display: grid;
@@ -724,7 +761,7 @@ const INDEX_SUPPORT_STYLES = `
   line-height: 1;
 }
 .home-growth-app-name {
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 800;
   line-height: 1.2;
   color: #1f3048;
@@ -737,7 +774,7 @@ const INDEX_SUPPORT_STYLES = `
   text-decoration: underline;
 }
 .home-growth-app-copy {
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.45;
   color: #51607a;
 }
@@ -1695,6 +1732,7 @@ export default function AppIndex() {
 
   return (
     <Page>
+      <div className="home-index-shell">
       <BlockStack gap="400">
         <style>{INDEX_SUPPORT_STYLES}</style>
         {showTopReviewBanner ? (
@@ -1708,13 +1746,12 @@ export default function AppIndex() {
               </div>
             </div>
             <div className="home-review-top-actions">
-              <button
-                type="button"
-                className="home-review-top-write"
+              <Button
+                variant="primary"
                 onClick={() => window.open(WRITE_REVIEW_URL, "_blank", "noopener,noreferrer")}
               >
                 Write Review
-              </button>
+              </Button>
               <button
                 type="button"
                 className="home-review-top-close"
@@ -1909,20 +1946,15 @@ export default function AppIndex() {
               </Text>
             </div>
             <div className="home-review-actions">
-              <button
-                type="button"
-                className="home-review-btn primary"
+              <Button
+                variant="primary"
                 onClick={() => window.open(WRITE_REVIEW_URL, "_blank", "noopener,noreferrer")}
               >
                 Write a review
-              </button>
-              <button
-                type="button"
-                className="home-review-btn secondary"
-                onClick={openContactModal}
-              >
+              </Button>
+              <Button onClick={openContactModal}>
                 Report an issue
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1957,17 +1989,12 @@ export default function AppIndex() {
                     <span>Growth strategy</span>
                   </div>
                   <div className="home-success-call-actions">
-                    <button
-                      type="button"
-                      className="home-success-call-btn"
+                    <Button
+                      variant="primary"
                       onClick={() => window.open(SCHEDULE_CALL_URL, "_blank", "noopener,noreferrer")}
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="3" y="4" width="18" height="17" rx="3" />
-                        <path d="M8 2v4M16 2v4M3 10h18" />
-                      </svg>
                       Schedule Free Call
-                    </button>
+                    </Button>
                     <div className="home-success-call-meta">Free | 30 mins | No commitment</div>
                   </div>
                 </div>
@@ -1984,27 +2011,14 @@ export default function AppIndex() {
                     Reach out anytime for support, feedback, or just to share your progress.
                   </div>
                   <div className="home-success-quick-actions">
-                    <button
-                      type="button"
-                      className="home-success-quick-btn"
-                      onClick={openContactModal}
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12z" />
-                      </svg>
+                    <Button onClick={openContactModal}>
                       WhatsApp
-                    </button>
-                    <button
-                      type="button"
-                      className="home-success-quick-btn"
+                    </Button>
+                    <Button
                       onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M4 5h16v10H8l-4 4V5z" />
-                        <path d="M8 9h8M8 12h5" />
-                      </svg>
                       Live Chat
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -2021,13 +2035,7 @@ export default function AppIndex() {
               <div className="home-growth-app-card">
                 <div className="home-growth-app-top">
                   <div className="home-growth-app-icon" aria-hidden>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="18.5" cy="5.5" r="3.5" />
-                      <path d="M17 5.5h3M18.5 4v3" />
-                      <path d="M3 4h2l2.1 10.5a2 2 0 0 0 2 1.5h8.4a2 2 0 0 0 2-1.6L21 8H8" />
-                      <circle cx="10" cy="20" r="1.5" />
-                      <circle cx="17" cy="20" r="1.5" />
-                    </svg>
+                    <img src="/images/cartlift.png" alt="" />
                   </div>
                   <div className="home-growth-app-meta">
                     <a
@@ -2044,16 +2052,12 @@ export default function AppIndex() {
                 <div className="home-growth-app-copy">
                   Grow average order value with cart drawer upsells and smart cart offers.
                 </div>
-                <button
-                  type="button"
-                  className="home-growth-app-btn"
+                <Button
+                  variant="primary"
                   onClick={() => window.open(PROMOTED_UPSELL_APP_URL, "_blank", "noopener,noreferrer")}
                 >
-                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2">
-                    <path d="M10 4v12M4 10h12" />
-                  </svg>
                   Add app
-                </button>
+                </Button>
               </div>
             </div>
           </section>
@@ -2201,6 +2205,7 @@ export default function AppIndex() {
           </Modal.Section>
         </Modal>
       </BlockStack>
+      </div>
     </Page>
   );
 }

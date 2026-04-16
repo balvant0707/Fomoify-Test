@@ -1,4 +1,17 @@
-/* .choice-list-horizontal .Polaris-ChoiceList {
-  flex-direction: row;
-  gap: 2rem;
-} */
+:root {
+  --app-heading-size: 20px;
+  --app-heading-line: 1.2;
+  --app-text-size: 14px;
+  --app-text-line: 1.45;
+}
+
+[class*="Polaris-Text--heading"] {
+  font-size: var(--app-heading-size) !important;
+  line-height: var(--app-heading-line) !important;
+}
+
+.Polaris-Text,
+[class*="Polaris-Text--body"] {
+  font-size: var(--app-text-size);
+  line-height: var(--app-text-line);
+}

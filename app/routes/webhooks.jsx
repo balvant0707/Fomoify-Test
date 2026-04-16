@@ -5,6 +5,7 @@ import { sendOwnerEmail } from "../utils/sendOwnerEmail.server";
 import { sendOrderReviewEmail } from "../utils/sendOrderReviewEmail.server";
 
 const norm = (s) => (s || "").toLowerCase();
+const AUTO_UNINSTALL_FEEDBACK_TEXT = "[AUTO] App uninstalled. Feedback form not yet submitted.";
 
 export const action = async ({ request }) => {
   // Do NOT wrap in try/catch — authenticate.webhook throws a Response on failure.
@@ -52,7 +53,9 @@ export const action = async ({ request }) => {
               ownerName,
               email: ownerEmail,
               contactEmail,
+              feedbackText: AUTO_UNINSTALL_FEEDBACK_TEXT,
               feedbackToken,
+              feedbackSubmittedAt: now,
               uninstalledAt: now,
             },
           });

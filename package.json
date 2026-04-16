@@ -9,6 +9,8 @@
   "notify-users": "node scripts/notify-users.js",
   "build": "prisma generate && remix vite:build",
   "dev": "remix vite:dev",
+  "migrate:deploy": "prisma migrate deploy",
+  "migrate:status": "prisma migrate status",
   "config:link": "shopify app config link",
   "generate": "shopify app generate",
   "deploy": "shopify app deploy",
