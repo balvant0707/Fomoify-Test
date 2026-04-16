@@ -5,12 +5,16 @@ import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
 import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
+import appSharedStyles from "./styles.modules.css?url";
 import { authenticate } from "../shopify.server";
 import LcpObserver from "../components/LcpObserver";
 import { upsertInstalledShop } from "../utils/upsertShop.server";
 import prisma from "../db.server";
 
-export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
+export const links = () => [
+  { rel: "stylesheet", href: polarisStyles },
+  { rel: "stylesheet", href: appSharedStyles },
+];
 
 const norm = (s) => String(s || "").trim().toLowerCase();
 
