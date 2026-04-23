@@ -1,10 +1,19 @@
 import crypto from "crypto";
 
-// Shopify always sends these three params on every proxy request.
+// Shopify always sends these three params on every proxied request.
 const REQUIRED_PROXY_PARAMS = ["shop", "timestamp", "path_prefix"];
 
 // Only accept shops on the myshopify.com domain to prevent param injection.
 const VALID_SHOP_RE = /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i;
+
+// Warn once at startup if the secret is missing so it's obvious in Vercel logs.
+if (!process.env.SHOPIFY_API_SECRET) {
+  console.error(
+    "[FOMO] ⚠️  SHOPIFY_API_SECRET is not set. " +
+    "All app proxy requests will be rejected with 401. " +
+    "Add this variable in: Vercel → Project → Settings → Environment Variables."
+  );
+}
 
 /**
  * Validates a Shopify app proxy HMAC-SHA256 signature.
@@ -13,25 +22,18 @@ const VALID_SHOP_RE = /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i;
  *   1. Collect every query param EXCEPT "signature"
  *   2. Sort the pairs alphabetically by key
  *   3. Join as "key=value" with "&"
- *   4. HMAC-SHA256( SHOPIFY_API_SECRET, message ) → compare hex to signature
+ *   4. HMAC-SHA256( SHOPIFY_API_SECRET, message ) → compare hex to "signature"
  *
  * Uses crypto.timingSafeEqual to prevent timing-based side-channel attacks.
- *
- * Reference: https://shopify.dev/docs/apps/build/online-store/app-proxies#calculate-a-proxy-signature
  */
 export function verifyProxySignature(url) {
   const secret = process.env.SHOPIFY_API_SECRET || "";
-  if (!secret) {
-    // Fatal misconfiguration — fail closed so no data leaks
-    console.error("[FOMO] SHOPIFY_API_SECRET is not set — proxy signature cannot be verified");
-    return false;
-  }
+  if (!secret) return false; // startup warning already fired above
 
   const u = typeof url === "string" ? new URL(url) : url;
   const signature = u.searchParams.get("signature") || "";
 
   // Shopify HMAC-SHA256 is always exactly 64 lowercase hex chars.
-  // Reject anything that doesn't match to avoid crypto.timingSafeEqual length errors.
   if (!/^[0-9a-f]{64}$/i.test(signature)) return false;
 
   const pairs = [];
@@ -46,7 +48,7 @@ export function verifyProxySignature(url) {
     .digest("hex");
 
   try {
-    // timingSafeEqual prevents attackers from guessing the HMAC one byte at a time
+    // timingSafeEqual prevents attackers guessing the HMAC byte-by-byte via response time
     return crypto.timingSafeEqual(
       Buffer.from(computed, "hex"),
       Buffer.from(signature.toLowerCase(), "hex")
@@ -57,40 +59,73 @@ export function verifyProxySignature(url) {
 }
 
 /**
- * Full proxy request guard. Returns true only when ALL of the following hold:
+ * Full proxy request guard — call this at the top of every proxy loader/action.
  *
+ * Returns true only when ALL of these hold:
  *   1. HMAC signature is cryptographically valid
  *   2. Required Shopify params (shop, timestamp, path_prefix) are present
- *   3. shop value is a legitimate *.myshopify.com domain (no injection)
+ *   3. shop value is a legitimate *.myshopify.com domain
  *   4. timestamp is within maxAgeSeconds of now (replay-attack prevention)
  *
- * Call this at the very top of every proxy loader and action before
- * touching the database or returning any data.
+ * Logs the exact failing check so the Vercel log makes the problem obvious.
  */
 export function isValidProxyRequest(requestUrl, maxAgeSeconds = 300) {
   const url = typeof requestUrl === "string" ? new URL(requestUrl) : requestUrl;
   const params = url.searchParams;
 
-  // 1 — HMAC must be valid first; do this before anything else so we don't
-  //     leak information about which other checks would have failed.
-  if (!verifyProxySignature(url)) return false;
-
-  // 2 — Required params must all be present (signature already confirmed above)
-  for (const key of REQUIRED_PROXY_PARAMS) {
-    if (!params.get(key)) return false;
+  // Fast-fail with a clear message when the env var is the problem.
+  if (!process.env.SHOPIFY_API_SECRET) {
+    console.error(
+      "[FOMO] isValidProxyRequest rejected: SHOPIFY_API_SECRET is not set. " +
+      "Set it in Vercel → Project → Settings → Environment Variables."
+    );
+    return false;
   }
 
-  // 3 — Shop must be a well-formed myshopify.com domain.
-  //     The signature guarantees it hasn't been tampered with, but we still
-  //     enforce the format so downstream code can safely trust the value.
-  const shop = params.get("shop") || "";
-  if (!VALID_SHOP_RE.test(shop)) return false;
+  // Validate HMAC first so we don't leak which other checks would have failed.
+  if (!verifyProxySignature(url)) {
+    const hasAll = REQUIRED_PROXY_PARAMS.every((k) => !!params.get(k));
+    if (!hasAll) {
+      const missing = REQUIRED_PROXY_PARAMS.filter((k) => !params.get(k));
+      console.warn(
+        `[FOMO] isValidProxyRequest rejected: missing required params: ${missing.join(", ")}. ` +
+        "Request may not have gone through Shopify's app proxy."
+      );
+    } else {
+      console.warn(
+        "[FOMO] isValidProxyRequest rejected: HMAC mismatch. " +
+        "Verify that SHOPIFY_API_SECRET in Vercel matches the Client Secret in your Shopify Partner Dashboard."
+      );
+    }
+    return false;
+  }
 
-  // 4 — Reject stale requests to prevent replay attacks.
-  //     Shopify's own docs recommend a 60-second window; we use 300s (5 min)
-  //     to accommodate modest clock skew between Shopify's edge and our server.
+  // Required params must all be present (signature confirmed above).
+  for (const key of REQUIRED_PROXY_PARAMS) {
+    if (!params.get(key)) {
+      console.warn(`[FOMO] isValidProxyRequest rejected: missing required param "${key}".`);
+      return false;
+    }
+  }
+
+  // Shop must be a well-formed myshopify.com domain.
+  const shop = params.get("shop") || "";
+  if (!VALID_SHOP_RE.test(shop)) {
+    console.warn(`[FOMO] isValidProxyRequest rejected: invalid shop domain "${shop}".`);
+    return false;
+  }
+
+  // Reject stale requests to prevent replay attacks (5-minute window).
   const timestamp = Number(params.get("timestamp") || "0");
-  if (!timestamp) return false;
+  if (!timestamp) {
+    console.warn("[FOMO] isValidProxyRequest rejected: missing or zero timestamp.");
+    return false;
+  }
   const ageSeconds = Math.abs(Math.floor(Date.now() / 1000) - timestamp);
-  return ageSeconds <= maxAgeSeconds;
+  if (ageSeconds > maxAgeSeconds) {
+    console.warn(`[FOMO] isValidProxyRequest rejected: timestamp is ${ageSeconds}s old (max ${maxAgeSeconds}s). Possible replay attack.`);
+    return false;
+  }
+
+  return true;
 }
