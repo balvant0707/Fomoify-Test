@@ -184,16 +184,12 @@ function ReviewStars({ rating, hoverRating, onHover, onLeave, onSelect }) {
 
 const INDEX_SUPPORT_STYLES = `
 .home-index-shell {
-  --home-heading-size: 20px;
+  --home-heading-size: 14px;
   --home-heading-line: 1.2;
-  --home-text-size: 14px;
-  --home-text-line: 1.45;
+  --home-text-size: 12px;
+  --home-text-line: 1.2;
   border-radius: 18px;
   padding: 4px;
-  background:
-    radial-gradient(circle at 6% 8%, rgba(59, 130, 246, 0.14), transparent 22%),
-    radial-gradient(circle at 92% 18%, rgba(16, 185, 129, 0.1), transparent 24%),
-    linear-gradient(180deg, #f8fbff 0%, #ffffff 55%);
 }
 .home-index-shell .home-review-top-title,
 .home-index-shell .home-popup-card-title,
@@ -226,7 +222,7 @@ const INDEX_SUPPORT_STYLES = `
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  background-image:
+  background:
     linear-gradient(0deg, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
     linear-gradient(145deg, #b4a2e3 0%, #c9bae9 100%);
@@ -386,7 +382,7 @@ const INDEX_SUPPORT_STYLES = `
     background-size: 36px 36px, 36px 36px, auto;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
     border-color: #c8d7f3;
-        background-image: linear-gradient(0deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(150deg, #bca9e4 0%, #d2c4f1 100%);
+        background: linear-gradient(0deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(150deg, #bca9e4 0%, #d2c4f1 100%);
 }
 .home-support-items {
   display: grid;
@@ -403,7 +399,7 @@ const INDEX_SUPPORT_STYLES = `
   transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
   position: relative;
   overflow: hidden;
-  background-image:
+  background:
     linear-gradient(0deg, rgba(255,255,255,0.3) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px),
     linear-gradient(150deg, #f1f5ff 0%, #e5edff 100%);
@@ -411,11 +407,11 @@ const INDEX_SUPPORT_STYLES = `
 }
 .home-support-item.chat {
   border-color: #c8d7f3;
-      background-image: linear-gradient(0deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(150deg, #bca9e4 0%, #d2c4f1 100%);
+      background: linear-gradient(0deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(150deg, #bca9e4 0%, #d2c4f1 100%);
 }
 .home-support-item.knowledge {
   border-color: #c8d7f3;
-      background-image: linear-gradient(0deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(150deg, #bca9e4 0%, #d2c4f1 100%);
+      background: linear-gradient(0deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(150deg, #bca9e4 0%, #d2c4f1 100%);
 }
 .home-support-item:hover {
   border-color: #a982fd;
@@ -473,7 +469,7 @@ const INDEX_SUPPORT_STYLES = `
   justify-content: space-between;
   border-color: #c8d7f3;
   border-color: #c8d7f3;
-  background-image: linear-gradient(0deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(150deg, #bca9e4 0%, #d2c4f1 100%);
+  background: linear-gradient(0deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px), linear-gradient(150deg, #bca9e4 0%, #d2c4f1 100%);
   background-size: 36px 36px, 36px 36px, auto;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }

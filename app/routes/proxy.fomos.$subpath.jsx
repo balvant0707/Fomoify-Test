@@ -2,6 +2,7 @@
 import { json } from "@remix-run/node";
 import prisma from "../db.server";                // <-- default import (IMPORTANT)
 import { ensureShopRow } from "../utils/ensureShop.server";
+import { touchEmbedPing } from "../utils/embedPingWrite.server";
 import { normalizeShopDomain } from "../utils/shopDomain.server";
 import { getOrSetCache } from "../utils/serverCache.server";
 
@@ -43,7 +44,6 @@ const CACHE_TTL = {
 const SELECT_KEY_CACHE = new Map();
 const analyticsModel = () =>
   prisma.popupanalyticsevent || prisma.popupAnalyticsEvent || null;
-const embedPingModel = () => prisma.embedPing || prisma.embedping || null;
 const tableModel = (key) => {
   switch (key) {
     case "visitor":
@@ -708,21 +708,13 @@ export const loader = async ({ request, params }) => {
     if (!shop) return bad({ error: "Missing shop" });
 
     if (subpath === "embed-status") {
-      const model = embedPingModel();
-      if (!model?.upsert) {
-        return bad({ error: "EmbedPing model unavailable" }, 500);
+      const result = await touchEmbedPing(shop);
+      if (!result.ok) {
+        return bad({ error: result.error || "Embed status update failed" }, 500);
       }
-      const now = new Date();
-      await model.upsert({
-        where: { shop },
-        create: { shop, lastPingAt: now },
-        update: { lastPingAt: now },
-      });
       return ok(
         {
-          ok: true,
-          shop,
-          lastPingAt: now.toISOString(),
+          ...result,
           timestamp,
         },
         200
@@ -1163,15 +1155,9 @@ export const action = async ({ request, params }) => {
     if (!shop) return bad({ error: "Missing shop" });
 
     if (subpath === "embed-status") {
-      const model = embedPingModel();
-      if (!model?.upsert) return bad({ error: "EmbedPing model unavailable" }, 500);
-      const now = new Date();
-      await model.upsert({
-        where: { shop },
-        create: { shop, lastPingAt: now },
-        update: { lastPingAt: now },
-      });
-      return ok({ ok: true, shop, lastPingAt: now.toISOString() });
+      const result = await touchEmbedPing(shop);
+      if (!result.ok) return bad({ error: result.error || "Embed status update failed" }, 500);
+      return ok(result);
     }
 
     if (subpath !== "track") return bad({ error: "Unknown proxy path" }, 404);

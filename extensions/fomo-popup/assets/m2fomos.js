@@ -82,7 +82,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   const EMBED_STATUS_ENDPOINT = appendShopQuery("embed-status", SHOP);
 
   const EMBED_PING_STORE_KEY = "__fomo_embed_ping_ts__";
-  const EMBED_PING_INTERVAL_MS = 2 * 1000;
+  const EMBED_PING_INTERVAL_MS = 5 * 60 * 1000;
   const shouldPingEmbedStatus = () => {
     try {
       const raw = window.sessionStorage.getItem(EMBED_PING_STORE_KEY);

@@ -1,11 +1,8 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import prisma from "../db.server";
 import { authenticate } from "../shopify.server";
+import { touchEmbedPing } from "../utils/embedPingWrite.server";
 import { normalizeShopDomain } from "../utils/shopDomain.server";
-
-const getEmbedPingModel = () =>
-  (prisma as any).embedPing || (prisma as any).embedping || null;
 
 const getShopFromProxyContext = (appProxyContext: any) => {
   if (!appProxyContext || typeof appProxyContext !== "object") return "";
@@ -45,26 +42,14 @@ async function upsertEmbedPing(request: Request) {
       );
     }
 
-    const model = getEmbedPingModel();
-    if (!model?.upsert) {
-      return json(
-        { ok: false, error: "EmbedPing model is not available in Prisma client" },
-        { status: 500 }
-      );
+    const result = await touchEmbedPing(shop);
+    if (!result.ok) {
+      return json({ ok: false, error: result.error || "Embed status update failed" }, { status: 500 });
     }
-
-    const now = new Date();
-    await model.upsert({
-      where: { shop },
-      create: { shop, lastPingAt: now },
-      update: { lastPingAt: now },
-    });
 
     return json(
       {
-        ok: true,
-        shop,
-        lastPingAt: now.toISOString(),
+        ...result,
       },
       {
         headers: {
