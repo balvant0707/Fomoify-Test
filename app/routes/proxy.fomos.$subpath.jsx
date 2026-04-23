@@ -701,13 +701,37 @@ async function saveTrackEvent({ shop, body }) {
 
 export const loader = async ({ request, params }) => {
   try {
+    const url = new URL(request.url);
+    const subpath = (params.subpath || "").toLowerCase();
+
+    // Diagnostic endpoint — bypasses HMAC so you can see what Shopify actually sends.
+    // Only active when FOMO_DEBUG_HMAC=true in Vercel. Remove that env var after fixing.
+    if (subpath === "debug") {
+      if ((process.env.FOMO_DEBUG_HMAC || "").toLowerCase() !== "true") {
+        return bad({ error: "Not found" }, 404);
+      }
+      const allParams = {};
+      for (const [k, v] of url.searchParams.entries()) {
+        allParams[k] = k === "signature" ? `${v.slice(0, 8)}…(truncated)` : v;
+      }
+      const secretRaw = process.env.SHOPIFY_API_SECRET || "";
+      const secretTrimmed = secretRaw.trim();
+      return ok({
+        params: allParams,
+        secretSet: !!secretRaw,
+        secretLength: secretRaw.length,
+        secretLengthAfterTrim: secretTrimmed.length,
+        secretPreview: secretTrimmed ? `${secretTrimmed.slice(0, 4)}…${secretTrimmed.slice(-4)}` : null,
+        hasWhitespace: secretRaw !== secretTrimmed,
+        bypassActive: (process.env.FOMO_BYPASS_HMAC || "").toLowerCase() === "true",
+      });
+    }
+
     if (!isValidProxyRequest(request.url)) {
       return bad({ error: "Unauthorized" }, 401);
     }
 
-    const url = new URL(request.url);
     const shop = getShopFromRequest(request);
-    const subpath = (params.subpath || "").toLowerCase();
     const timestamp = Date.now();
 
     if (!shop) return bad({ error: "Missing shop" });

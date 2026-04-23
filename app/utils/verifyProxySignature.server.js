@@ -137,6 +137,19 @@ export function isValidProxyRequest(requestUrl, maxAgeSeconds = 300) {
   const url = typeof requestUrl === "string" ? new URL(requestUrl) : requestUrl;
   const params = url.searchParams;
 
+  // Temporary escape hatch: set FOMO_BYPASS_HMAC=true in Vercel to skip HMAC
+  // while SHOPIFY_API_SECRET is being configured. Still validates shop domain.
+  // Remove this env var once the correct secret is set.
+  if ((process.env.FOMO_BYPASS_HMAC || "").toLowerCase() === "true") {
+    const shop = params.get("shop") || "";
+    if (VALID_SHOP_RE.test(shop)) {
+      console.warn("[FOMO] ⚠️  HMAC bypassed via FOMO_BYPASS_HMAC — remove once SHOPIFY_API_SECRET is correct");
+      return true;
+    }
+    console.warn(`[FOMO] FOMO_BYPASS_HMAC set but shop "${shop}" is not a valid myshopify.com domain`);
+    return false;
+  }
+
   // Fast-fail with a clear message when the env var is the problem.
   if (!(process.env.SHOPIFY_API_SECRET || "").trim()) {
     console.error(
