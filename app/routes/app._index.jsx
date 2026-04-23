@@ -6,6 +6,7 @@ import {
   useFetcher,
   useLocation,
   useNavigate,
+  useRevalidator,
 } from "@remix-run/react";
 import { useEffect, useState, useCallback } from "react";
 import { authenticate } from "../shopify.server";
@@ -1441,6 +1442,7 @@ export default function AppIndex() {
     embedContext,
   } = useLoaderData();
   const contactFetcher = useFetcher();
+  const revalidator = useRevalidator();
   const navigate = useNavigate();
   const location = useLocation();
   const [resolvedThemeId, setResolvedThemeId] = useState(null);
@@ -1472,10 +1474,12 @@ export default function AppIndex() {
   const search = location.search || "";
   const appUrl = useCallback((path) => `${path}${search}`, [search]);
   const hasThemeEmbedCheck = embedContextState.appEmbedChecked === true;
+  const hasThemeEmbedSignal =
+    hasThemeEmbedCheck && embedContextState.appEmbedFound === true;
   const hasFreshPingSignal =
     embedPing?.isFresh === true || embedPing?.isOn === true;
-  // Theme check is authoritative when it completed; fall back to ping only if check failed
-  const isEmbedActive = hasThemeEmbedCheck
+  // Use theme result when embed block is positively identified; otherwise trust ping fallback.
+  const isEmbedActive = hasThemeEmbedSignal
     ? Boolean(embedContextState.appEmbedEnabled)
     : hasFreshPingSignal;
   const embedBadgeTone = isEmbedActive ? "success" : "critical";
@@ -1538,6 +1542,21 @@ export default function AppIndex() {
       active = false;
     };
   }, [embedPingStatus]);
+
+  useEffect(() => {
+    const refreshStatus = () => {
+      if (revalidator.state === "idle") revalidator.revalidate();
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") refreshStatus();
+    };
+    window.addEventListener("focus", refreshStatus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("focus", refreshStatus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [revalidator]);
 
   useEffect(() => {
     const data = contactFetcher.data;
