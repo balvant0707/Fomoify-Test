@@ -45,7 +45,10 @@ export function verifyProxySignature(url) {
   const signature = u.searchParams.get("signature") || "";
 
   // Shopify HMAC-SHA256 is always exactly 64 lowercase hex chars.
-  if (!/^[0-9a-f]{64}$/i.test(signature)) return false;
+  if (!/^[0-9a-f]{64}$/i.test(signature)) {
+    console.warn(`[FOMO] verifyProxySignature: signature format invalid (len=${signature.length})`);
+    return false;
+  }
 
   const pairs = [];
   for (const [key, value] of u.searchParams.entries()) {
@@ -53,20 +56,70 @@ export function verifyProxySignature(url) {
   }
   pairs.sort(); // must sort alphabetically — Shopify spec
 
+  const message = pairs.join("&");
   const computed = crypto
     .createHmac("sha256", secret)
-    .update(pairs.join("&"))
+    .update(message)
     .digest("hex");
 
-  try {
-    // timingSafeEqual prevents attackers guessing the HMAC byte-by-byte via response time
-    return crypto.timingSafeEqual(
-      Buffer.from(computed, "hex"),
-      Buffer.from(signature.toLowerCase(), "hex")
+  // Log enough to diagnose mismatches without leaking the full HMAC.
+  const match = (() => {
+    try {
+      return crypto.timingSafeEqual(
+        Buffer.from(computed, "hex"),
+        Buffer.from(signature.toLowerCase(), "hex")
+      );
+    } catch {
+      return false;
+    }
+  })();
+
+  if (!match) {
+    // Try alternative: build message from raw (URL-encoded) query string.
+    // Shopify may sign with percent-encoded values in some SDK versions.
+    const rawQuery = u.search.slice(1); // strip leading "?"
+    const rawPairs = rawQuery
+      .split("&")
+      .filter((p) => !p.startsWith("signature="))
+      .sort();
+    const rawMessage = rawPairs.join("&");
+    const computedRaw = crypto
+      .createHmac("sha256", secret)
+      .update(rawMessage)
+      .digest("hex");
+    const rawMatch = (() => {
+      try {
+        return crypto.timingSafeEqual(
+          Buffer.from(computedRaw, "hex"),
+          Buffer.from(signature.toLowerCase(), "hex")
+        );
+      } catch {
+        return false;
+      }
+    })();
+
+    const secretPreview = `${secret.slice(0, 4)}…${secret.slice(-4)}`;
+    if (rawMatch) {
+      // Raw-encoded variant matched — use it and log so we can fix the primary path.
+      console.warn(
+        `[FOMO] HMAC matched via RAW query string (URL-encoded values). ` +
+        `Switching to raw-match mode. secret=${secretPreview}\n` +
+        `[FOMO]   rawMessage="${rawMessage}"`
+      );
+      return true;
+    }
+
+    console.warn(
+      `[FOMO] HMAC mismatch (both decoded and raw-encoded tried) — secret=${secretPreview} len=${secret.length}\n` +
+      `[FOMO]   decoded message="${message}"\n` +
+      `[FOMO]   raw     message="${rawMessage}"\n` +
+      `[FOMO]   computed(decoded)=${computed.slice(0, 8)}…${computed.slice(-8)}\n` +
+      `[FOMO]   computed(raw)    =${computedRaw.slice(0, 8)}…${computedRaw.slice(-8)}\n` +
+      `[FOMO]   received         =${signature.slice(0, 8)}…${signature.slice(-8)}`
     );
-  } catch {
-    return false;
   }
+
+  return match;
 }
 
 /**
