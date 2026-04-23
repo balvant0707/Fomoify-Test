@@ -6,12 +6,22 @@ const REQUIRED_PROXY_PARAMS = ["shop", "timestamp", "path_prefix"];
 // Only accept shops on the myshopify.com domain to prevent param injection.
 const VALID_SHOP_RE = /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i;
 
-// Warn once at startup if the secret is missing so it's obvious in Vercel logs.
-if (!process.env.SHOPIFY_API_SECRET) {
+// Startup checks — fire once when the module is first loaded.
+const _secret = (process.env.SHOPIFY_API_SECRET || "").trim();
+if (!_secret) {
   console.error(
     "[FOMO] ⚠️  SHOPIFY_API_SECRET is not set. " +
     "All app proxy requests will be rejected with 401. " +
     "Add this variable in: Vercel → Project → Settings → Environment Variables."
+  );
+} else {
+  // Log the first 4 + last 4 chars so you can cross-check with the Partner Dashboard
+  // without exposing the full secret in logs.
+  const preview = `${_secret.slice(0, 4)}…${_secret.slice(-4)}`;
+  console.log(`[FOMO] SHOPIFY_API_SECRET loaded (${_secret.length} chars): ${preview}`);
+  console.log(
+    "[FOMO] Cross-check: open partners.shopify.com → App → API credentials → Client secret " +
+    `and confirm it starts with "${_secret.slice(0, 4)}" and ends with "${_secret.slice(-4)}".`
   );
 }
 
@@ -27,7 +37,8 @@ if (!process.env.SHOPIFY_API_SECRET) {
  * Uses crypto.timingSafeEqual to prevent timing-based side-channel attacks.
  */
 export function verifyProxySignature(url) {
-  const secret = process.env.SHOPIFY_API_SECRET || "";
+  // .trim() catches accidental copy-paste whitespace in Vercel env var editor
+  const secret = (process.env.SHOPIFY_API_SECRET || "").trim();
   if (!secret) return false; // startup warning already fired above
 
   const u = typeof url === "string" ? new URL(url) : url;
@@ -74,7 +85,7 @@ export function isValidProxyRequest(requestUrl, maxAgeSeconds = 300) {
   const params = url.searchParams;
 
   // Fast-fail with a clear message when the env var is the problem.
-  if (!process.env.SHOPIFY_API_SECRET) {
+  if (!(process.env.SHOPIFY_API_SECRET || "").trim()) {
     console.error(
       "[FOMO] isValidProxyRequest rejected: SHOPIFY_API_SECRET is not set. " +
       "Set it in Vercel → Project → Settings → Environment Variables."
