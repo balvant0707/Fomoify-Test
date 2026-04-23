@@ -5,6 +5,7 @@ import { ensureShopRow } from "../utils/ensureShop.server";
 import { touchEmbedPing } from "../utils/embedPingWrite.server";
 import { normalizeShopDomain } from "../utils/shopDomain.server";
 import { getOrSetCache } from "../utils/serverCache.server";
+import { isValidProxyRequest } from "../utils/verifyProxySignature.server";
 
 const norm = (s) =>
   (s || "")
@@ -700,6 +701,10 @@ async function saveTrackEvent({ shop, body }) {
 
 export const loader = async ({ request, params }) => {
   try {
+    if (!isValidProxyRequest(request.url)) {
+      return bad({ error: "Unauthorized" }, 401);
+    }
+
     const url = new URL(request.url);
     const shop = getShopFromRequest(request);
     const subpath = (params.subpath || "").toLowerCase();
@@ -1149,6 +1154,10 @@ export const loader = async ({ request, params }) => {
 
 export const action = async ({ request, params }) => {
   try {
+    if (!isValidProxyRequest(request.url)) {
+      return bad({ error: "Unauthorized" }, 401);
+    }
+
     const shop = getShopFromRequest(request);
     const subpath = (params.subpath || "").toLowerCase();
 
