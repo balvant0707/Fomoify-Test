@@ -97,6 +97,10 @@ const INDEX_PAGE_INLINE_CSS = `
     font-size: 12px !important;
     line-height: 1.3 !important;
   }
+  .dashboard-gradient-panel {
+    padding: 15px;
+    border-radius: 10px;
+}
 `;
 const POPUP_CARD_DATA = [
   {
@@ -1084,7 +1088,7 @@ export default function AppIndex() {
                 Motivate our team for future app development
               </Text>
             </BlockStack>
-            <InlineStack gap="200">
+            <InlineStack gap="200" style={{ marginTop: "16px",display: "flex" }} wrap>
               <Button
                 variant="primary"
                 fullWidth
@@ -1146,7 +1150,7 @@ export default function AppIndex() {
                       <InlineStack gap="200" wrap>
                         <Button icon={ChatIcon} onClick={openContactModal}>WhatsApp</Button>
                         <Button icon={ExternalIcon} onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}>
-                          Live Chat
+                          Knowledge Base
                         </Button>
                       </InlineStack>
                     </BlockStack>
