@@ -22,8 +22,13 @@ const getShopFromRequest = (request) => {
   const fallback = norm(url.searchParams.get("shop"));
   return fromHeader || fromQuery || fallback || "";
 };
-const ok = (d, s = 200) => json(d, { status: s });
-const bad = (d, s = 400) => json(d, { status: s });
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+const ok = (d, s = 200) => json(d, { status: s, headers: corsHeaders });
+const bad = (d, s = 400) => json(d, { status: s, headers: corsHeaders });
 const EVENTS = new Set(["view", "click", "order"]);
 const JUDGE_ME_INTEGRATION_KEY = "integration_judge_me";
 const POPUPS = new Set([
@@ -35,7 +40,7 @@ const POPUPS = new Set([
   "addtocart",
   "review",
 ]);
-const PUBLIC_BOOTSTRAP_PATHS = new Set(["session", "embed-status"]);
+const PUBLIC_BOOTSTRAP_PATHS = new Set(["session", "embed-status", "popup"]);
 const CACHE_TTL = {
   session: 5 * 1000,
   popup: 8 * 1000,

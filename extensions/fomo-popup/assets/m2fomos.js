@@ -13,7 +13,10 @@ document.addEventListener("DOMContentLoaded", async function () {
   const SHOP = String((window.Shopify && window.Shopify.shop) || rootShopDomain)
     .trim()
     .toLowerCase();
-  const PROXY_BASES = ["/apps/fomo"];
+  const directProxyBase = String(ROOT.getAttribute("data-direct-proxy-base") || "")
+    .trim()
+    .replace(/\/$/, "");
+  const PROXY_BASES = ["/apps/fomo", ...(directProxyBase ? [directProxyBase] : [])];
   const PROXY_STORE_KEY = "__fomo_proxy_base__";
   const readSavedProxyBase = () => {
     try {
@@ -66,18 +69,20 @@ document.addEventListener("DOMContentLoaded", async function () {
     return null;
   };
 
-  const PROXY_BASE = ACTIVE_PROXY_BASE;
   const appendShopQuery = (path, shop) => {
     const p = String(path || "").replace(/^\//, "");
-    const url = new URL(`${PROXY_BASE}/${p}`, window.location.origin);
+    const url = new URL(`${ACTIVE_PROXY_BASE}/${p}`, window.location.origin);
     if (shop) url.searchParams.set("shop", shop);
-    return `${url.pathname}${url.search}`;
+    return url.origin === window.location.origin
+      ? `${url.pathname}${url.search}`
+      : url.toString();
   };
   const ENDPOINT = appendShopQuery("popup", SHOP);
   const SESSION_ENDPOINT = appendShopQuery("session", SHOP);
-  const ORDERS_ENDPOINT_BASE = `${PROXY_BASE}/orders`; // expects ?shop=&days=&limit=
-  const CUSTOMERS_ENDPOINT_BASE = `${PROXY_BASE}/customers`; // expects ?shop=&limit=
-  const PRODUCTS_ENDPOINT_BASE = `${PROXY_BASE}/products`; // expects ?shop=&limit=
+  const endpointBase = (path) => new URL(`${ACTIVE_PROXY_BASE}/${path}`, window.location.origin).toString().replace(window.location.origin, "");
+  const ORDERS_ENDPOINT_BASE = endpointBase("orders"); // expects ?shop=&days=&limit=
+  const CUSTOMERS_ENDPOINT_BASE = endpointBase("customers"); // expects ?shop=&limit=
+  const PRODUCTS_ENDPOINT_BASE = endpointBase("products"); // expects ?shop=&limit=
   const TRACK_ENDPOINT = appendShopQuery("track", SHOP);
   const EMBED_STATUS_ENDPOINT = appendShopQuery("embed-status", SHOP);
 
