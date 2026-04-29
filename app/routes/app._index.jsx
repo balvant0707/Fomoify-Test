@@ -142,7 +142,7 @@ function PopupSliderCard({ title, desc, imageName, onCreate, onManage, loading }
     <Box borderWidth="025" borderRadius="300" borderColor="border" padding="400" background="bg-surface">
       <InlineStack align="space-between" blockAlign="center" gap="300" wrap={false}>
         <BlockStack gap="200">
-          <Text as="h3" variant="headingMd">{title}</Text>
+          <Text as="h3" >{title}</Text>
           <Text tone="subdued" variant="bodySm">{desc}</Text>
           <InlineStack gap="200">
             <Button variant="primary" onClick={onCreate} loading={loading} disabled={loading}>
@@ -172,7 +172,7 @@ function DashboardActionCard({ icon, title, description, onClick }) {
     <button type="button" className="dashboard-action-card" onClick={onClick}>
       <BlockStack gap="200" inlineAlign="center">
         <DashboardIcon source={icon} tone="info" />
-        <Text variant="headingSm" fontWeight="bold">
+        <Text  fontWeight="bold">
           {title}
         </Text>
         <Text tone="subdued" variant="bodySm" alignment="center">
@@ -930,7 +930,7 @@ export default function AppIndex() {
         <Card>
           <BlockStack gap="300">
             <InlineStack align="space-between" blockAlign="center">
-              <Text as="h3" variant="headingSm" fontWeight="semibold">App embed status</Text>
+              <Text as="h3"  fontWeight="semibold">App embed status</Text>
               <Badge tone={embedBadgeTone}>{embedBadgeText}</Badge>
             </InlineStack>
             <InlineStack gap="300" align="start">
@@ -1012,7 +1012,7 @@ export default function AppIndex() {
             className="dashboard-gradient-panel"
           >
             <BlockStack gap="300">
-              <Text as="h3" variant="headingSm" fontWeight="semibold">Support</Text>
+              <Text as="h3"  fontWeight="semibold">Support</Text>
               <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
                 <DashboardActionCard
                   icon={ChatIcon}
@@ -1063,7 +1063,7 @@ export default function AppIndex() {
             <BlockStack gap="400">
               <InlineStack gap="200" blockAlign="center">
                 <DashboardIcon source={PageHeartIcon} tone="info" />
-                <Text as="h3" variant="headingMd" fontWeight="bold">We&apos;re Here to Help You Succeed</Text>
+                <Text as="h3"  fontWeight="bold">We&apos;re Here to Help You Succeed</Text>
               </InlineStack>
               <Divider />
               <InlineGrid columns={{ xs: 1, lg: "1.2fr 1fr" }} gap="400">
@@ -1128,7 +1128,7 @@ export default function AppIndex() {
                       monochrome
                       removeUnderline
                     >
-                      CartLift: Cart Drawer &amp; Upsell
+                      CartLift: Cart Drawer & Upsell
                     </PolarisLink>
                     <Badge>Upsell</Badge>
                   </InlineStack>
@@ -1174,7 +1174,7 @@ export default function AppIndex() {
                   <Icon source={AppsIcon} tone="base" />
                 </Box>
                 <BlockStack gap="200">
-                  <Text variant="headingMd">
+                  <Text >
                     {`How would you rate ${REVIEW_MODAL_APP_NAME}?`}
                   </Text>
                   <ReviewStars
