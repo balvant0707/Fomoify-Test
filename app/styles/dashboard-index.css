@@ -65,7 +65,7 @@
 }
 
 .dashboard-gradient-panel {
-  background: transparent;
+  background: #ffffff;
   border-color: #ded8cf;
   box-shadow:
     0 1px 2px rgba(35, 31, 28, 0.06),
@@ -88,7 +88,7 @@
   padding: var(--p-space-400);
   color: inherit;
   text-align: center;
-  background: transparent;
+  background: #ffffff;
   cursor: pointer;
   transition:
     transform 140ms ease,
@@ -113,8 +113,9 @@
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  color: var(--p-color-text-inverse);
-  box-shadow: 0 8px 14px rgba(54, 47, 39, 0.14);
+  color: #3b3329;
+  background: transparent;
+  box-shadow: none;
 }
 
 .dashboard-icon--square {
@@ -128,12 +129,13 @@
 }
 
 .dashboard-icon--info {
-  background: linear-gradient(145deg, #6f6251 0%, #3b3329 100%);
+  background: transparent;
 }
 
 .dashboard-icon--critical {
-  background: linear-gradient(145deg, #d86f66 0%, #9f3f39 100%);
-  box-shadow: 0 12px 22px rgba(130, 61, 54, 0.24);
+  color: #9f3f39;
+  background: transparent;
+  box-shadow: none;
 }
 
 .dashboard-icon .Polaris-Icon {
