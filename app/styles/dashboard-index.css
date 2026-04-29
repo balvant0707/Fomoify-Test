@@ -160,7 +160,7 @@
   padding: var(--p-space-400);
   background: #ffffff;
   display: flex;
-  align-items: center;
+  align-items: start;
   justify-content: center;
   text-align: center;
 }
