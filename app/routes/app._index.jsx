@@ -1083,6 +1083,7 @@ export default function AppIndex() {
                           Help us improve future features!
                         </Text>
                       </BlockStack>
+                       <Text tone="subdued">Share your thoughts to help us improve and build better features ahead.</Text>
                       <InlineStack gap="200" align="center" blockAlign="center" wrap>
                         <Button
                           variant="primary"
