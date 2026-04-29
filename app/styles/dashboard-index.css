@@ -163,6 +163,11 @@
   width: 100%;
 }
 
+.success-help-review-icon .dashboard-icon--circle {
+  width: 50px;
+  height: 50px;
+}
+
 .dashboard-promoted-app {
   max-width: 360px;
 }

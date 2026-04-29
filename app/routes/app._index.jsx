@@ -1080,21 +1080,22 @@ export default function AppIndex() {
 
                   <Box className="success-help-card success-help-card--review">
                     <BlockStack gap="300" inlineAlign="center">
-                      <DashboardIcon source={HeartIcon} tone="critical" shape="circle" />
+                      <Box className="success-help-review-icon">
+                        <DashboardIcon source={HeartIcon} tone="critical" shape="circle" />
+                      </Box>
                       <Text alignment="center" fontWeight="semibold">
                         Motivate our team for future app development
                       </Text>
-                      <BlockStack gap="200">
+                      <InlineStack gap="200" align="center" blockAlign="center" wrap>
                         <Button
                           variant="primary"
-                          fullWidth
                           icon={StarIcon}
                           onClick={() => window.open(WRITE_REVIEW_URL, "_blank", "noopener,noreferrer")}
                         >
                           Write a review
                         </Button>
-                        <Button fullWidth icon={ChatIcon} onClick={openContactModal}>Report an issue</Button>
-                      </BlockStack>
+                        <Button icon={ChatIcon} onClick={openContactModal}>Report an issue</Button>
+                      </InlineStack>
                     </BlockStack>
                   </Box>
                 </InlineGrid>
