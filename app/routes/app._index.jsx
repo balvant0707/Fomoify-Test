@@ -127,7 +127,7 @@ function PopupSliderCard({ title, desc, imageName, onCreate, onManage, loading }
           />
         </Box>
         <BlockStack gap="100">
-          <Text  fontWeight="semibold">{title}</Text>
+          <Text variant="headingSm" fontWeight="semibold">{title}</Text>
           <Text variant="bodySm" tone="subdued">{desc}</Text>
           <Box paddingBlockStart="100">
             <ButtonGroup>
@@ -140,6 +140,88 @@ function PopupSliderCard({ title, desc, imageName, onCreate, onManage, loading }
         </BlockStack>
       </InlineStack>
     </Box>
+  );
+}
+
+function PopupCardSlider({ cards, onCreateItem, onManageItem, popupLoadingKey }) {
+  const CARDS_PER_SLIDE = 2;
+  const totalSlides = Math.ceil(cards.length / CARDS_PER_SLIDE);
+  const [slideIndex, setSlideIndex] = useState(0);
+
+  const prevSlide = useCallback(
+    () => setSlideIndex((i) => (i - 1 + totalSlides) % totalSlides),
+    [totalSlides]
+  );
+  const nextSlide = useCallback(
+    () => setSlideIndex((i) => (i + 1) % totalSlides),
+    [totalSlides]
+  );
+
+  const start = slideIndex * CARDS_PER_SLIDE;
+  const visible = cards.slice(start, start + CARDS_PER_SLIDE);
+
+  return (
+    <BlockStack gap="400">
+      <InlineGrid columns={2} gap="300">
+        {visible.map((card) => (
+          <PopupSliderCard
+            key={card.key}
+            title={card.title}
+            desc={card.desc}
+            imageName={card.imageName}
+            onCreate={() => onCreateItem(card.path, card.key)}
+            onManage={() => onManageItem(card.key)}
+            loading={
+              popupLoadingKey === `${card.key}-create` ||
+              popupLoadingKey === `${card.key}-manage`
+            }
+          />
+        ))}
+      </InlineGrid>
+      {totalSlides > 1 && (
+        <InlineStack align="center" gap="400" blockAlign="center">
+          <button
+            type="button"
+            onClick={prevSlide}
+            aria-label="Previous slide"
+            style={{ border: 0, background: "transparent", cursor: "pointer", padding: "4px 10px", fontSize: 22, color: "#6C63FF", lineHeight: 1, borderRadius: 6 }}
+          >
+            &#8249;
+          </button>
+          <InlineStack gap="200" blockAlign="center">
+            {Array.from({ length: totalSlides }, (_, i) => (
+              <button
+                key={i}
+                type="button"
+                aria-label={`Go to slide ${i + 1}`}
+                onClick={() => setSlideIndex(i)}
+                style={{
+                  width: i === slideIndex ? 22 : 8,
+                  height: 8,
+                  borderRadius: 4,
+                  background: i === slideIndex ? "#6C63FF" : "#c9cccf",
+                  border: 0,
+                  cursor: "pointer",
+                  padding: 0,
+                  transition: "width 0.2s ease, background 0.2s ease",
+                }}
+              />
+            ))}
+          </InlineStack>
+          <button
+            type="button"
+            onClick={nextSlide}
+            aria-label="Next slide"
+            style={{ border: 0, background: "transparent", cursor: "pointer", padding: "4px 10px", fontSize: 22, color: "#6C63FF", lineHeight: 1, borderRadius: 6 }}
+          >
+            &#8250;
+          </button>
+        </InlineStack>
+      )}
+      <Text variant="bodySm" tone="subdued" alignment="center">
+        Showing {start + 1}–{Math.min(start + CARDS_PER_SLIDE, cards.length)} of {cards.length} popup types
+      </Text>
+    </BlockStack>
   );
 }
 
@@ -682,6 +764,15 @@ export default function AppIndex() {
   }, [revalidator]);
 
   useEffect(() => {
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible" && revalidator.state === "idle") {
+        revalidator.revalidate();
+      }
+    }, 10000);
+    return () => clearInterval(id);
+  }, [revalidator]);
+
+  useEffect(() => {
     const data = contactFetcher.data;
     if (!data) return;
     if (data.ok) {
@@ -847,7 +938,7 @@ export default function AppIndex() {
   };
 
   return (
-    <Page>
+    <Page title="Dashboard" subtitle="Manage social proof popups and notifications for your store">
       <BlockStack gap="400">
 
         {/* Top Review Banner */}
@@ -855,13 +946,14 @@ export default function AppIndex() {
           <Banner
             title="Loving Fomoify Sales Popup?"
             tone="success"
+            fontWeight="semibold"
             action={{
               content: "Write a Review",
               onAction: () => window.open(WRITE_REVIEW_URL, "_blank", "noopener,noreferrer"),
             }}
             onDismiss={dismissTopReviewBanner}
           >
-            <Text variant="bodySm">
+            <Text variant="bodyMd">
               Your review helps us improve and support more merchants like you.
             </Text>
           </Banner>
@@ -869,40 +961,38 @@ export default function AppIndex() {
 
         {/* App Embed Block */}
         <Card>
-          <BlockStack gap="300">
+          <BlockStack gap="400">
             <InlineStack align="space-between" blockAlign="center">
-              <Text as="h2" fontWeight="semibold">
-                App Embed Block
-              </Text>
-              <Badge tone={embedBadgeTone}>{embedBadgeText}</Badge>
+              <BlockStack gap="100">
+                <Text as="h2" variant="headingMd" fontWeight="semibold">
+                  App Embed Block
+                </Text>
+                <Text variant="bodyMd" tone="subdued">
+                  Required for popups to appear on your storefront.
+                </Text>
+              </BlockStack>
+              <Badge tone={embedBadgeTone} size="large">{embedBadgeText}</Badge>
             </InlineStack>
             {!isEmbedActive ? (
               <Banner tone="warning">
-                <BlockStack gap="200">
-                  <Text variant="bodySm">
-                    The app embed block is not enabled. Enable it in your theme editor to display popups on your storefront.
+                <BlockStack gap="300">
+                  <Text variant="bodyMd">
+                    The app embed block is not enabled in your theme. Popups will not be visible to customers until you activate it.
                   </Text>
-                  <InlineStack gap="200">
-                    <Button
-                      variant="primary"
-                      size="slim"
-                      onClick={() => openThemeEditor(resolvedThemeId, "activate")}
-                    >
-                      Enable in Theme Editor
-                    </Button>
-                    <Button size="slim" onClick={() => revalidator.revalidate()}>
-                      Refresh Status
-                    </Button>
-                  </InlineStack>
+                  <Button
+                    variant="primary"
+                    size="slim"
+                    onClick={() => openThemeEditor(resolvedThemeId, "activate")}
+                  >
+                    Enable in Theme Editor
+                  </Button>
                 </BlockStack>
               </Banner>
             ) : (
-              <InlineStack gap="200">
+              <InlineStack gap="200" blockAlign="center">
+                <Badge tone="success">Active</Badge>
                 <Button size="slim" onClick={() => openThemeEditor(resolvedThemeId, "open")}>
                   Manage in Theme Editor
-                </Button>
-                <Button size="slim" onClick={() => revalidator.revalidate()}>
-                  Refresh Status
                 </Button>
               </InlineStack>
             )}
@@ -911,26 +1001,21 @@ export default function AppIndex() {
 
         {/* Popup Types */}
         <Card>
-          <BlockStack gap="300">
-            <Text as="h2"  fontWeight="semibold">
-              Popup Types
-            </Text>
-            <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
-              {POPUP_CARD_DATA.map((card) => (
-                <PopupSliderCard
-                  key={card.key}
-                  title={card.title}
-                  desc={card.desc}
-                  imageName={card.imageName}
-                  onCreate={() => goPopupCreate(card.path, card.key)}
-                  onManage={() => goPopupManage(card.key)}
-                  loading={
-                    popupLoadingKey === `${card.key}-create` ||
-                    popupLoadingKey === `${card.key}-manage`
-                  }
-                />
-              ))}
-            </InlineGrid>
+          <BlockStack gap="400">
+            <BlockStack gap="100">
+              <Text as="h2" variant="headingMd" fontWeight="semibold">
+                Popup Types
+              </Text>
+              <Text variant="bodyMd" tone="subdued">
+                Choose a popup type to create and configure for your store.
+              </Text>
+            </BlockStack>
+            <PopupCardSlider
+              cards={POPUP_CARD_DATA}
+              onCreateItem={goPopupCreate}
+              onManageItem={goPopupManage}
+              popupLoadingKey={popupLoadingKey}
+            />
           </BlockStack>
         </Card>
 
@@ -939,7 +1024,7 @@ export default function AppIndex() {
           {/* Support */}
           <Card>
             <BlockStack gap="300">
-              <Text as="h2"  fontWeight="semibold">
+              <Text as="h2" variant="headingMd" fontWeight="semibold">
                 Get Support
               </Text>
               <InlineGrid columns={2} gap="300">
@@ -954,8 +1039,8 @@ export default function AppIndex() {
                         <path d="M9 12h6M9 9h3" />
                       </svg>
                     </div>
-                    <Text variant="bodySm" fontWeight="semibold" alignment="center">Support Ticket</Text>
-                    <Text variant="bodySm" tone="subdued" alignment="center">Reply and assist in office hours.</Text>
+                    <Text variant="headingXs" fontWeight="semibold" alignment="center">Support Ticket</Text>
+                    <Text variant="bodyMd" tone="subdued" alignment="center">Reply and assist in office hours.</Text>
                     <Button size="slim" onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}>Open Chat</Button>
                   </BlockStack>
                 </Box>
@@ -971,8 +1056,8 @@ export default function AppIndex() {
                         <path d="M9 8h7M9 11h7M9 14h5" />
                       </svg>
                     </div>
-                    <Text variant="bodySm" fontWeight="semibold" alignment="center">Knowledge Base</Text>
-                    <Text variant="bodySm" tone="subdued" alignment="center">Browse docs &amp; guides.</Text>
+                    <Text variant="headingXs" fontWeight="semibold" alignment="center">Knowledge Base</Text>
+                    <Text variant="bodyMd" tone="subdued" alignment="center">Browse docs &amp; guides.</Text>
                     <Button size="slim" onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}>Browse Docs</Button>
                   </BlockStack>
                 </Box>
@@ -991,7 +1076,7 @@ export default function AppIndex() {
                   <path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.4A4 4 0 0 1 19 11c0 5.6-7 10-7 10z" />
                 </svg>
               </div>
-              <Text variant="bodySm" fontWeight="semibold" alignment="center">
+              <Text variant="headingSm" fontWeight="semibold" alignment="center">
                 Motivate our team for future app development
               </Text>
               <BlockStack gap="200" inlineAlign="stretch">
@@ -1012,7 +1097,7 @@ export default function AppIndex() {
                 <svg viewBox="0 0 24 24" fill="none" stroke="#22a3e8" strokeWidth="2" width="20" height="20">
                   <path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.4A4 4 0 0 1 19 11c0 5.6-7 10-7 10z" />
                 </svg>
-                <Text as="h2"  fontWeight="semibold">
+                <Text as="h2" variant="headingMd" fontWeight="semibold">
                   We're Here to Help You Succeed
                 </Text>
               </InlineStack>
@@ -1024,9 +1109,9 @@ export default function AppIndex() {
                       <rect x="3" y="4" width="18" height="17" rx="3" />
                       <path d="M8 2v4M16 2v4M3 10h18" />
                     </svg>
-                    <Text variant="bodySm" fontWeight="semibold">Book a Free 30-Min Setup Call</Text>
+                    <Text variant="headingXs" fontWeight="semibold">Book a Free 30-Min Setup Call</Text>
                   </InlineStack>
-                  <Text variant="bodySm" tone="subdued">
+                  <Text variant="bodyMd" tone="subdued">
                     Get personalized guidance to accelerate your growth.
                   </Text>
                   <InlineStack gap="200">
@@ -1051,14 +1136,14 @@ export default function AppIndex() {
                         <path d="M4 5h16v10H8l-4 4V5z" />
                         <path d="M8 9h8M8 12h5" />
                       </svg>
-                      <Text variant="bodySm" fontWeight="semibold">Need Quick Help?</Text>
+                      <Text variant="headingXs" fontWeight="semibold">Need Quick Help?</Text>
                     </InlineStack>
-                    <Text variant="bodySm" tone="subdued">
+                    <Text variant="bodyMd" tone="subdued">
                       Reach out anytime for support, feedback, or to share your progress.
                     </Text>
                     <InlineStack gap="200">
                       <Button size="slim" onClick={openContactModal}>WhatsApp</Button>
-                      <Button size="slim" onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}>Live Chat</Button>
+                      <Button size="slim" onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}>Knowledge base</Button>
                     </InlineStack>
                   </BlockStack>
                 </Box>
@@ -1070,7 +1155,7 @@ export default function AppIndex() {
         {/* Boost Store / App Promo */}
         <Card>
           <BlockStack gap="400">
-            <Text as="h2"  fontWeight="semibold">
+            <Text as="h2" variant="headingMd" fontWeight="semibold">
               Boost Your Store Performance
             </Text>
             <Divider />
@@ -1084,7 +1169,7 @@ export default function AppIndex() {
               />
               <BlockStack gap="050">
                 <InlineStack gap="200" blockAlign="center">
-                  <Text variant="bodySm" fontWeight="semibold">
+                  <Text variant="headingXs" fontWeight="semibold">
                     <a
                       href={PROMOTED_UPSELL_APP_URL}
                       target="_blank"
@@ -1096,7 +1181,7 @@ export default function AppIndex() {
                   </Text>
                   <Badge tone="info">Upsell</Badge>
                 </InlineStack>
-                <Text variant="bodySm" tone="subdued">
+                <Text variant="bodyMd" tone="subdued">
                   Grow average order value with cart drawer upsells and smart cart offers.
                 </Text>
               </BlockStack>
