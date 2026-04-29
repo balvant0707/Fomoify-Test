@@ -127,7 +127,7 @@ function PopupSliderCard({ title, desc, imageName, onCreate, onManage, loading }
           />
         </Box>
         <BlockStack gap="100">
-          <Text variant="headingXs" fontWeight="semibold">{title}</Text>
+          <Text  fontWeight="semibold">{title}</Text>
           <Text variant="bodySm" tone="subdued">{desc}</Text>
           <Box paddingBlockStart="100">
             <ButtonGroup>
@@ -871,7 +871,7 @@ export default function AppIndex() {
         <Card>
           <BlockStack gap="300">
             <InlineStack align="space-between" blockAlign="center">
-              <Text as="h2" variant="headingSm" fontWeight="semibold">
+              <Text as="h2" fontWeight="semibold">
                 App Embed Block
               </Text>
               <Badge tone={embedBadgeTone}>{embedBadgeText}</Badge>
@@ -912,7 +912,7 @@ export default function AppIndex() {
         {/* Popup Types */}
         <Card>
           <BlockStack gap="300">
-            <Text as="h2" variant="headingSm" fontWeight="semibold">
+            <Text as="h2"  fontWeight="semibold">
               Popup Types
             </Text>
             <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
@@ -939,7 +939,7 @@ export default function AppIndex() {
           {/* Support */}
           <Card>
             <BlockStack gap="300">
-              <Text as="h2" variant="headingSm" fontWeight="semibold">
+              <Text as="h2"  fontWeight="semibold">
                 Get Support
               </Text>
               <InlineGrid columns={2} gap="300">
@@ -1012,7 +1012,7 @@ export default function AppIndex() {
                 <svg viewBox="0 0 24 24" fill="none" stroke="#22a3e8" strokeWidth="2" width="20" height="20">
                   <path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.4A4 4 0 0 1 19 11c0 5.6-7 10-7 10z" />
                 </svg>
-                <Text as="h2" variant="headingSm" fontWeight="semibold">
+                <Text as="h2"  fontWeight="semibold">
                   We're Here to Help You Succeed
                 </Text>
               </InlineStack>
@@ -1070,7 +1070,7 @@ export default function AppIndex() {
         {/* Boost Store / App Promo */}
         <Card>
           <BlockStack gap="400">
-            <Text as="h2" variant="headingSm" fontWeight="semibold">
+            <Text as="h2"  fontWeight="semibold">
               Boost Your Store Performance
             </Text>
             <Divider />
@@ -1137,7 +1137,7 @@ export default function AppIndex() {
                   </svg>
                 </Box>
                 <BlockStack gap="200">
-                  <Text variant="headingSm">
+                  <Text >
                     {`How would you rate ${REVIEW_MODAL_APP_NAME}?`}
                   </Text>
                   <ReviewStars
