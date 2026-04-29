@@ -15,6 +15,7 @@ import { upsertInstalledShop } from "../utils/upsertShop.server";
 import {
   Page,
   Card,
+  Box,
   BlockStack,
   Text,
   Button,
@@ -130,20 +131,24 @@ function PopupSliderCard({
   const imageSrc = `/images/${encodeURIComponent(imageName)}`;
 
   return (
-    <div className="home-popup-card">
-      <div className="home-popup-card-content">
-        <div className="home-popup-card-title">{title}</div>
-        <div className="home-popup-card-desc">{desc}</div>
-        <div className="home-popup-card-actions">
+    <Box className="home-popup-card">
+      <Box className="home-popup-card-content">
+        <Text as="h4" variant="headingSm" className="home-popup-card-title">
+          {title}
+        </Text>
+        <Text as="p" tone="subdued" className="home-popup-card-desc">
+          {desc}
+        </Text>
+        <Box className="home-popup-card-actions">
           <Button primary onClick={onCreate} loading={loading} disabled={loading}>
             {loading ? "Opening..." : "Create"}
           </Button>
           <Button onClick={onManage} disabled={loading}>
             Manage
           </Button>
-        </div>
-      </div>
-      <div className="home-popup-card-image" aria-hidden>
+        </Box>
+      </Box>
+      <Box className="home-popup-card-image" aria-hidden>
         <img
           src={imageSrc}
           alt={`${title} preview`}
@@ -151,8 +156,8 @@ function PopupSliderCard({
           height={96}
           style={{ borderRadius: 8, objectFit: "contain" }}
         />
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }
 
@@ -160,7 +165,7 @@ function ReviewStars({ rating, hoverRating, onHover, onLeave, onSelect }) {
   const activeValue = hoverRating || rating;
 
   return (
-    <div className="review-app-stars" aria-label="Rate this app">
+    <Box className="review-app-stars" aria-label="Rate this app">
       {[1, 2, 3, 4, 5].map((value) => {
         const active = value <= activeValue;
         return (
@@ -179,7 +184,7 @@ function ReviewStars({ rating, hoverRating, onHover, onLeave, onSelect }) {
           </button>
         );
       })}
-    </div>
+    </Box>
   );
 }
 
@@ -1446,13 +1451,13 @@ export default function AppIndex() {
   const navigate = useNavigate();
   const location = useLocation();
   const [resolvedThemeId, setResolvedThemeId] = useState(null);
-  const [isEmbedContextLoading, setIsEmbedContextLoading] = useState(true);
+  const [, setIsEmbedContextLoading] = useState(true);
   const [embedContextState, setEmbedContextState] = useState({
     appEmbedEnabled: false,
     appEmbedFound: false,
     appEmbedChecked: false,
   });
-  const [isEmbedPingLoading, setIsEmbedPingLoading] = useState(true);
+  const [, setIsEmbedPingLoading] = useState(true);
   const [embedPing, setEmbedPing] = useState({
     isOn: false,
     isFresh: false,
@@ -1610,8 +1615,6 @@ export default function AppIndex() {
   );
 
   const maxPopupSlideIndex = Math.max(POPUP_SLIDES.length - 1, 0);
-  const canPopupSlidePrev = popupSlideIndex > 0;
-  const canPopupSlideNext = popupSlideIndex < maxPopupSlideIndex;
 
   useEffect(() => {
     if (POPUP_SLIDES.length <= 1 || isPopupSliderPaused) return undefined;
@@ -1622,14 +1625,6 @@ export default function AppIndex() {
     }, POPUP_AUTOSLIDE_MS);
     return () => clearInterval(timer);
   }, [isPopupSliderPaused, maxPopupSlideIndex]);
-
-  const prevPopupSlide = useCallback(() => {
-    setPopupSlideIndex((prev) => Math.max(prev - 1, 0));
-  }, []);
-
-  const nextPopupSlide = useCallback(() => {
-    setPopupSlideIndex((prev) => Math.min(prev + 1, maxPopupSlideIndex));
-  }, [maxPopupSlideIndex]);
 
   const updateContactField = (field) => (value) => {
     setContactForm((prev) => ({ ...prev, [field]: value }));
@@ -1747,20 +1742,20 @@ export default function AppIndex() {
 
   return (
     <Page>
-      <div className="home-index-shell">
+      <Box className="home-index-shell">
       <BlockStack gap="400">
         <style>{INDEX_SUPPORT_STYLES}</style>
         {showTopReviewBanner ? (
-          <div className="home-review-top-banner">
-            <div className="home-review-top-copy">
-              <div className="home-review-top-title">
+          <Box className="home-review-top-banner">
+            <Box className="home-review-top-copy">
+              <Text as="h2" variant="headingSm" className="home-review-top-title">
                 Loving Fomoify Sales Popup?
-              </div>
-              <div className="home-review-top-subtitle">
+              </Text>
+              <Text as="p" tone="subdued" className="home-review-top-subtitle">
                 We'd love to hear your feedback. Your review helps us improve and support more merchants like you.
-              </div>
-            </div>
-            <div className="home-review-top-actions">
+              </Text>
+            </Box>
+            <Box className="home-review-top-actions">
               <Button
                 variant="primary"
                 onClick={() => window.open(WRITE_REVIEW_URL, "_blank", "noopener,noreferrer")}
@@ -1775,8 +1770,8 @@ export default function AppIndex() {
               >
                 x
               </button>
-            </div>
-          </div>
+            </Box>
+          </Box>
         ) : null}
         <Card>
           <BlockStack gap="300">
@@ -1801,7 +1796,7 @@ export default function AppIndex() {
         </Card>
 
         <Card>
-          <div
+          <Box
             className="home-popup-slider"
             onMouseEnter={() => setIsPopupSliderPaused(true)}
             onMouseLeave={() => setIsPopupSliderPaused(false)}
@@ -1810,40 +1805,14 @@ export default function AppIndex() {
             onTouchStart={() => setIsPopupSliderPaused(true)}
             onTouchEnd={() => setIsPopupSliderPaused(false)}
           >
-            {/* <div className="home-popup-slider-head">
-              <Text as="h3" variant="headingMd">
-                All Popups
-              </Text>
-              <div className="home-popup-slider-nav">
-                <button
-                  type="button"
-                  className="home-popup-nav-btn"
-                  onClick={prevPopupSlide}
-                  disabled={!canPopupSlidePrev}
-                  aria-label="Previous popup slide"
-                >
-                  Prev
-                </button>
-                <button
-                  type="button"
-                  className="home-popup-nav-btn"
-                  onClick={nextPopupSlide}
-                  disabled={!canPopupSlideNext}
-                  aria-label="Next popup slide"
-                >
-                  Next
-                </button>
-              </div>
-            </div> */}
-
-            <div className="home-popup-slider-window">
-              <div
+            <Box className="home-popup-slider-window">
+              <Box
                 className="home-popup-slider-track"
                 style={{ transform: `translateX(-${popupSlideIndex * 100}%)` }}
               >
                 {POPUP_SLIDES.map((slide, slideIdx) => (
-                  <div className="home-popup-slide" key={`slide-${slideIdx}`}>
-                    <div className="home-popup-slide-grid">
+                  <Box className="home-popup-slide" key={`slide-${slideIdx}`}>
+                    <Box className="home-popup-slide-grid">
                       {slide.map((card) => (
                         <PopupSliderCard
                           key={card.key}
@@ -1858,14 +1827,14 @@ export default function AppIndex() {
                           }
                         />
                       ))}
-                    </div>
-                  </div>
+                    </Box>
+                  </Box>
                 ))}
-              </div>
-            </div>
+              </Box>
+            </Box>
 
             {POPUP_SLIDES.length > 1 ? (
-              <div className="home-popup-dots" aria-label="Popup slides">
+              <Box className="home-popup-dots" aria-label="Popup slides">
                 {POPUP_SLIDES.map((_, idx) => (
                   <button
                     key={`dot-${idx}`}
@@ -1875,24 +1844,25 @@ export default function AppIndex() {
                     onClick={() => setPopupSlideIndex(idx)}
                   />
                 ))}
-              </div>
+              </Box>
             ) : null}
-          </div>
+          </Box>
         </Card>
 
-        <div className="home-support-grid">
-          <div className="home-support-panel">
+        <Box className="home-support-grid">
+          <Card>
+            <Box className="home-support-panel">
             <Text as="h3" variant="headingMd">
               Support
             </Text>
-            <div className="home-support-items">
+            <Box className="home-support-items">
               <button
                 type="button"
                 className="home-support-item chat"
                 onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}
               >
-                <div className="home-support-item-row">
-                  <div className="home-support-item-icon" aria-hidden>
+                <Box className="home-support-item-row">
+                  <Box className="home-support-item-icon" aria-hidden>
                     <svg
                       viewBox="0 0 24 24"
                       fill="none"
@@ -1904,22 +1874,22 @@ export default function AppIndex() {
                       <path d="M7.4 17.5H4V14a7 7 0 0 1 7-7h2a7 7 0 1 1 0 14h-2.6L7.4 23v-5.5z" />
                       <path d="M9 12h6M9 9h3" />
                     </svg>
-                  </div>
-                  <div className="home-support-item-body">
-                    <div className="home-support-item-link">Support Ticket</div>
+                  </Box>
+                  <Box className="home-support-item-body">
+                    <Text as="span" fontWeight="semibold" className="home-support-item-link">Support Ticket</Text>
                     <Text as="p">
                       Support, reply, and assist instantly in office hours.
                     </Text>
-                  </div>
-                </div>
+                  </Box>
+                </Box>
               </button>
               <button
                 type="button"
                 className="home-support-item knowledge"
                 onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}
               >
-                <div className="home-support-item-row">
-                  <div className="home-support-item-icon" aria-hidden>
+                <Box className="home-support-item-row">
+                  <Box className="home-support-item-icon" aria-hidden>
                     <svg
                       viewBox="0 0 24 24"
                       fill="none"
@@ -1932,25 +1902,27 @@ export default function AppIndex() {
                       <path d="M6.8 4A2.8 2.8 0 0 0 4 6.8v14" />
                       <path d="M9 8h7M9 11h7M9 14h5" />
                     </svg>
-                  </div>
-                  <div className="home-support-item-body">
-                    <div className="home-support-item-link">Knowledge base</div>
+                  </Box>
+                  <Box className="home-support-item-body">
+                    <Text as="span" fontWeight="semibold" className="home-support-item-link">Knowledge base</Text>
                     <Text as="p">
                       Find a solution for your problem with our documents.
                     </Text>
-                  </div>
-                </div>
+                  </Box>
+                </Box>
               </button>
-            </div>
-          </div>
+            </Box>
+            </Box>
+          </Card>
 
-          <div className="home-review-panel">
-            <div>
-              <div className="home-review-balloon" aria-hidden>
+          <Card>
+            <Box className="home-review-panel">
+            <Box>
+              <Box className="home-review-balloon" aria-hidden>
                 <svg viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.4A4 4 0 0 1 19 11c0 5.6-7 10-7 10z" />
                 </svg>
-              </div>
+              </Box>
               <Text
                 as="p"
                 alignment="center"
@@ -1959,8 +1931,8 @@ export default function AppIndex() {
               >
                 Motivate our team for future app development
               </Text>
-            </div>
-            <div className="home-review-actions">
+            </Box>
+            <Box className="home-review-actions">
               <Button
                 variant="primary"
                 onClick={() => window.open(WRITE_REVIEW_URL, "_blank", "noopener,noreferrer")}
@@ -1970,62 +1942,64 @@ export default function AppIndex() {
               <Button onClick={openContactModal}>
                 Report an issue
               </Button>
-            </div>
-          </div>
-        </div>
+            </Box>
+            </Box>
+          </Card>
+        </Box>
 
-        <div className="home-growth-stack">
+        <Box className="home-growth-stack">
           {showSuccessHelpSection ? (
-            <section className="home-success-card">
-              <div className="home-success-head">
-                <div className="home-success-title-wrap">
+            <Card>
+              <Box as="section" className="home-success-card">
+              <Box className="home-success-head">
+                <Box className="home-success-title-wrap">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.4A4 4 0 0 1 19 11c0 5.6-7 10-7 10z" />
                   </svg>
-                  <div className="home-success-title">We're Here to Help You Succeed</div>
-                </div>
-              </div>
+                  <Text as="h3" variant="headingMd" className="home-success-title">We're Here to Help You Succeed</Text>
+                </Box>
+              </Box>
 
-              <div className="home-success-body">
-                <div className="home-success-call">
-                  <div className="home-success-call-title-wrap">
+              <Box className="home-success-body">
+                <Box className="home-success-call">
+                  <Box className="home-success-call-title-wrap">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <rect x="3" y="4" width="18" height="17" rx="3" />
                       <path d="M8 2v4M16 2v4M3 10h18" />
                     </svg>
-                    <div className="home-success-call-title">Book a Free 30-Minute Setup Call</div>
-                  </div>
-                  <div className="home-success-copy">
+                    <Text as="h4" variant="headingSm" className="home-success-call-title">Book a Free 30-Minute Setup Call</Text>
+                  </Box>
+                  <Text as="p" tone="subdued" className="home-success-copy">
                     Get personalized guidance to accelerate your growth.
-                  </div>
-                  <div className="home-success-bullets">
+                  </Text>
+                  <Box className="home-success-bullets">
                     <span>App configuration</span>
                     <span>Best practices</span>
                     <span>Growth strategy</span>
-                  </div>
-                  <div className="home-success-call-actions">
+                  </Box>
+                  <Box className="home-success-call-actions">
                     <Button
                       variant="primary"
                       onClick={() => window.open(SCHEDULE_CALL_URL, "_blank", "noopener,noreferrer")}
                     >
                       Schedule Free Call
                     </Button>
-                    <div className="home-success-call-meta">Free | 30 mins | No commitment</div>
-                  </div>
-                </div>
+                    <Text as="span" tone="subdued" className="home-success-call-meta">Free | 30 mins | No commitment</Text>
+                  </Box>
+                </Box>
 
-                <div className="home-success-quick">
-                  <div className="home-success-quick-title">
+                <Box className="home-success-quick">
+                  <Box className="home-success-quick-title">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M4 5h16v10H8l-4 4V5z" />
                       <path d="M8 9h8M8 12h5" />
                     </svg>
                     Need Quick Help?
-                  </div>
-                  <div className="home-success-quick-copy">
+                  </Box>
+                  <Text as="p" tone="subdued" className="home-success-quick-copy">
                     Reach out anytime for support, feedback, or just to share your progress.
-                  </div>
-                  <div className="home-success-quick-actions">
+                  </Text>
+                  <Box className="home-success-quick-actions">
                     <Button onClick={openContactModal}>
                       WhatsApp
                     </Button>
@@ -2034,25 +2008,27 @@ export default function AppIndex() {
                     >
                       Live Chat
                     </Button>
-                  </div>
-                </div>
-              </div>
-            </section>
+                  </Box>
+                </Box>
+              </Box>
+              </Box>
+            </Card>
           ) : null}
 
-          <section className="home-growth-card">
-            <div className="home-growth-head">
-              <div className="home-growth-title">
+          <Card>
+            <Box as="section" className="home-growth-card">
+            <Box className="home-growth-head">
+              <Text as="h3" variant="headingMd" className="home-growth-title">
                 Boost your store performance with our apps
-              </div>
-            </div>
-            <div className="home-growth-body">
-              <div className="home-growth-app-card">
-                <div className="home-growth-app-top">
-                  <div className="home-growth-app-icon" aria-hidden>
+              </Text>
+            </Box>
+            <Box className="home-growth-body">
+              <Box className="home-growth-app-card">
+                <Box className="home-growth-app-top">
+                  <Box className="home-growth-app-icon" aria-hidden>
                     <img src="/images/cartlift.png" alt="" />
-                  </div>
-                  <div className="home-growth-app-meta">
+                  </Box>
+                  <Box className="home-growth-app-meta">
                     <a
                       className="home-growth-app-name home-growth-app-name-link"
                       href={PROMOTED_UPSELL_APP_URL}
@@ -2061,22 +2037,23 @@ export default function AppIndex() {
                     >
                       CartLift: Cart Drawer &amp; Upsell
                     </a>
-                  </div>
+                  </Box>
                   <span className="home-growth-app-chip">Upsell</span>
-                </div>
-                <div className="home-growth-app-copy">
+                </Box>
+                <Text as="p" tone="subdued" className="home-growth-app-copy">
                   Grow average order value with cart drawer upsells and smart cart offers.
-                </div>
+                </Text>
                 <Button
                   variant="primary"
                   onClick={() => window.open(PROMOTED_UPSELL_APP_URL, "_blank", "noopener,noreferrer")}
                 >
                   Add app
                 </Button>
-              </div>
-            </div>
-          </section>
-        </div>
+              </Box>
+            </Box>
+            </Box>
+          </Card>
+        </Box>
 
         <Modal
           open={isReviewModalOpen}
@@ -2085,8 +2062,8 @@ export default function AppIndex() {
           size="large"
         >
           <Modal.Section>
-            <div className="review-app-modal">
-              <div className="review-app-banner">
+            <Box className="review-app-modal">
+              <Box className="review-app-banner">
                 <svg viewBox="0 0 20 20" fill="none" aria-hidden>
                   <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.8" />
                   <path d="M10 8v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
@@ -2095,21 +2072,21 @@ export default function AppIndex() {
                 <span>
                   Development stores aren't eligible to review apps. This is for testing purposes only.
                 </span>
-              </div>
+              </Box>
 
-              <div className="review-app-rating-card">
-                <div className="review-app-rating-icon" aria-hidden>
+              <Box className="review-app-rating-card">
+                <Box className="review-app-rating-icon" aria-hidden>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                     <rect x="3.5" y="3.5" width="7" height="7" rx="1.8" />
                     <rect x="13.5" y="3.5" width="7" height="7" rx="1.8" />
                     <rect x="3.5" y="13.5" width="7" height="7" rx="1.8" />
                     <path d="M17 13.5v7M13.5 17h7" strokeLinecap="round" />
                   </svg>
-                </div>
-                <div>
-                  <div className="review-app-rating-title">
+                </Box>
+                <Box>
+                  <Text as="h3" variant="headingMd" className="review-app-rating-title">
                     {`How would you rate ${REVIEW_MODAL_APP_NAME}?`}
-                  </div>
+                  </Text>
                   <ReviewStars
                     rating={reviewRating}
                     hoverRating={reviewHoverRating}
@@ -2117,10 +2094,10 @@ export default function AppIndex() {
                     onLeave={() => setReviewHoverRating(0)}
                     onSelect={setReviewRating}
                   />
-                </div>
-              </div>
+                </Box>
+              </Box>
 
-              <div>
+              <Box>
                 <label className="review-app-field-label" htmlFor="review-app-message">
                   Describe your experience (optional)
                 </label>
@@ -2131,13 +2108,13 @@ export default function AppIndex() {
                   value={reviewMessage}
                   onChange={(event) => setReviewMessage(event.target.value)}
                 />
-              </div>
+              </Box>
 
-              <div className="review-app-footer">
-                <div className="review-app-footer-copy">
+              <Box className="review-app-footer">
+                <Text as="p" tone="subdued" className="review-app-footer-copy">
                   If your review is published on the Shopify App Store, we'll include some details about your store.
-                </div>
-                <div className="review-app-footer-actions">
+                </Text>
+                <Box className="review-app-footer-actions">
                   <button
                     type="button"
                     className="review-app-action secondary"
@@ -2153,9 +2130,9 @@ export default function AppIndex() {
                   >
                     Submit
                   </button>
-                </div>
-              </div>
-            </div>
+                </Box>
+              </Box>
+            </Box>
           </Modal.Section>
         </Modal>
 
@@ -2220,7 +2197,7 @@ export default function AppIndex() {
           </Modal.Section>
         </Modal>
       </BlockStack>
-      </div>
+      </Box>
     </Page>
   );
 }
