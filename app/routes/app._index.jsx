@@ -67,6 +67,33 @@ const REVIEW_SUBMITTED_KEY = "__fomo_review_submitted__";
 const REVIEW_TOP_BANNER_DISMISSED_KEY = "__fomo_review_top_banner_dismissed__";
 const POPUPS_PER_SLIDE = 2;
 const POPUP_AUTOSLIDE_MS = 3500;
+const INDEX_PAGE_INLINE_CSS = `
+  .dashboard-index-page h1,
+  .dashboard-index-page h2,
+  .dashboard-index-page h3,
+  .dashboard-index-page h4,
+  .dashboard-index-page h5,
+  .dashboard-index-page h6,
+  .dashboard-index-page .Polaris-Text--headingXs,
+  .dashboard-index-page .Polaris-Text--headingSm,
+  .dashboard-index-page .Polaris-Text--headingMd,
+  .dashboard-index-page .Polaris-Text--headingLg,
+  .dashboard-index-page .Polaris-Text--headingXl {
+    font-size: 14px !important;
+    line-height: 1.25 !important;
+  }
+
+  .dashboard-index-page,
+  .dashboard-index-page .Polaris-Text--root,
+  .dashboard-index-page p,
+  .dashboard-index-page span,
+  .dashboard-index-page label,
+  .dashboard-index-page input,
+  .dashboard-index-page textarea {
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+  }
+`;
 const POPUP_CARD_DATA = [
   {
     key: "recent",
@@ -907,6 +934,8 @@ export default function AppIndex() {
 
   return (
     <Page>
+      <div className="dashboard-index-page">
+      <style>{INDEX_PAGE_INLINE_CSS}</style>
       <BlockStack gap="400">
 
         {/* Review top banner */}
@@ -1274,6 +1303,7 @@ export default function AppIndex() {
         </Modal>
 
       </BlockStack>
+      </div>
     </Page>
   );
 }
