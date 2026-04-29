@@ -31,12 +31,10 @@ import {
 } from "@shopify/polaris";
 import {
   AppsIcon,
-  BookIcon,
   CalendarIcon,
   ChatIcon,
   ExternalIcon,
   HeartIcon,
-  NotificationIcon,
   PageHeartIcon,
   StarIcon,
   ThemeEditIcon,
@@ -199,22 +197,6 @@ function DashboardIcon({ source, tone = "info", shape = "square" }) {
     <Box className={`dashboard-icon dashboard-icon--${tone} dashboard-icon--${shape}`}>
       <Icon source={source} />
     </Box>
-  );
-}
-
-function DashboardActionCard({ icon, title, description, onClick }) {
-  return (
-    <button type="button" className="dashboard-action-card" onClick={onClick}>
-      <BlockStack gap="200" inlineAlign="center">
-        <DashboardIcon source={icon} tone="info" />
-        <Text  fontWeight="bold">
-          {title}
-        </Text>
-        <Text tone="subdued" variant="bodySm" alignment="center">
-          {description}
-        </Text>
-      </BlockStack>
-    </button>
   );
 }
 
@@ -1042,66 +1024,6 @@ export default function AppIndex() {
           </div>
         </Card>
 
-        {/* Support + Review row */}
-        <InlineGrid columns={{ xs: 1, lg: "2fr 1fr" }} gap="400">
-          {/* Support panel */}
-          <Box
-            borderWidth="025"
-            borderRadius="300"
-            borderColor="border-emphasis"
-            padding="400"
-            className="dashboard-gradient-panel"
-          >
-            <BlockStack gap="300">
-              <InlineStack gap="200" blockAlign="center">
-                <DashboardIcon source={NotificationIcon} tone="info" />
-                <Text as="h3"  fontWeight="semibold">Support</Text>
-              </InlineStack>
-              <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
-                <DashboardActionCard
-                  icon={ChatIcon}
-                  title="Support Ticket"
-                  description="Support, reply, and assist instantly in office hours."
-                  onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}
-                />
-                <DashboardActionCard
-                  icon={BookIcon}
-                  title="Knowledge Base"
-                  description="Find a solution for your problem with our documents."
-                  onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}
-                />
-              </InlineGrid>
-            </BlockStack>
-          </Box>
-
-          {/* Review panel */}
-          <Box
-            borderWidth="025"
-            borderRadius="400"
-            borderColor="border-emphasis"
-            padding="400"
-            className="dashboard-gradient-panel dashboard-review-panel"
-          >
-            <BlockStack gap="200" inlineAlign="center">
-              <DashboardIcon source={HeartIcon} tone="critical" shape="circle" />
-              <Text alignment="center" fontWeight="semibold">
-                Motivate our team for future app development
-              </Text>
-            </BlockStack>
-            <InlineStack gap="200" style={{ marginTop: "16px",display: "flex" }} wrap>
-              <Button
-                variant="primary"
-                fullWidth
-                icon={StarIcon}
-                onClick={() => window.open(WRITE_REVIEW_URL, "_blank", "noopener,noreferrer")}
-              >
-                Write a review
-              </Button>
-              <Button fullWidth icon={ChatIcon} onClick={openContactModal}>Report an issue</Button>
-            </InlineStack>
-          </Box>
-        </InlineGrid>
-
         {/* Success help section */}
         {showSuccessHelpSection && (
           <Card padding="0">
@@ -1114,7 +1036,7 @@ export default function AppIndex() {
                   </Text>
                 </InlineStack>
                 <Divider />
-                <InlineGrid columns={{ xs: 1, lg: "1fr 1fr" }} gap="400">
+                <InlineGrid columns={{ xs: 1, md: 2, lg: 3 }} gap="400">
                   <Box className="success-help-card">
                     <BlockStack gap="300">
                       <InlineStack gap="300" blockAlign="center">
@@ -1153,6 +1075,26 @@ export default function AppIndex() {
                           Knowledge Base
                         </Button>
                       </InlineStack>
+                    </BlockStack>
+                  </Box>
+
+                  <Box className="success-help-card success-help-card--review">
+                    <BlockStack gap="300" inlineAlign="center">
+                      <DashboardIcon source={HeartIcon} tone="critical" shape="circle" />
+                      <Text alignment="center" fontWeight="semibold">
+                        Motivate our team for future app development
+                      </Text>
+                      <BlockStack gap="200">
+                        <Button
+                          variant="primary"
+                          fullWidth
+                          icon={StarIcon}
+                          onClick={() => window.open(WRITE_REVIEW_URL, "_blank", "noopener,noreferrer")}
+                        >
+                          Write a review
+                        </Button>
+                        <Button fullWidth icon={ChatIcon} onClick={openContactModal}>Report an issue</Button>
+                      </BlockStack>
                     </BlockStack>
                   </Box>
                 </InlineGrid>
