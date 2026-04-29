@@ -1085,7 +1085,7 @@ export default function AppIndex() {
                           <DashboardIcon source={HeartIcon} tone="critical" shape="circle" />
                         </Box>
                         <Text fontWeight="semibold">
-                          Motivate our team for future app development
+                          Help us improve future features!
                         </Text>
                       </InlineStack>
                       <InlineStack gap="200" align="center" blockAlign="center" wrap>
