@@ -1086,7 +1086,7 @@ export default function AppIndex() {
                       <Text alignment="center" fontWeight="semibold">
                         Motivate our team for future app development
                       </Text>
-                      <InlineStack gap="200" align="center" blockAlign="center" wrap>
+                      <InlineStack gap="200" align="center"  blockAlign="center" style={{ display: 'flex',justifyContent: 'center',alignItems: 'center'}} wrap>
                         <Button
                           variant="primary"
                           icon={StarIcon}

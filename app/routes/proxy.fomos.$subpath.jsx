@@ -45,7 +45,7 @@ const POPUPS = new Set([
   "addtocart",
   "review",
 ]);
-const PUBLIC_BOOTSTRAP_PATHS = new Set(["session", "embed-status", "popup"]);
+const PUBLIC_STOREFRONT_PATHS = new Set(["session", "embed-status", "popup", "track"]);
 const CACHE_TTL = {
   session: 5 * 1000,
   popup: 8 * 1000,
@@ -738,12 +738,12 @@ export const loader = async ({ request, params }) => {
       });
     }
 
-    const allowUnsignedBootstrap = PUBLIC_BOOTSTRAP_PATHS.has(subpath);
+    const allowUnsignedStorefront = PUBLIC_STOREFRONT_PATHS.has(subpath);
     const signatureValid = hasProxySignature(request.url)
       ? isValidProxyRequest(request.url)
       : false;
 
-    if (!signatureValid && !allowUnsignedBootstrap) {
+    if (!signatureValid && !allowUnsignedStorefront) {
       return bad({ error: "Unauthorized" }, 401);
     }
 
@@ -1195,12 +1195,12 @@ export const loader = async ({ request, params }) => {
 export const action = async ({ request, params }) => {
   try {
     const subpath = (params.subpath || "").toLowerCase();
-    const allowUnsignedBootstrap = PUBLIC_BOOTSTRAP_PATHS.has(subpath);
+    const allowUnsignedStorefront = PUBLIC_STOREFRONT_PATHS.has(subpath);
     const signatureValid = hasProxySignature(request.url)
       ? isValidProxyRequest(request.url)
       : false;
 
-    if (!signatureValid && !allowUnsignedBootstrap) {
+    if (!signatureValid && !allowUnsignedStorefront) {
       return bad({ error: "Unauthorized" }, 401);
     }
 
