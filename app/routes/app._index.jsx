@@ -1039,17 +1039,12 @@ export default function AppIndex() {
                 <InlineGrid columns={{ xs: 1, md: 2, lg: 3 }} gap="400">
                   <Box className="success-help-card">
                     <BlockStack gap="300">
-                      <InlineStack gap="300" blockAlign="center">
+                      <BlockStack gap="200" inlineAlign="center">
                         <DashboardIcon source={CalendarIcon} tone="info" />
                         <Text fontWeight="bold">Book a Free 30-Minute Setup Call</Text>
-                      </InlineStack>
+                      </BlockStack>
                       <Text tone="subdued">Get personalized guidance to accelerate your growth.</Text>
-                      <InlineStack gap="200" wrap>
-                        {["App configuration", "Best practices", "Growth strategy"].map((b) => (
-                          <Badge key={b} tone="info">{b}</Badge>
-                        ))}
-                      </InlineStack>
-                      <InlineStack gap="300" blockAlign="center" wrap>
+                      <InlineStack gap="300" align="center" blockAlign="center" wrap>
                         <Button
                           variant="primary"
                           icon={CalendarIcon}
@@ -1064,12 +1059,12 @@ export default function AppIndex() {
 
                   <Box className="success-help-card">
                     <BlockStack gap="300">
-                      <BlockStack gap="200" inlineAlign="start">
+                      <BlockStack gap="200" inlineAlign="center">
                         <DashboardIcon source={ChatIcon} tone="info" />
                         <Text fontWeight="bold">Need Quick Help?</Text>
                       </BlockStack>
                       <Text tone="subdued">Reach out anytime for support, feedback, or just to share your progress.</Text>
-                      <InlineStack gap="200" wrap>
+                      <InlineStack gap="200" align="center" wrap>
                         <Button icon={ChatIcon} onClick={openContactModal}>WhatsApp</Button>
                         <Button icon={ExternalIcon} onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}>
                           Knowledge Base

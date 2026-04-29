@@ -161,6 +161,8 @@
   background: #ffffff;
   display: flex;
   align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .success-help-card .dashboard-icon {
@@ -175,12 +177,7 @@
   height: 50px;
 }
 
-.success-help-card--review {
-  justify-content: center;
-  text-align: center;
-}
-
-.success-help-card--review > * {
+.success-help-card > * {
   width: 100%;
 }
 
