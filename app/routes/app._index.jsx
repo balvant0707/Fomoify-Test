@@ -1,5 +1,5 @@
-﻿// app/routes/app._index.jsx
-// Updated: 2026-03-30 â€” Backfill shop owner data on index page load for existing users
+// app/routes/app._index.jsx
+// Updated: 2026-03-30 — Backfill shop owner data on index page load for existing users
 import { defer, json, redirect } from "@remix-run/node";
 import {
   useLoaderData,
@@ -19,7 +19,6 @@ import {
   BlockStack,
   Text,
   Button,
-  ButtonGroup,
   InlineStack,
   InlineGrid,
   Badge,
@@ -98,6 +97,94 @@ const POPUP_CARD_DATA = [
   },
 ];
 
+const POPUP_TYPE_CARD_STYLES = `
+.popup-type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+.popup-type-card {
+  min-height: 188px;
+  border: 1px solid #dfe3e8;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.popup-type-card-body {
+  min-height: 188px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  gap: 16px;
+  align-items: center;
+}
+.popup-type-copy {
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.popup-type-title {
+  color: #3d3d3d;
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 800;
+}
+.popup-type-description {
+  margin-top: 14px;
+  color: #5f6368;
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 600;
+}
+.popup-type-actions {
+  margin-top: auto;
+  padding-top: 18px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.popup-type-actions .Polaris-Button--variantPrimary {
+  min-height: 36px;
+  min-width: 78px;
+  border-radius: 10px;
+  border: 1px solid #111111;
+  background: linear-gradient(#3e3e3e, #202020);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18), 0 1px 2px rgba(0,0,0,0.28);
+}
+.popup-type-actions .Polaris-Button--variantPrimary .Polaris-Text--root {
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+}
+.popup-type-image {
+  min-height: 112px;
+  display: grid;
+  place-items: center;
+}
+.popup-type-image img {
+  max-width: 108px;
+  max-height: 108px;
+  object-fit: contain;
+  opacity: 0.9;
+}
+@media (max-width: 1100px) {
+  .popup-type-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 720px) {
+  .popup-type-grid {
+    grid-template-columns: 1fr;
+  }
+  .popup-type-card-body {
+    grid-template-columns: minmax(0, 1fr) 96px;
+  }
+  .popup-type-description {
+    font-size: 16px;
+  }
+}
+`;
+
 
 function escapeHtml(value) {
   return String(value || "")
@@ -115,113 +202,57 @@ function isValidEmail(value) {
 function PopupSliderCard({ title, desc, imageName, onCreate, onManage, loading }) {
   const imageSrc = `/images/${encodeURIComponent(imageName)}`;
   return (
-    <Box background="bg-surface-secondary" borderRadius="200" padding="300">
-      <InlineStack gap="300" blockAlign="start" wrap={false}>
-        <Box flexShrink="0">
+    <Box className="popup-type-card">
+      <Box padding="400" className="popup-type-card-body">
+        <Box className="popup-type-copy">
+          <BlockStack gap="0">
+            <Text as="h3" className="popup-type-title">
+              {title}
+            </Text>
+            <Text as="p" className="popup-type-description">
+              {desc}
+            </Text>
+          </BlockStack>
+          <Box className="popup-type-actions">
+            <Button variant="primary" onClick={onCreate} loading={loading} disabled={loading}>
+              {loading ? "Opening..." : "Create"}
+            </Button>
+            <Button onClick={onManage} disabled={loading}>
+              Manage
+            </Button>
+          </Box>
+        </Box>
+        <Box className="popup-type-image" aria-hidden>
           <img
             src={imageSrc}
             alt=""
-            width={56}
-            height={56}
-            style={{ borderRadius: 8, objectFit: "contain", display: "block" }}
+            width={108}
+            height={108}
           />
         </Box>
-        <BlockStack gap="100">
-          <Text variant="headingSm" fontWeight="semibold">{title}</Text>
-          <Text variant="bodySm" tone="subdued">{desc}</Text>
-          <Box paddingBlockStart="100">
-            <ButtonGroup>
-              <Button variant="primary" size="slim" onClick={onCreate} loading={loading} disabled={loading}>
-                {loading ? "Opening..." : "Create"}
-              </Button>
-              <Button size="slim" onClick={onManage} disabled={loading}>Manage</Button>
-            </ButtonGroup>
-          </Box>
-        </BlockStack>
-      </InlineStack>
+      </Box>
     </Box>
   );
 }
 
 function PopupCardSlider({ cards, onCreateItem, onManageItem, popupLoadingKey }) {
-  const CARDS_PER_SLIDE = 2;
-  const totalSlides = Math.ceil(cards.length / CARDS_PER_SLIDE);
-  const [slideIndex, setSlideIndex] = useState(0);
-
-  const prevSlide = useCallback(
-    () => setSlideIndex((i) => (i - 1 + totalSlides) % totalSlides),
-    [totalSlides]
-  );
-  const nextSlide = useCallback(
-    () => setSlideIndex((i) => (i + 1) % totalSlides),
-    [totalSlides]
-  );
-
-  const start = slideIndex * CARDS_PER_SLIDE;
-  const visible = cards.slice(start, start + CARDS_PER_SLIDE);
-
   return (
-    <BlockStack gap="400">
-      <InlineGrid columns={2} gap="300">
-        {visible.map((card) => (
-          <PopupSliderCard
-            key={card.key}
-            title={card.title}
-            desc={card.desc}
-            imageName={card.imageName}
-            onCreate={() => onCreateItem(card.path, card.key)}
-            onManage={() => onManageItem(card.key)}
-            loading={
-              popupLoadingKey === `${card.key}-create` ||
-              popupLoadingKey === `${card.key}-manage`
-            }
-          />
-        ))}
-      </InlineGrid>
-      {totalSlides > 1 && (
-        <InlineStack align="center" gap="400" blockAlign="center">
-          <button
-            type="button"
-            onClick={prevSlide}
-            aria-label="Previous slide"
-            style={{ border: 0, background: "transparent", cursor: "pointer", padding: "4px 10px", fontSize: 22, color: "#6C63FF", lineHeight: 1, borderRadius: 6 }}
-          >
-            &#8249;
-          </button>
-          <InlineStack gap="200" blockAlign="center">
-            {Array.from({ length: totalSlides }, (_, i) => (
-              <button
-                key={i}
-                type="button"
-                aria-label={`Go to slide ${i + 1}`}
-                onClick={() => setSlideIndex(i)}
-                style={{
-                  width: i === slideIndex ? 22 : 8,
-                  height: 8,
-                  borderRadius: 4,
-                  background: i === slideIndex ? "#6C63FF" : "#c9cccf",
-                  border: 0,
-                  cursor: "pointer",
-                  padding: 0,
-                  transition: "width 0.2s ease, background 0.2s ease",
-                }}
-              />
-            ))}
-          </InlineStack>
-          <button
-            type="button"
-            onClick={nextSlide}
-            aria-label="Next slide"
-            style={{ border: 0, background: "transparent", cursor: "pointer", padding: "4px 10px", fontSize: 22, color: "#6C63FF", lineHeight: 1, borderRadius: 6 }}
-          >
-            &#8250;
-          </button>
-        </InlineStack>
-      )}
-      <Text variant="bodySm" tone="subdued" alignment="center">
-        Showing {start + 1}–{Math.min(start + CARDS_PER_SLIDE, cards.length)} of {cards.length} popup types
-      </Text>
-    </BlockStack>
+    <Box className="popup-type-grid">
+      {cards.map((card) => (
+        <PopupSliderCard
+          key={card.key}
+          title={card.title}
+          desc={card.desc}
+          imageName={card.imageName}
+          onCreate={() => onCreateItem(card.path, card.key)}
+          onManage={() => onManageItem(card.key)}
+          loading={
+            popupLoadingKey === `${card.key}-create` ||
+            popupLoadingKey === `${card.key}-manage`
+          }
+        />
+      ))}
+    </Box>
   );
 }
 
@@ -243,7 +274,7 @@ function ReviewStars({ rating, hoverRating, onHover, onLeave, onSelect }) {
             onClick={() => onSelect(value)}
             style={{ border: 0, background: "transparent", color: active ? "#ffb800" : "#c9cccf", fontSize: 28, lineHeight: 1, cursor: "pointer", padding: 0 }}
           >
-            â˜…
+            ★
           </button>
         );
       })}
@@ -294,7 +325,7 @@ export const loader = async ({ request }) => {
     "";
   const shopDomain = toShopDomain(shop);
 
-  // Fire announcement email in background â€” does not block page load
+  // Fire announcement email in background — does not block page load
   maybeSendAnnouncementEmail(shopDomain, session?.email ?? null).catch((err) =>
     console.error("[announcement email] error:", err.message)
   );
@@ -940,6 +971,7 @@ export default function AppIndex() {
   return (
     <Page title="Dashboard" subtitle="Manage social proof popups and notifications for your store">
       <BlockStack gap="400">
+        <style>{POPUP_TYPE_CARD_STYLES}</style>
 
         {/* Top Review Banner */}
         {showTopReviewBanner ? (
@@ -1126,7 +1158,7 @@ export default function AppIndex() {
                     >
                       Schedule Free Call
                     </Button>
-                    <Text variant="bodySm" tone="subdued">Free · 30 mins · No commitment</Text>
+                    <Text variant="bodySm" tone="subdued">Free � 30 mins � No commitment</Text>
                   </InlineStack>
                 </BlockStack>
                 <Box background="bg-surface-secondary" borderRadius="200" padding="400">
