@@ -177,12 +177,12 @@ function PopupSliderCard({ title, desc, imageName, onCreate, onManage, loading }
         <BlockStack gap="200">
           <Text as="h3" style={{ fontWeight: "bold" }}>{title}</Text>
           <Text tone="subdued" variant="bodySm">{desc}</Text>
-          <InlineStack gap="200">
+          <div className="dashboard-popup-actions">
             <Button variant="primary" onClick={onCreate} loading={loading} disabled={loading}>
               {loading ? "Opening..." : "Create"}
             </Button>
             <Button onClick={onManage} disabled={loading}>Manage</Button>
-          </InlineStack>
+          </div>
         </BlockStack>
         <Box className="dashboard-popup-preview" borderRadius="200">
           <img src={imageSrc} alt="" aria-hidden />
