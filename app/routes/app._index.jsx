@@ -1082,10 +1082,11 @@ export default function AppIndex() {
                     <BlockStack gap="300" inlineAlign="center">
                       <Box className="success-help-review-icon">
                         <DashboardIcon source={HeartIcon} tone="critical" shape="circle" />
-                      </Box>
-                      <Text alignment="center" fontWeight="semibold">
+                         <Text alignment="center" fontWeight="semibold">
                         Motivate our team for future app development
                       </Text>
+                      </Box>
+                     
                       <InlineStack gap="200" align="center"  blockAlign="center" style={{ display: 'flex',justifyContent: 'center',alignItems: 'center'}} wrap>
                         <Button
                           variant="primary"
