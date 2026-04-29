@@ -34,9 +34,13 @@ import {
   BookIcon,
   CalendarIcon,
   ChatIcon,
+  ExternalIcon,
   HeartIcon,
+  NotificationIcon,
   PageHeartIcon,
   StarIcon,
+  ThemeEditIcon,
+  ThemeIcon,
 } from "@shopify/polaris-icons";
 import { APP_EMBED_HANDLE } from "../utils/themeEmbed.shared";
 import { getEmbedPingStatus } from "../utils/embedPingStatus.server";
@@ -169,7 +173,7 @@ function PopupSliderCard({ title, desc, imageName, onCreate, onManage, loading }
     <Box borderWidth="025" borderRadius="300" borderColor="border" padding="400" background="bg-surface">
       <InlineStack align="space-between" blockAlign="center" gap="300" wrap={false}>
         <BlockStack gap="200">
-          <Text as="h3" >{title}</Text>
+          <Text as="h3" style={{ fontWeight: "bold" }}>{title}</Text>
           <Text tone="subdued" variant="bodySm">{desc}</Text>
           <InlineStack gap="200">
             <Button variant="primary" onClick={onCreate} loading={loading} disabled={loading}>
@@ -959,12 +963,16 @@ export default function AppIndex() {
         <Card>
           <BlockStack gap="300">
             <InlineStack align="space-between" blockAlign="center">
-              <Text as="h3"  fontWeight="semibold">App embed status</Text>
+              <InlineStack gap="200" blockAlign="center">
+                <DashboardIcon source={ThemeIcon} tone="info" />
+                <Text as="h3"  fontWeight="semibold">App embed status</Text>
+              </InlineStack>
               <Badge tone={embedBadgeTone}>{embedBadgeText}</Badge>
             </InlineStack>
             <InlineStack gap="300" align="start">
               <Button
                 variant="primary"
+                icon={ThemeEditIcon}
                 onClick={() => openThemeEditor(resolvedThemeId, "activate")}
               >
                 Open App Embeds
@@ -1041,7 +1049,10 @@ export default function AppIndex() {
             className="dashboard-gradient-panel"
           >
             <BlockStack gap="300">
-              <Text as="h3"  fontWeight="semibold">Support</Text>
+              <InlineStack gap="200" blockAlign="center">
+                <DashboardIcon source={NotificationIcon} tone="info" />
+                <Text as="h3"  fontWeight="semibold">Support</Text>
+              </InlineStack>
               <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
                 <DashboardActionCard
                   icon={ChatIcon}
@@ -1077,64 +1088,72 @@ export default function AppIndex() {
               <Button
                 variant="primary"
                 fullWidth
+                icon={StarIcon}
                 onClick={() => window.open(WRITE_REVIEW_URL, "_blank", "noopener,noreferrer")}
               >
                 Write a review
               </Button>
-              <Button fullWidth onClick={openContactModal}>Report an issue</Button>
+              <Button fullWidth icon={ChatIcon} onClick={openContactModal}>Report an issue</Button>
             </InlineStack>
           </Box>
         </InlineGrid>
 
         {/* Success help section */}
         {showSuccessHelpSection && (
-          <Card>
-            <BlockStack gap="400">
-              <InlineStack gap="200" blockAlign="center">
-                <DashboardIcon source={PageHeartIcon} tone="info" />
-                <Text as="h3"  fontWeight="bold">We&apos;re Here to Help You Succeed</Text>
-              </InlineStack>
-              <Divider />
-              <InlineGrid columns={{ xs: 1, lg: "1.2fr 1fr" }} gap="400">
-                <BlockStack gap="300">
-                  <InlineStack gap="200" blockAlign="center">
-                    <DashboardIcon source={CalendarIcon} tone="info" />
-                    <Text fontWeight="bold">Book a Free 30-Minute Setup Call</Text>
-                  </InlineStack>
-                  <Text tone="subdued">Get personalized guidance to accelerate your growth.</Text>
-                  <InlineStack gap="300" wrap>
-                    {["App configuration", "Best practices", "Growth strategy"].map((b) => (
-                      <Text key={b} fontWeight="semibold">- {b}</Text>
-                    ))}
-                  </InlineStack>
-                  <InlineStack gap="300" blockAlign="center" wrap>
-                    <Button
-                      variant="primary"
-                      onClick={() => window.open(SCHEDULE_CALL_URL, "_blank", "noopener,noreferrer")}
-                    >
-                      Schedule Free Call
-                    </Button>
-                    <Text tone="subdued" fontWeight="semibold">Free | 30 mins | No commitment</Text>
-                  </InlineStack>
-                </BlockStack>
+          <Card padding="0">
+            <Box className="success-help-section">
+              <BlockStack gap="400">
+                <InlineStack gap="300" blockAlign="center">
+                  <DashboardIcon source={PageHeartIcon} tone="info" />
+                  <Text as="h3" fontWeight="bold" style={{ fontWeight: "bold",fontSize: "14px !important" }}>
+                    We&apos;re Here to Help You Succeed
+                  </Text>
+                </InlineStack>
+                <Divider />
+                <InlineGrid columns={{ xs: 1, lg: "1fr 1fr" }} gap="400">
+                  <Box className="success-help-card">
+                    <BlockStack gap="300">
+                      <InlineStack gap="300" blockAlign="center">
+                        <DashboardIcon source={CalendarIcon} tone="info" />
+                        <Text fontWeight="bold">Book a Free 30-Minute Setup Call</Text>
+                      </InlineStack>
+                      <Text tone="subdued">Get personalized guidance to accelerate your growth.</Text>
+                      <InlineStack gap="200" wrap>
+                        {["App configuration", "Best practices", "Growth strategy"].map((b) => (
+                          <Badge key={b} tone="info">{b}</Badge>
+                        ))}
+                      </InlineStack>
+                      <InlineStack gap="300" blockAlign="center" wrap>
+                        <Button
+                          variant="primary"
+                          icon={CalendarIcon}
+                          onClick={() => window.open(SCHEDULE_CALL_URL, "_blank", "noopener,noreferrer")}
+                        >
+                          Schedule Free Call
+                        </Button>
+                        <Text tone="subdued" fontWeight="semibold">Free | 30 mins | No commitment</Text>
+                      </InlineStack>
+                    </BlockStack>
+                  </Box>
 
-                <Box borderWidth="025" borderRadius="300" borderColor="border" padding="400" background="bg-surface-secondary">
-                  <BlockStack gap="300">
-                    <InlineStack gap="200" blockAlign="center">
-                      <DashboardIcon source={ChatIcon} tone="info" />
-                      <Text fontWeight="bold">Need Quick Help?</Text>
-                    </InlineStack>
-                    <Text tone="subdued">Reach out anytime for support, feedback, or just to share your progress.</Text>
-                    <InlineStack gap="200" wrap>
-                      <Button onClick={openContactModal}>WhatsApp</Button>
-                      <Button onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}>
-                        Live Chat
-                      </Button>
-                    </InlineStack>
-                  </BlockStack>
-                </Box>
-              </InlineGrid>
-            </BlockStack>
+                  <Box className="success-help-card">
+                    <BlockStack gap="300">
+                      <InlineStack gap="300" blockAlign="center">
+                        <DashboardIcon source={ChatIcon} tone="info" />
+                        <Text fontWeight="bold">Need Quick Help?</Text>
+                      </InlineStack>
+                      <Text tone="subdued">Reach out anytime for support, feedback, or just to share your progress.</Text>
+                      <InlineStack gap="200" wrap>
+                        <Button icon={ChatIcon} onClick={openContactModal}>WhatsApp</Button>
+                        <Button icon={ExternalIcon} onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}>
+                          Live Chat
+                        </Button>
+                      </InlineStack>
+                    </BlockStack>
+                  </Box>
+                </InlineGrid>
+              </BlockStack>
+            </Box>
           </Card>
         )}
 
@@ -1167,6 +1186,7 @@ export default function AppIndex() {
                   <InlineStack>
                     <Button
                       variant="primary"
+                      icon={ExternalIcon}
                       onClick={() => window.open(PROMOTED_UPSELL_APP_URL, "_blank", "noopener,noreferrer")}
                     >
                       Add app
