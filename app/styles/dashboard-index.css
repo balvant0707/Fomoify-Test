@@ -132,8 +132,6 @@
 }
 
 .dashboard-icon--circle {
-  width: 60px;
-  height: 60px;
   border-radius: var(--p-border-radius-full);
 }
 
@@ -142,7 +140,7 @@
 }
 
 .dashboard-icon--critical {
-  color: #9f3f39;
+  color: currentColor;
   background: transparent;
   box-shadow: none;
 }
@@ -152,7 +150,7 @@
 }
 
 .success-help-section {
-  padding: var(--p-space-500);
+  padding: var(--p-space-400);
 }
 
 .success-help-card {
@@ -172,6 +170,10 @@
 
 .success-help-card--review > * {
   width: 100%;
+}
+
+.success-help-review-icon {
+  flex-shrink: 0;
 }
 
 .success-help-review-icon .dashboard-icon--circle {

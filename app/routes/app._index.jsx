@@ -1080,13 +1080,15 @@ export default function AppIndex() {
 
                   <Box className="success-help-card success-help-card--review">
                     <BlockStack gap="300" inlineAlign="center">
-                      <Box className="success-help-review-icon">
-                        <DashboardIcon source={HeartIcon} tone="critical" shape="circle" />
-                      </Box>
-                      <Text alignment="center" fontWeight="semibold">
-                        Motivate our team for future app development
-                      </Text>
-                      <InlineStack gap="200" align="center" display ="flex" justifyContent="center" alignItems="center" blockAlign="center" >
+                      <InlineStack gap="200" align="center" blockAlign="center" wrap={false}>
+                        <Box className="success-help-review-icon">
+                          <DashboardIcon source={HeartIcon} tone="critical" shape="circle" />
+                        </Box>
+                        <Text fontWeight="semibold">
+                          Motivate our team for future app development
+                        </Text>
+                      </InlineStack>
+                      <InlineStack gap="200" align="center" blockAlign="center" wrap>
                         <Button
                           variant="primary"
                           icon={StarIcon}
