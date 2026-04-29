@@ -85,10 +85,10 @@ const INDEX_PAGE_INLINE_CSS = `
   .dashboard-index-page .Polaris-Text--headingXl {
     font-size: 14px !important;
     line-height: 1.25 !important;
+    font-weight: bold !important;
   }
 
   .dashboard-index-page,
-  .dashboard-index-page .Polaris-Text--root,
   .dashboard-index-page p,
   .dashboard-index-page span,
   .dashboard-index-page label,
