@@ -925,6 +925,294 @@ const INDEX_SUPPORT_STYLES = `
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* Index page visual refresh using Polaris components with scoped styling. */
+.home-index-shell {
+  --home-heading-size: 14px;
+  --home-text-size: 12px;
+  --home-card-border: #dfe3e8;
+  --home-ink: #2f3136;
+  --home-muted: #6f7278;
+  --home-panel-bg:
+    linear-gradient(0deg, rgba(255, 255, 255, 0.28) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.28) 1px, transparent 1px),
+    linear-gradient(150deg, #bca9e4 0%, #d3c5f1 100%);
+}
+.home-review-top-banner {
+  min-height: 104px;
+  padding: 18px 18px;
+  border: 1px solid #cfc0f1;
+  border-radius: 18px;
+  background: var(--home-panel-bg);
+  background-size: 54px 54px, 54px 54px, auto;
+}
+.home-review-top-title {
+  color: var(--home-ink) !important;
+  font-size: 26px !important;
+  line-height: 1.18 !important;
+  font-weight: 800 !important;
+}
+.home-review-top-subtitle {
+  color: #5f6168 !important;
+  font-size: 16px !important;
+  line-height: 1.45 !important;
+  font-weight: 600 !important;
+}
+.home-review-top-actions .Polaris-Button {
+  min-height: 40px;
+  border-radius: 10px;
+  border: 1px solid #111111;
+  background: linear-gradient(#3d3d3d, #202020);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18), 0 1px 1px rgba(0,0,0,0.24);
+}
+.home-review-top-actions .Polaris-Button .Polaris-Text--root {
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+}
+.home-review-top-close {
+  color: #05023c;
+  font-size: 24px;
+  font-weight: 500;
+}
+.home-support-grid {
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+  gap: 20px;
+}
+.home-support-grid > .Polaris-ShadowBevel {
+  border-radius: 12px;
+}
+.home-support-panel,
+.home-review-panel {
+  background: var(--home-panel-bg);
+  background-size: 54px 54px, 54px 54px, auto;
+  border: 1px solid #cfc0f1;
+  border-radius: 16px;
+}
+.home-support-panel {
+  padding: 24px 24px;
+}
+.home-support-title {
+  color: var(--home-ink) !important;
+  font-size: 24px !important;
+  line-height: 1.2 !important;
+  font-weight: 800 !important;
+}
+.home-support-items {
+  gap: 16px;
+  margin-top: 14px;
+}
+.home-support-item {
+  min-height: 204px;
+  padding: 18px 20px;
+  border-color: rgba(255, 255, 255, 0.34);
+  border-radius: 16px;
+  background: rgba(188, 169, 228, 0.42) !important;
+  box-shadow: 0 2px 8px rgba(118, 83, 173, 0.18);
+}
+.home-support-item.chat {
+  border-color: #a98aec;
+}
+.home-support-item-row {
+  gap: 16px;
+}
+.home-support-item-icon {
+  width: 74px;
+  height: 74px;
+  border-radius: 16px;
+  margin-top: 2px;
+}
+.home-support-item-link {
+  color: #202223 !important;
+  font-size: 16px !important;
+  line-height: 1.25 !important;
+  font-weight: 800 !important;
+}
+.home-support-item-body {
+  gap: 12px;
+}
+.home-support-item-body .Polaris-Text--root {
+  color: #202223;
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 500;
+}
+.home-review-panel {
+  min-height: 274px;
+  padding: 28px 26px 26px;
+  align-items: center;
+}
+.home-review-balloon {
+  width: 78px;
+  height: 78px;
+  border-radius: 30px;
+  margin-bottom: 18px;
+}
+.home-review-copy {
+  color: var(--home-ink) !important;
+  font-size: 16px !important;
+  line-height: 1.38 !important;
+  font-weight: 800 !important;
+}
+.home-review-actions {
+  width: 100%;
+  justify-content: center;
+  gap: 14px;
+}
+.home-review-actions .Polaris-Button {
+  min-width: 126px;
+  min-height: 66px;
+  border-radius: 10px;
+}
+.home-review-actions .Polaris-Button--variantPrimary {
+  border: 1px solid #111111;
+  background: linear-gradient(#3d3d3d, #202020);
+}
+.home-review-actions .Polaris-Button--variantPrimary .Polaris-Text--root {
+  color: #ffffff;
+}
+.home-review-actions .Polaris-Button .Polaris-Text--root {
+  white-space: normal;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 800;
+}
+.home-success-card,
+.home-growth-card {
+  border: 1px solid var(--home-card-border);
+  border-radius: 18px;
+  background: #ffffff;
+}
+.home-success-head,
+.home-growth-head {
+  padding: 22px 26px;
+  border-bottom: 1px solid #eef0f2;
+}
+.home-success-title,
+.home-growth-title {
+  color: var(--home-ink) !important;
+  font-size: 26px !important;
+  line-height: 1.18 !important;
+  font-weight: 800 !important;
+}
+.home-success-title-wrap svg,
+.home-success-call-title-wrap svg,
+.home-success-quick-title svg {
+  color: #22aeea;
+}
+.home-success-body {
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.9fr);
+  gap: 34px;
+  padding: 30px 26px 24px;
+}
+.home-success-call-title {
+  color: var(--home-ink) !important;
+  font-size: 24px !important;
+  line-height: 1.22 !important;
+  font-weight: 800 !important;
+}
+.home-success-copy,
+.home-success-quick-copy {
+  color: var(--home-muted) !important;
+  font-size: 16px !important;
+  line-height: 1.45 !important;
+  font-weight: 600 !important;
+}
+.home-success-bullets {
+  gap: 8px 34px;
+}
+.home-success-bullets span {
+  color: #1f3048;
+  font-size: 16px;
+  line-height: 1.3;
+  font-weight: 800;
+}
+.home-success-call-actions .Polaris-Button,
+.home-growth-app-card .Polaris-Button {
+  border-radius: 8px;
+  border: 1px solid #111111;
+  background: linear-gradient(#3d3d3d, #202020);
+}
+.home-success-call-actions .Polaris-Button .Polaris-Text--root,
+.home-growth-app-card .Polaris-Button .Polaris-Text--root {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+}
+.home-success-call-meta {
+  color: var(--home-muted) !important;
+  font-size: 16px !important;
+  line-height: 1.35 !important;
+  font-weight: 600 !important;
+}
+.home-success-quick {
+  border-color: #dbe1ea;
+  border-radius: 18px;
+  background: #f3f5f9;
+  padding: 24px;
+}
+.home-success-quick-title {
+  color: #1f3048;
+  gap: 12px;
+}
+.home-success-quick-title .Polaris-Text--root {
+  font-size: 18px;
+  line-height: 1.25;
+  font-weight: 800;
+}
+.home-success-quick-actions .Polaris-Button {
+  border-radius: 8px;
+}
+.home-success-quick-actions .Polaris-Button .Polaris-Text--root {
+  font-size: 16px;
+  font-weight: 700;
+}
+.home-growth-body {
+  padding: 22px 26px 28px;
+  min-height: 258px;
+}
+.home-growth-app-card {
+  max-width: 450px;
+  padding: 20px;
+  border-color: var(--home-card-border);
+  border-radius: 18px;
+  gap: 18px;
+}
+.home-growth-app-top {
+  gap: 14px;
+}
+.home-growth-app-icon {
+  width: 50px;
+  height: 50px;
+}
+.home-growth-app-meta {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.home-growth-app-name {
+  color: var(--home-ink) !important;
+  font-size: 16px !important;
+  line-height: 1.18 !important;
+  font-weight: 800 !important;
+}
+.home-growth-app-chip {
+  margin-left: auto;
+  color: #41649c;
+  background: #dce8ff;
+  font-size: 16px;
+  font-weight: 800;
+}
+.home-growth-app-copy {
+  color: var(--home-muted) !important;
+  font-size: 16px !important;
+  line-height: 1.45 !important;
+  font-weight: 600 !important;
+}
+.home-growth-app-card .Polaris-Button {
+  width: 100%;
+  min-height: 40px;
+}
 @media (max-width: 980px) {
   .home-support-grid {
     grid-template-columns: 1fr;
@@ -1852,7 +2140,7 @@ export default function AppIndex() {
         <Box className="home-support-grid">
           <Card>
             <Box className="home-support-panel">
-            <Text as="h3" variant="headingMd">
+            <Text as="h3" variant="headingMd" className="home-support-title">
               Support
             </Text>
             <Box className="home-support-items">
@@ -1994,7 +2282,9 @@ export default function AppIndex() {
                       <path d="M4 5h16v10H8l-4 4V5z" />
                       <path d="M8 9h8M8 12h5" />
                     </svg>
-                    Need Quick Help?
+                    <Text as="h4" variant="headingSm">
+                      Need Quick Help?
+                    </Text>
                   </Box>
                   <Text as="p" tone="subdued" className="home-success-quick-copy">
                     Reach out anytime for support, feedback, or just to share your progress.
