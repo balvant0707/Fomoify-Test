@@ -23,6 +23,7 @@ import {
   Box,
   Badge,
   Modal,
+  Pagination,
   TextField,
   Thumbnail,
 } from "@shopify/polaris";
@@ -43,6 +44,7 @@ const SUPPORT_HELP_URL = "https://fomoifysalespopupproof.tawk.help/category/feat
 const SCHEDULE_CALL_URL =
   "https://outlook.office.com/book/ShopifyGrowthConsultationCall@m2webdesigning.com/";
 const PROMOTED_UPSELL_APP_URL = "https://apps.shopify.com/cartlift-cart-drawer-upsell";
+const POPUPS_PER_SLIDE = 2;
 const POPUP_CARD_DATA = [
   {
     key: "recent",
@@ -118,10 +120,10 @@ function PopupSliderCard({
         <InlineStack align="space-between" blockAlign="start" gap="300" wrap={false}>
           <Box minWidth="0">
             <BlockStack gap="100">
-              <Text as="h3" variant="headingMd">
+              <Text as="h3" variant="headingSm">
                 {title}
               </Text>
-              <Text as="p" tone="subdued">
+              <Text as="p" variant="bodySm" tone="subdued">
                 {desc}
               </Text>
             </BlockStack>
@@ -188,7 +190,7 @@ export const loader = async ({ request }) => {
     "";
   const shopDomain = toShopDomain(shop);
 
-  // Fire announcement email in background ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â does not block page load
+  // Fire announcement email in background ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â does not block page load
   maybeSendAnnouncementEmail(shopDomain, session?.email ?? null).catch((err) =>
     console.error("[announcement email] error:", err.message)
   );
@@ -561,6 +563,7 @@ export default function AppIndex() {
   const [contactForm, setContactForm] = useState(CONTACT_FORM_INITIAL);
   const [contactError, setContactError] = useState("");
   const [popupLoadingKey, setPopupLoadingKey] = useState(null);
+  const [popupSlideIndex, setPopupSlideIndex] = useState(0);
   const search = location.search || "";
   const appUrl = useCallback((path) => `${path}${search}`, [search]);
   const hasThemeEmbedCheck = embedContextState.appEmbedChecked === true;
@@ -574,16 +577,14 @@ export default function AppIndex() {
     : hasFreshPingSignal;
   const embedBadgeTone = isEmbedActive ? "success" : "critical";
   const embedBadgeText = `App embed: ${isEmbedActive ? "ON" : "OFF"}`;
-  const embedBlockStatusText = !hasThemeEmbedCheck
-    ? "Theme app embed block has not been checked yet."
-    : embedContextState.appEmbedFound
-      ? `Theme app embed block found and ${
-          embedContextState.appEmbedEnabled ? "enabled" : "disabled"
-        }.`
-      : "Theme app embed block was not found in the main theme settings.";
-  const embedPingStatusText = hasFreshPingSignal
-    ? "Storefront embed ping received recently."
-    : "No recent storefront embed ping has been received.";
+  const maxPopupSlideIndex = Math.max(
+    Math.ceil(POPUP_CARD_DATA.length / POPUPS_PER_SLIDE) - 1,
+    0
+  );
+  const popupSlideCards = POPUP_CARD_DATA.slice(
+    popupSlideIndex * POPUPS_PER_SLIDE,
+    popupSlideIndex * POPUPS_PER_SLIDE + POPUPS_PER_SLIDE
+  );
 
   useEffect(() => {
     let active = true;
@@ -706,6 +707,14 @@ export default function AppIndex() {
     [appUrl, navigate, popupLoadingKey]
   );
 
+  const previousPopupSlide = useCallback(() => {
+    setPopupSlideIndex((index) => Math.max(index - 1, 0));
+  }, []);
+
+  const nextPopupSlide = useCallback(() => {
+    setPopupSlideIndex((index) => Math.min(index + 1, maxPopupSlideIndex));
+  }, [maxPopupSlideIndex]);
+
   const updateContactField = (field) => (value) => {
     setContactForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -743,82 +752,16 @@ export default function AppIndex() {
   };
 
   return (
-    <Page
-      title="Fomoify dashboard"
-      subtitle="Create social proof popups, verify your app embed, and get help from one workspace."
-      primaryAction={{
-        content: "Create first popup",
-        onAction: () => goPopupCreate("/app/notification/recent", "recent"),
-        loading: popupLoadingKey === "recent-create",
-        disabled: Boolean(popupLoadingKey),
-      }}
-      secondaryActions={[
-        {
-          content: "Check app embed",
-          onAction: () => openThemeEditor(resolvedThemeId, "activate"),
-        },
-      ]}
-    >
+    <Page>
       <BlockStack gap="400">
-        <Card>
-          <BlockStack gap="300">
-            <InlineStack align="space-between" blockAlign="start" gap="300">
-              <BlockStack gap="100">
-                <Text as="h2" variant="headingLg">
-                  Launch trust-building notifications
-                </Text>
-                <Text as="p" tone="subdued">
-                  Use Fomoify to show recent purchases, visitor activity, low stock alerts,
-                  reviews, add-to-cart events, and flash sale urgency.
-                </Text>
-              </BlockStack>
-              <Badge tone="info">Dashboard</Badge>
-            </InlineStack>
-            <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
-              <Box
-                padding="300"
-                background="bg-surface-secondary"
-                borderColor="border"
-                borderWidth="025"
-                borderRadius="300"
-              >
-                <BlockStack gap="100">
-                  <Text as="p" variant="headingSm">
-                    Recent purchase
-                  </Text>
-                  <Text as="p" tone="subdued">
-                    Someone bought Classic Tee
-                  </Text>
-                </BlockStack>
-              </Box>
-              <Box
-                padding="300"
-                background="bg-surface-secondary"
-                borderColor="border"
-                borderWidth="025"
-                borderRadius="300"
-              >
-                <BlockStack gap="100">
-                  <Text as="p" variant="headingSm">
-                    Live visitors
-                  </Text>
-                  <Text as="p" tone="subdued">
-                    37 shoppers viewing products
-                  </Text>
-                </BlockStack>
-              </Box>
-            </InlineGrid>
-          </BlockStack>
-        </Card>
-
         <Card>
           <BlockStack gap="300">
             <InlineStack align="space-between" blockAlign="center" gap="300">
               <BlockStack gap="100">
-                <Text as="h2" variant="headingMd">
+                <Text as="h2" variant="headingSm">
                   App embed status
                 </Text>
-                <Text as="p" tone="subdued">
+                <Text as="p" variant="bodySm" tone="subdued">
                   Keep the storefront embed enabled so popups can appear on your theme.
                 </Text>
               </BlockStack>
@@ -833,55 +776,31 @@ export default function AppIndex() {
                 Open App Embeds
               </Button>
             </InlineStack>
-            <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
-              <Box
-                padding="300"
-                background="bg-surface-secondary"
-                borderColor="border"
-                borderWidth="025"
-                borderRadius="300"
-              >
-                <BlockStack gap="100">
-                  <Text as="p" variant="headingSm">
-                    Theme block
-                  </Text>
-                  <Text as="p" tone="subdued">
-                    {embedBlockStatusText}
-                  </Text>
-                </BlockStack>
-              </Box>
-              <Box
-                padding="300"
-                background="bg-surface-secondary"
-                borderColor="border"
-                borderWidth="025"
-                borderRadius="300"
-              >
-                <BlockStack gap="100">
-                  <Text as="p" variant="headingSm">
-                    Storefront ping
-                  </Text>
-                  <Text as="p" tone="subdued">
-                    {embedPingStatusText}
-                  </Text>
-                </BlockStack>
-              </Box>
-            </InlineGrid>
           </BlockStack>
         </Card>
 
         <Card>
           <BlockStack gap="400">
-            <BlockStack gap="100">
-              <Text as="h2" variant="headingMd">
-                Campaign popups
-              </Text>
-              <Text as="p" tone="subdued">
-                Pick a notification type and launch it in a few clicks.
-              </Text>
-            </BlockStack>
+            <InlineStack align="space-between" blockAlign="center" gap="300">
+              <BlockStack gap="100">
+                <Text as="h2" variant="headingSm">
+                  Campaign popups
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Pick a notification type and launch it in a few clicks.
+                </Text>
+              </BlockStack>
+              <Pagination
+                hasPrevious={popupSlideIndex > 0}
+                hasNext={popupSlideIndex < maxPopupSlideIndex}
+                onPrevious={previousPopupSlide}
+                onNext={nextPopupSlide}
+                label={`${popupSlideIndex + 1} of ${maxPopupSlideIndex + 1}`}
+                accessibilityLabel="Campaign popup slides"
+              />
+            </InlineStack>
             <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
-              {POPUP_CARD_DATA.map((card) => (
+              {popupSlideCards.map((card) => (
                 <PopupSliderCard
                   key={card.key}
                   title={card.title}
@@ -903,10 +822,10 @@ export default function AppIndex() {
           <Card>
             <BlockStack gap="300">
               <BlockStack gap="100">
-                <Text as="h2" variant="headingMd">
+                <Text as="h2" variant="headingSm">
                   Support
                 </Text>
-                <Text as="p" tone="subdued">
+                <Text as="p" variant="bodySm" tone="subdued">
                   Get setup help or find answers in the help center.
                 </Text>
               </BlockStack>
@@ -916,7 +835,7 @@ export default function AppIndex() {
                     <Text as="h3" variant="headingSm">
                       Support Ticket
                     </Text>
-                    <Text as="p" tone="subdued">
+                    <Text as="p" variant="bodySm" tone="subdued">
                       Support, reply, and assist instantly in office hours.
                     </Text>
                     <Button onClick={openContactModal}>Report an issue</Button>
@@ -927,7 +846,7 @@ export default function AppIndex() {
                     <Text as="h3" variant="headingSm">
                       Knowledge base
                     </Text>
-                    <Text as="p" tone="subdued">
+                    <Text as="p" variant="bodySm" tone="subdued">
                       Find a solution for your problem with our documents.
                     </Text>
                     <Button
@@ -943,10 +862,10 @@ export default function AppIndex() {
 
           <Card>
             <BlockStack gap="300">
-              <Text as="h2" variant="headingMd">
+              <Text as="h2" variant="headingSm">
                 Book a Free 30-Minute Setup Call
               </Text>
-              <Text as="p" tone="subdued">
+              <Text as="p" variant="bodySm" tone="subdued">
                 Get personalized guidance for app configuration, best practices, and growth strategy.
               </Text>
               <InlineStack gap="200" wrap>
@@ -961,7 +880,7 @@ export default function AppIndex() {
                 >
                   Schedule Free Call
                 </Button>
-                <Text as="span" tone="subdued">
+                <Text as="span" variant="bodySm" tone="subdued">
                   Free | 30 mins | No commitment
                 </Text>
               </InlineStack>
@@ -971,7 +890,7 @@ export default function AppIndex() {
 
         <Card>
           <BlockStack gap="300">
-            <Text as="h2" variant="headingMd">
+            <Text as="h2" variant="headingSm">
               Boost your store performance with our apps
             </Text>
             <InlineStack gap="300" blockAlign="center" wrap={false}>
@@ -984,7 +903,7 @@ export default function AppIndex() {
                     </Text>
                     <Badge tone="info">Upsell</Badge>
                   </InlineStack>
-                  <Text as="p" tone="subdued">
+                  <Text as="p" variant="bodySm" tone="subdued">
                     Grow average order value with cart drawer upsells and smart cart offers.
                   </Text>
                 </BlockStack>
@@ -1022,7 +941,7 @@ export default function AppIndex() {
         >
           <Modal.Section>
             <BlockStack gap="300">
-              <Text as="p" tone="subdued">
+              <Text as="p" variant="bodySm" tone="subdued">
                 Share issue details with your email. Our team will contact you soon.
               </Text>
               <TextField
@@ -1052,7 +971,7 @@ export default function AppIndex() {
                 autoComplete="off"
               />
               {contactError ? (
-                <Text as="p" tone="critical">
+                <Text as="p" variant="bodySm" tone="critical">
                   {contactError}
                 </Text>
               ) : null}
