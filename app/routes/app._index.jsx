@@ -1064,10 +1064,10 @@ export default function AppIndex() {
 
                   <Box className="success-help-card">
                     <BlockStack gap="300">
-                      <InlineStack gap="300" blockAlign="center">
+                      <BlockStack gap="200" inlineAlign="start">
                         <DashboardIcon source={ChatIcon} tone="info" />
                         <Text fontWeight="bold">Need Quick Help?</Text>
-                      </InlineStack>
+                      </BlockStack>
                       <Text tone="subdued">Reach out anytime for support, feedback, or just to share your progress.</Text>
                       <InlineStack gap="200" wrap>
                         <Button icon={ChatIcon} onClick={openContactModal}>WhatsApp</Button>
@@ -1080,14 +1080,14 @@ export default function AppIndex() {
 
                   <Box className="success-help-card success-help-card--review">
                     <BlockStack gap="300" inlineAlign="center">
-                      <InlineStack gap="200" align="center" blockAlign="center" wrap={false}>
+                      <BlockStack gap="200" inlineAlign="center">
                         <Box className="success-help-review-icon">
                           <DashboardIcon source={HeartIcon} tone="critical" shape="circle" />
                         </Box>
                         <Text fontWeight="semibold">
                           Help us improve future features!
                         </Text>
-                      </InlineStack>
+                      </BlockStack>
                       <InlineStack gap="200" align="center" blockAlign="center" wrap>
                         <Button
                           variant="primary"

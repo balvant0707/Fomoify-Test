@@ -168,6 +168,13 @@
   height: 50px;
 }
 
+.success-help-card .dashboard-icon .Polaris-Icon,
+.success-help-card .dashboard-icon .Polaris-Icon__Svg,
+.success-help-card .dashboard-icon svg {
+  width: 50px;
+  height: 50px;
+}
+
 .success-help-card--review {
   justify-content: center;
   text-align: center;
@@ -179,11 +186,6 @@
 
 .success-help-review-icon {
   flex-shrink: 0;
-}
-
-.success-help-review-icon .dashboard-icon--circle {
-  width: 50px;
-  height: 50px;
 }
 
 .dashboard-promoted-app {
