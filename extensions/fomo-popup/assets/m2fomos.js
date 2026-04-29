@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   const SHOP = String((window.Shopify && window.Shopify.shop) || rootShopDomain)
     .trim()
     .toLowerCase();
-  const PROXY_BASES = ["/apps/fomo"];
+  const PROXY_BASES = ["/apps/fomo", "/apps/fomos"];
   const PROXY_STORE_KEY = "__fomo_proxy_base__";
   const readSavedProxyBase = () => {
     try {
@@ -31,6 +31,10 @@ document.addEventListener("DOMContentLoaded", async function () {
       window.localStorage.setItem(PROXY_STORE_KEY, base);
     } catch {}
   };
+  const withShopFallback = (url) => {
+    if (!SHOP || /[?&]shop=/.test(url)) return url;
+    return `${url}${url.includes("?") ? "&" : "?"}shop=${encodeURIComponent(SHOP)}`;
+  };
   const proxyCandidates = (url) => {
     const matchedBase = PROXY_BASES.find((b) => url.startsWith(b));
     if (!matchedBase) return [url];
@@ -39,7 +43,13 @@ document.addEventListener("DOMContentLoaded", async function () {
       ACTIVE_PROXY_BASE,
       ...PROXY_BASES.filter((b) => b !== ACTIVE_PROXY_BASE),
     ];
-    return orderedBases.map((b) => `${b}${suffix}`);
+    const candidates = [];
+    for (const base of orderedBases) {
+      const cleanUrl = `${base}${suffix}`;
+      candidates.push(cleanUrl);
+      candidates.push(withShopFallback(cleanUrl));
+    }
+    return Array.from(new Set(candidates));
   };
   const fetchWithProxyFallback = async (url, options) => {
     const candidates = proxyCandidates(url);
@@ -2275,6 +2285,13 @@ document.addEventListener("DOMContentLoaded", async function () {
         sessionReady = !!sessionData?.sessionReady;
       } catch {}
       retries++;
+    }
+    if (!sessionReady) {
+      const popupProbe = await fetchJson(ENDPOINT, null, 0);
+      sessionReady = !!popupProbe?.sessionReady || !!popupProbe?.showPopup;
+      if (sessionReady && popupProbe) {
+        cache.set(cacheKey("config"), popupProbe, 10000);
+      }
     }
     if (!sessionReady) return;
     cache.set(sessionCacheKey, true, 120000);

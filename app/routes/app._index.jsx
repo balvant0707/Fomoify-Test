@@ -577,6 +577,29 @@ export default function AppIndex() {
     : hasFreshPingSignal;
   const embedBadgeTone = isEmbedActive ? "success" : "critical";
   const embedBadgeText = `App embed: ${isEmbedActive ? "ON" : "OFF"}`;
+  const themeStatusText = !hasThemeEmbedCheck
+    ? "Theme block: checking"
+    : !embedContextState.appEmbedFound
+      ? "Theme block: not found"
+      : embedContextState.appEmbedEnabled
+        ? "Theme block: enabled"
+        : "Theme block: disabled";
+  const themeStatusTone = !hasThemeEmbedCheck
+    ? "info"
+    : !embedContextState.appEmbedFound
+      ? "critical"
+      : embedContextState.appEmbedEnabled
+        ? "success"
+        : "warning";
+  const pingStatusText = hasFreshPingSignal
+    ? "Storefront ping: received"
+    : "Storefront ping: not received";
+  const pingStatusTone = hasFreshPingSignal ? "success" : "warning";
+  const embedStatusSource = hasThemeEmbedSignal
+    ? "Status is using the live theme app embed block."
+    : hasFreshPingSignal
+      ? "Theme block was not confirmed yet, so status is using the storefront ping fallback."
+      : "Enable the app embed block in your live theme, then refresh this page.";
   const maxPopupSlideIndex = Math.max(
     Math.ceil(POPUP_CARD_DATA.length / POPUPS_PER_SLIDE) - 1,
     0
@@ -754,169 +777,194 @@ export default function AppIndex() {
   return (
     <Page>
       <BlockStack gap="400">
-        <Card>
-          <BlockStack gap="300">
-            <InlineStack align="space-between" blockAlign="center" gap="300">
-              <BlockStack gap="100">
-                <Text as="h2" variant="headingSm">
-                  App embed status
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Keep the storefront embed enabled so popups can appear on your theme.
-                </Text>
-              </BlockStack>
-              <Badge tone={embedBadgeTone}>{embedBadgeText}</Badge>
-            </InlineStack>
-            <InlineStack gap="300" align="start">
-              <Button
-                variant="primary"
-                onClick={() => openThemeEditor(resolvedThemeId, "activate")}
-                loading={isEmbedContextLoading || isEmbedPingLoading}
-              >
-                Open App Embeds
-              </Button>
-            </InlineStack>
-          </BlockStack>
-        </Card>
-
-        <Card>
-          <BlockStack gap="400">
-            <InlineStack align="space-between" blockAlign="center" gap="300">
-              <BlockStack gap="100">
-                <Text as="h2" variant="headingSm">
-                  Campaign popups
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Pick a notification type and launch it in a few clicks.
-                </Text>
-              </BlockStack>
-              <Pagination
-                hasPrevious={popupSlideIndex > 0}
-                hasNext={popupSlideIndex < maxPopupSlideIndex}
-                onPrevious={previousPopupSlide}
-                onNext={nextPopupSlide}
-                label={`${popupSlideIndex + 1} of ${maxPopupSlideIndex + 1}`}
-                accessibilityLabel="Campaign popup slides"
-              />
-            </InlineStack>
-            <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
-              {popupSlideCards.map((card) => (
-                <PopupSliderCard
-                  key={card.key}
-                  title={card.title}
-                  desc={card.desc}
-                  imageName={card.imageName}
-                  onCreate={() => goPopupCreate(card.path, card.key)}
-                  onManage={() => goPopupManage(card.key)}
-                  loading={
-                    popupLoadingKey === `${card.key}-create` ||
-                    popupLoadingKey === `${card.key}-manage`
-                  }
-                />
-              ))}
-            </InlineGrid>
-          </BlockStack>
-        </Card>
-
-        <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
+        <Box as="section">
           <Card>
             <BlockStack gap="300">
-              <BlockStack gap="100">
-                <Text as="h2" variant="headingSm">
-                  Support
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Get setup help or find answers in the help center.
-                </Text>
-              </BlockStack>
-              <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
-                <Card>
-                  <BlockStack gap="300">
-                    <Text as="h3" variant="headingSm">
-                      Support Ticket
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      Support, reply, and assist instantly in office hours.
-                    </Text>
-                    <Button onClick={openContactModal}>Report an issue</Button>
-                  </BlockStack>
-                </Card>
-                <Card>
-                  <BlockStack gap="300">
-                    <Text as="h3" variant="headingSm">
-                      Knowledge base
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      Find a solution for your problem with our documents.
-                    </Text>
-                    <Button
-                      onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}
-                    >
-                      Open help center
-                    </Button>
-                  </BlockStack>
-                </Card>
-              </InlineGrid>
-            </BlockStack>
-          </Card>
-
-          <Card>
-            <BlockStack gap="300">
-              <Text as="h2" variant="headingSm">
-                Book a Free 30-Minute Setup Call
-              </Text>
-              <Text as="p" variant="bodySm" tone="subdued">
-                Get personalized guidance for app configuration, best practices, and growth strategy.
-              </Text>
-              <InlineStack gap="200" wrap>
-                <Badge>App configuration</Badge>
-                <Badge>Best practices</Badge>
-                <Badge>Growth strategy</Badge>
-              </InlineStack>
-              <InlineStack gap="300" blockAlign="center">
-                <Button
-                  variant="primary"
-                  onClick={() => window.open(SCHEDULE_CALL_URL, "_blank", "noopener,noreferrer")}
-                >
-                  Schedule Free Call
-                </Button>
-                <Text as="span" variant="bodySm" tone="subdued">
-                  Free | 30 mins | No commitment
-                </Text>
-              </InlineStack>
-            </BlockStack>
-          </Card>
-        </InlineGrid>
-
-        <Card>
-          <BlockStack gap="300">
-            <Text as="h2" variant="headingSm">
-              Boost your store performance with our apps
-            </Text>
-            <InlineStack gap="300" blockAlign="center" wrap={false}>
-              <Thumbnail source="/images/cartlift.png" alt="CartLift app" size="medium" />
-              <Box minWidth="0">
+              <InlineStack align="space-between" blockAlign="center" gap="300">
                 <BlockStack gap="100">
-                  <InlineStack gap="200" blockAlign="center">
-                    <Text as="h3" variant="headingSm">
-                      CartLift: Cart Drawer &amp; Upsell
-                    </Text>
-                    <Badge tone="info">Upsell</Badge>
+                  <Text as="h2" variant="headingSm">
+                    App embed status
+                  </Text>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Keep the storefront embed enabled so popups can appear on your theme.
+                  </Text>
+                </BlockStack>
+                <Badge tone={embedBadgeTone}>{embedBadgeText}</Badge>
+              </InlineStack>
+              <Box
+                background="bg-surface-secondary"
+                borderColor="border"
+                borderRadius="300"
+                borderWidth="025"
+                padding="300"
+              >
+                <BlockStack gap="200">
+                  <InlineStack gap="200" wrap>
+                    <Badge tone={themeStatusTone}>{themeStatusText}</Badge>
+                    <Badge tone={pingStatusTone}>{pingStatusText}</Badge>
                   </InlineStack>
                   <Text as="p" variant="bodySm" tone="subdued">
-                    Grow average order value with cart drawer upsells and smart cart offers.
+                    {embedStatusSource}
                   </Text>
                 </BlockStack>
               </Box>
-              <Button
-                variant="primary"
-                onClick={() => window.open(PROMOTED_UPSELL_APP_URL, "_blank", "noopener,noreferrer")}
-              >
-                Add app
-              </Button>
-            </InlineStack>
-          </BlockStack>
-        </Card>
+              <InlineStack gap="300" align="start">
+                <Button
+                  variant="primary"
+                  onClick={() => openThemeEditor(resolvedThemeId, "activate")}
+                  loading={isEmbedContextLoading || isEmbedPingLoading}
+                >
+                  Open App Embeds
+                </Button>
+              </InlineStack>
+            </BlockStack>
+          </Card>
+        </Box>
+
+        <Box as="section">
+          <Card>
+            <BlockStack gap="400">
+              <InlineStack align="space-between" blockAlign="center" gap="300">
+                <BlockStack gap="100">
+                  <Text as="h2" variant="headingSm">
+                    Campaign popups
+                  </Text>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Pick a notification type and launch it in a few clicks.
+                  </Text>
+                </BlockStack>
+                <Pagination
+                  hasPrevious={popupSlideIndex > 0}
+                  hasNext={popupSlideIndex < maxPopupSlideIndex}
+                  onPrevious={previousPopupSlide}
+                  onNext={nextPopupSlide}
+                  label={`${popupSlideIndex + 1} of ${maxPopupSlideIndex + 1}`}
+                  accessibilityLabel="Campaign popup slides"
+                />
+              </InlineStack>
+              <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                {popupSlideCards.map((card) => (
+                  <PopupSliderCard
+                    key={card.key}
+                    title={card.title}
+                    desc={card.desc}
+                    imageName={card.imageName}
+                    onCreate={() => goPopupCreate(card.path, card.key)}
+                    onManage={() => goPopupManage(card.key)}
+                    loading={
+                      popupLoadingKey === `${card.key}-create` ||
+                      popupLoadingKey === `${card.key}-manage`
+                    }
+                  />
+                ))}
+              </InlineGrid>
+            </BlockStack>
+          </Card>
+        </Box>
+
+        <Box as="section">
+          <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
+            <Card>
+              <BlockStack gap="300">
+                <BlockStack gap="100">
+                  <Text as="h2" variant="headingSm">
+                    Support
+                  </Text>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Get setup help or find answers in the help center.
+                  </Text>
+                </BlockStack>
+                <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                  <Card>
+                    <BlockStack gap="300">
+                      <Text as="h3" variant="headingSm">
+                        Support Ticket
+                      </Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Support, reply, and assist instantly in office hours.
+                      </Text>
+                      <Button onClick={openContactModal}>Report an issue</Button>
+                    </BlockStack>
+                  </Card>
+                  <Card>
+                    <BlockStack gap="300">
+                      <Text as="h3" variant="headingSm">
+                        Knowledge base
+                      </Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Find a solution for your problem with our documents.
+                      </Text>
+                      <Button
+                        onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}
+                      >
+                        Open help center
+                      </Button>
+                    </BlockStack>
+                  </Card>
+                </InlineGrid>
+              </BlockStack>
+            </Card>
+
+            <Card>
+              <BlockStack gap="300">
+                <Text as="h2" variant="headingSm">
+                  Book a Free 30-Minute Setup Call
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Get personalized guidance for app configuration, best practices, and growth strategy.
+                </Text>
+                <InlineStack gap="200" wrap>
+                  <Badge>App configuration</Badge>
+                  <Badge>Best practices</Badge>
+                  <Badge>Growth strategy</Badge>
+                </InlineStack>
+                <InlineStack gap="300" blockAlign="center">
+                  <Button
+                    variant="primary"
+                    onClick={() => window.open(SCHEDULE_CALL_URL, "_blank", "noopener,noreferrer")}
+                  >
+                    Schedule Free Call
+                  </Button>
+                  <Text as="span" variant="bodySm" tone="subdued">
+                    Free | 30 mins | No commitment
+                  </Text>
+                </InlineStack>
+              </BlockStack>
+            </Card>
+          </InlineGrid>
+        </Box>
+
+        <Box as="section">
+          <Card>
+            <BlockStack gap="300">
+              <Text as="h2" variant="headingSm">
+                Boost your store performance with our apps
+              </Text>
+              <InlineStack gap="300" blockAlign="center" wrap={false}>
+                <Thumbnail source="/images/cartlift.png" alt="CartLift app" size="medium" />
+                <Box minWidth="0">
+                  <BlockStack gap="100">
+                    <InlineStack gap="200" blockAlign="center">
+                      <Text as="h3" variant="headingSm">
+                        CartLift: Cart Drawer &amp; Upsell
+                      </Text>
+                      <Badge tone="info">Upsell</Badge>
+                    </InlineStack>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      Grow average order value with cart drawer upsells and smart cart offers.
+                    </Text>
+                  </BlockStack>
+                </Box>
+                <Button
+                  variant="primary"
+                  onClick={() => window.open(PROMOTED_UPSELL_APP_URL, "_blank", "noopener,noreferrer")}
+                >
+                  Add app
+                </Button>
+              </InlineStack>
+            </BlockStack>
+          </Card>
+        </Box>
 
         <Modal
           open={isContactModalOpen}

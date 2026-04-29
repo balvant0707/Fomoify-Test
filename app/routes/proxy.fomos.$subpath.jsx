@@ -736,7 +736,7 @@ export const loader = async ({ request, params }) => {
 
     if (!shop) return bad({ error: "Missing shop" });
 
-    if (subpath === "embed-status") {
+    if (subpath === "embed-status" || subpath === "status") {
       const result = await touchEmbedPing(shop);
       if (!result.ok) {
         return bad({ error: result.error || "Embed status update failed" }, 500);
