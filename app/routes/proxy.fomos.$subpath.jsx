@@ -22,6 +22,10 @@ const getShopFromRequest = (request) => {
   const fallback = norm(url.searchParams.get("shop"));
   return fromHeader || fromQuery || fallback || "";
 };
+const hasProxySignature = (requestUrl) => {
+  const url = new URL(requestUrl);
+  return Boolean(url.searchParams.get("signature") || url.searchParams.get("hmac"));
+};
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -733,8 +737,10 @@ export const loader = async ({ request, params }) => {
       });
     }
 
-    const signatureValid = isValidProxyRequest(request.url);
     const allowUnsignedBootstrap = PUBLIC_BOOTSTRAP_PATHS.has(subpath);
+    const signatureValid = hasProxySignature(request.url)
+      ? isValidProxyRequest(request.url)
+      : false;
 
     if (!signatureValid && !allowUnsignedBootstrap) {
       return bad({ error: "Unauthorized" }, 401);
@@ -1188,8 +1194,10 @@ export const loader = async ({ request, params }) => {
 export const action = async ({ request, params }) => {
   try {
     const subpath = (params.subpath || "").toLowerCase();
-    const signatureValid = isValidProxyRequest(request.url);
     const allowUnsignedBootstrap = PUBLIC_BOOTSTRAP_PATHS.has(subpath);
+    const signatureValid = hasProxySignature(request.url)
+      ? isValidProxyRequest(request.url)
+      : false;
 
     if (!signatureValid && !allowUnsignedBootstrap) {
       return bad({ error: "Unauthorized" }, 401);
