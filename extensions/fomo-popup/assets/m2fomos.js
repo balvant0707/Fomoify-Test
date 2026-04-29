@@ -67,19 +67,24 @@ document.addEventListener("DOMContentLoaded", async function () {
   };
 
   const PROXY_BASE = ACTIVE_PROXY_BASE;
-  const appendShopQuery = (path, shop) => {
+  const proxyPath = (path) => {
     const p = String(path || "").replace(/^\//, "");
     const url = new URL(`${PROXY_BASE}/${p}`, window.location.origin);
-    if (shop) url.searchParams.set("shop", shop);
+    return url.pathname;
+  };
+  const appendProxyQuery = (path, params = {}) => {
+    const url = new URL(proxyPath(path), window.location.origin);
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== null && value !== "") {
+        url.searchParams.set(key, String(value));
+      }
+    }
     return `${url.pathname}${url.search}`;
   };
-  const ENDPOINT = appendShopQuery("popup", SHOP);
-  const SESSION_ENDPOINT = appendShopQuery("session", SHOP);
-  const ORDERS_ENDPOINT_BASE = `${PROXY_BASE}/orders`; // expects ?shop=&days=&limit=
-  const CUSTOMERS_ENDPOINT_BASE = `${PROXY_BASE}/customers`; // expects ?shop=&limit=
-  const PRODUCTS_ENDPOINT_BASE = `${PROXY_BASE}/products`; // expects ?shop=&limit=
-  const TRACK_ENDPOINT = appendShopQuery("track", SHOP);
-  const EMBED_STATUS_ENDPOINT = appendShopQuery("embed-status", SHOP);
+  const ENDPOINT = proxyPath("popup");
+  const SESSION_ENDPOINT = proxyPath("session");
+  const TRACK_ENDPOINT = proxyPath("track");
+  const EMBED_STATUS_ENDPOINT = proxyPath("embed-status");
 
   const EMBED_PING_STORE_KEY = "__fomo_embed_ping_ts__";
   const EMBED_PING_INTERVAL_MS = 5 * 60 * 1000;
@@ -2308,7 +2313,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         : Promise.resolve(null);
     const customerPayloadPromise = needsCustomers
       ? fetchJson(
-          `${CUSTOMERS_ENDPOINT_BASE}?shop=${encodeURIComponent(SHOP)}&limit=100`,
+          appendProxyQuery("customers", { limit: 100 }),
           "customers:100",
           600000
         )
@@ -2444,9 +2449,10 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
 
         try {
-          const url = `${ORDERS_ENDPOINT_BASE}?shop=${encodeURIComponent(
-            SHOP
-          )}&days=${daysWindow}&limit=${limit}`;
+          const url = appendProxyQuery("orders", {
+            days: daysWindow,
+            limit,
+          });
           const payload = await fetchJson(
             url,
             `orders:${daysWindow}:${limit}`,
@@ -3364,7 +3370,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       if (storeProductsCache) return storeProductsCache;
       if (SHOP) {
         const proxyPayload = await fetchJson(
-          `${PRODUCTS_ENDPOINT_BASE}?shop=${encodeURIComponent(SHOP)}&limit=1000`,
+          appendProxyQuery("products", { limit: 1000 }),
           "products:lowstock:proxy:1000",
           300000
         );
@@ -3667,9 +3673,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         if (wantsOrders) {
           try {
-            const url = `${ORDERS_ENDPOINT_BASE}?shop=${encodeURIComponent(
-              SHOP
-            )}&days=${daysWindow}&limit=${limit}`;
+            const url = appendProxyQuery("orders", {
+              days: daysWindow,
+              limit,
+            });
             const payload = await fetchJson(
               url,
               `orders:${daysWindow}:${limit}`,
