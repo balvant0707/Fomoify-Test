@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   const directProxyBase = String(ROOT.getAttribute("data-direct-proxy-base") || "")
     .trim()
     .replace(/\/$/, "");
-  const PROXY_BASES = ["/apps/fomo", ...(directProxyBase ? [directProxyBase] : [])];
+  const PROXY_BASES = [...(directProxyBase ? [directProxyBase] : []), "/apps/fomo"];
   const PROXY_STORE_KEY = "__fomo_proxy_base__";
   const readSavedProxyBase = () => {
     try {
@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       return null;
     }
   };
-  let ACTIVE_PROXY_BASE = readSavedProxyBase() || PROXY_BASES[0];
+  let ACTIVE_PROXY_BASE = directProxyBase || readSavedProxyBase() || PROXY_BASES[0];
   const setActiveProxyBase = (base) => {
     if (!PROXY_BASES.includes(base)) return;
     ACTIVE_PROXY_BASE = base;
