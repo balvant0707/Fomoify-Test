@@ -2544,8 +2544,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             };
             recentConfigs.push(cfg);
           }
-        } catch (e) {
-          console.warn("[FOMO][orders] fetch failed", e);
+        } catch {
         }
         continue;
       }
@@ -2622,8 +2621,7 @@ document.addEventListener("DOMContentLoaded", async function () {
               ...COMMON_RECENT,
             });
           }
-        } catch (e) {
-          console.warn("[FOMO] current product fetch failed", e);
+        } catch {
         }
       }
 
@@ -2690,8 +2688,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
             ...COMMON_RECENT,
           });
-        } catch (e) {
-          console.warn("[FOMO] product fetch failed", handle, e);
+        } catch {
         }
       }
     }
@@ -3802,8 +3799,7 @@ document.addEventListener("DOMContentLoaded", async function () {
               recentConfigs.push(cfg);
               addedFromOrders += 1;
             }
-          } catch (e) {
-            console.warn("[FOMO][orders] fetch failed", e);
+          } catch {
           }
           // If no order data is available, fallback to selected/static product records.
           if (addedFromOrders > 0) continue;
@@ -3866,8 +3862,7 @@ document.addEventListener("DOMContentLoaded", async function () {
               rawLocations: it.locationsJson,
               ...hideFlags,
             });
-          } catch (e) {
-            console.warn("[FOMO] product fetch failed", handle, e);
+          } catch {
           }
         }
       }
@@ -4374,14 +4369,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     }
 
-    console.info("[FOMO] Flash items:", FlashStream.seqDesktop);
-    console.info("[FOMO] Recent items:", RecentStream.seqDesktop);
-    console.info("[FOMO] Visitor items:", VisitorStream.seqDesktop);
-    console.info("[FOMO] Low stock items:", LowStockStream.seqDesktop);
-    console.info("[FOMO] Add to cart items:", AddToCartStream.seqDesktop);
-    console.info("[FOMO] Review items:", ReviewStream.seqDesktop);
-  } catch (err) {
-    console.error("[FOMO] build error:", err);
+  } catch {
   }
 
   /* ===== local helpers ===== */
