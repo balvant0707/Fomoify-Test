@@ -35,6 +35,7 @@ const POPUPS = new Set([
   "addtocart",
   "review",
 ]);
+const PUBLIC_BOOTSTRAP_PATHS = new Set(["session", "embed-status"]);
 const CACHE_TTL = {
   session: 5 * 1000,
   popup: 8 * 1000,
@@ -727,7 +728,10 @@ export const loader = async ({ request, params }) => {
       });
     }
 
-    if (!isValidProxyRequest(request.url)) {
+    const signatureValid = isValidProxyRequest(request.url);
+    const allowUnsignedBootstrap = PUBLIC_BOOTSTRAP_PATHS.has(subpath);
+
+    if (!signatureValid && !allowUnsignedBootstrap) {
       return bad({ error: "Unauthorized" }, 401);
     }
 
@@ -773,7 +777,7 @@ export const loader = async ({ request, params }) => {
             sessionReady: !!shopRecord.installed,
             shop,
             installed: !!shopRecord.installed,
-            hasAccessToken: !!shopRecord.accessToken,
+            hasAccessToken: signatureValid ? !!shopRecord.accessToken : undefined,
             timestamp,
           };
         }
@@ -1178,12 +1182,15 @@ export const loader = async ({ request, params }) => {
 
 export const action = async ({ request, params }) => {
   try {
-    if (!isValidProxyRequest(request.url)) {
+    const subpath = (params.subpath || "").toLowerCase();
+    const signatureValid = isValidProxyRequest(request.url);
+    const allowUnsignedBootstrap = PUBLIC_BOOTSTRAP_PATHS.has(subpath);
+
+    if (!signatureValid && !allowUnsignedBootstrap) {
       return bad({ error: "Unauthorized" }, 401);
     }
 
     const shop = getShopFromRequest(request);
-    const subpath = (params.subpath || "").toLowerCase();
 
     if (!shop) return bad({ error: "Missing shop" });
 
