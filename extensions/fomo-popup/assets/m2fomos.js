@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   const SHOP = String((window.Shopify && window.Shopify.shop) || rootShopDomain)
     .trim()
     .toLowerCase();
-  const PROXY_BASES = ["/apps/fomo", "/apps/fomos"];
+  const PROXY_BASES = ["/apps/fomo"];
   const PROXY_STORE_KEY = "__fomo_proxy_base__";
   const readSavedProxyBase = () => {
     try {
@@ -31,10 +31,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       window.localStorage.setItem(PROXY_STORE_KEY, base);
     } catch {}
   };
-  const withShopFallback = (url) => {
-    if (!SHOP || /[?&]shop=/.test(url)) return url;
-    return `${url}${url.includes("?") ? "&" : "?"}shop=${encodeURIComponent(SHOP)}`;
-  };
   const proxyCandidates = (url) => {
     const matchedBase = PROXY_BASES.find((b) => url.startsWith(b));
     if (!matchedBase) return [url];
@@ -43,13 +39,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       ACTIVE_PROXY_BASE,
       ...PROXY_BASES.filter((b) => b !== ACTIVE_PROXY_BASE),
     ];
-    const candidates = [];
-    for (const base of orderedBases) {
-      const cleanUrl = `${base}${suffix}`;
-      candidates.push(cleanUrl);
-      candidates.push(withShopFallback(cleanUrl));
-    }
-    return Array.from(new Set(candidates));
+    return orderedBases.map((b) => `${b}${suffix}`);
   };
   const fetchWithProxyFallback = async (url, options) => {
     const candidates = proxyCandidates(url);
@@ -77,24 +67,19 @@ document.addEventListener("DOMContentLoaded", async function () {
   };
 
   const PROXY_BASE = ACTIVE_PROXY_BASE;
-  const proxyPath = (path) => {
+  const appendShopQuery = (path, shop) => {
     const p = String(path || "").replace(/^\//, "");
     const url = new URL(`${PROXY_BASE}/${p}`, window.location.origin);
-    return url.pathname;
-  };
-  const appendProxyQuery = (path, params = {}) => {
-    const url = new URL(proxyPath(path), window.location.origin);
-    for (const [key, value] of Object.entries(params)) {
-      if (value !== undefined && value !== null && value !== "") {
-        url.searchParams.set(key, String(value));
-      }
-    }
+    if (shop) url.searchParams.set("shop", shop);
     return `${url.pathname}${url.search}`;
   };
-  const ENDPOINT = proxyPath("popup");
-  const SESSION_ENDPOINT = proxyPath("session");
-  const TRACK_ENDPOINT = proxyPath("track");
-  const EMBED_STATUS_ENDPOINT = proxyPath("embed-status");
+  const ENDPOINT = appendShopQuery("popup", SHOP);
+  const SESSION_ENDPOINT = appendShopQuery("session", SHOP);
+  const ORDERS_ENDPOINT_BASE = `${PROXY_BASE}/orders`; // expects ?shop=&days=&limit=
+  const CUSTOMERS_ENDPOINT_BASE = `${PROXY_BASE}/customers`; // expects ?shop=&limit=
+  const PRODUCTS_ENDPOINT_BASE = `${PROXY_BASE}/products`; // expects ?shop=&limit=
+  const TRACK_ENDPOINT = appendShopQuery("track", SHOP);
+  const EMBED_STATUS_ENDPOINT = appendShopQuery("embed-status", SHOP);
 
   const EMBED_PING_STORE_KEY = "__fomo_embed_ping_ts__";
   const EMBED_PING_INTERVAL_MS = 5 * 60 * 1000;
@@ -2286,13 +2271,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       } catch {}
       retries++;
     }
-    if (!sessionReady) {
-      const popupProbe = await fetchJson(ENDPOINT, null, 0);
-      sessionReady = !!popupProbe?.sessionReady || !!popupProbe?.showPopup;
-      if (sessionReady && popupProbe) {
-        cache.set(cacheKey("config"), popupProbe, 10000);
-      }
-    }
     if (!sessionReady) return;
     cache.set(sessionCacheKey, true, 120000);
 
@@ -2330,7 +2308,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         : Promise.resolve(null);
     const customerPayloadPromise = needsCustomers
       ? fetchJson(
-          appendProxyQuery("customers", { limit: 100 }),
+          `${CUSTOMERS_ENDPOINT_BASE}?shop=${encodeURIComponent(SHOP)}&limit=100`,
           "customers:100",
           600000
         )
@@ -2466,10 +2444,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
 
         try {
-          const url = appendProxyQuery("orders", {
-            days: daysWindow,
-            limit,
-          });
+          const url = `${ORDERS_ENDPOINT_BASE}?shop=${encodeURIComponent(
+            SHOP
+          )}&days=${daysWindow}&limit=${limit}`;
           const payload = await fetchJson(
             url,
             `orders:${daysWindow}:${limit}`,
@@ -3387,7 +3364,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       if (storeProductsCache) return storeProductsCache;
       if (SHOP) {
         const proxyPayload = await fetchJson(
-          appendProxyQuery("products", { limit: 1000 }),
+          `${PRODUCTS_ENDPOINT_BASE}?shop=${encodeURIComponent(SHOP)}&limit=1000`,
           "products:lowstock:proxy:1000",
           300000
         );
@@ -3690,10 +3667,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         if (wantsOrders) {
           try {
-            const url = appendProxyQuery("orders", {
-              days: daysWindow,
-              limit,
-            });
+            const url = `${ORDERS_ENDPOINT_BASE}?shop=${encodeURIComponent(
+              SHOP
+            )}&days=${daysWindow}&limit=${limit}`;
             const payload = await fetchJson(
               url,
               `orders:${daysWindow}:${limit}`,

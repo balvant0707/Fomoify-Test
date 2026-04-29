@@ -38,19 +38,6 @@ const timingSafeHexEq = (leftHex, rightHex) => {
 const hmacHex = (secret, message) =>
   crypto.createHmac("sha256", secret).update(message).digest("hex");
 
-const toParamObject = (params) => {
-  const out = {};
-  for (const [key, value] of params.entries()) {
-    if (EXCLUDED_SIGNATURE_KEYS.has(String(key || "").toLowerCase())) continue;
-    if (Object.prototype.hasOwnProperty.call(out, key)) {
-      out[key] = Array.isArray(out[key]) ? [...out[key], value] : [out[key], value];
-    } else {
-      out[key] = value;
-    }
-  }
-  return out;
-};
-
 const decodeKeySafely = (rawKey) => {
   try {
     return decodeURIComponent(rawKey);
@@ -124,12 +111,9 @@ export function verifyProxySignature(url) {
   const computedDecodedAmp = hmacHex(secret, decodedMessageAmp);
   const computedRawNoAmp = hmacHex(secret, rawMessageNoAmp);
   const computedRawAmp = hmacHex(secret, rawMessageAmp);
-  const signedParams = toParamObject(u.searchParams);
 
   console.warn(
     `[FOMO] HMAC mismatch (all canonical variants tried) -- secret=${secretPreview} len=${secret.length}\n` +
-      `[FOMO]   hint=Shopify app proxies are signed with the app Client secret for the app proxy owner app. If decoded(no-amp) does not match, check SHOPIFY_API_SECRET and remove manually-added signed params from storefront fetches.\n` +
-      `[FOMO]   signed params=${JSON.stringify(signedParams)}\n` +
       `[FOMO]   decoded(no-amp) message="${decodedMessageNoAmp}"\n` +
       `[FOMO]   decoded(&)      message="${decodedMessageAmp}"\n` +
       `[FOMO]   raw(no-amp)     message="${rawMessageNoAmp}"\n` +
