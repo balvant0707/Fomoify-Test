@@ -43,8 +43,8 @@ const PANEL_STYLES = `
 
 export function PopupPreviewPanel({
   title = "Live preview",
-  description = "Updates instantly from the settings on this page.",
-  badge = "Desktop",
+  description = "",
+  badge = "",
   emptyMessage = "",
   children,
 }) {

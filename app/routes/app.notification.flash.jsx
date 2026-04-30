@@ -157,6 +157,112 @@ const FLASH_STYLES = `
   padding: 10px;
   min-height: 320px;
 }
+.flash-live-preview {
+  width: 100%;
+}
+.flash-preview-stage {
+  width: 100%;
+  min-height: 340px;
+  padding: 42px 32px;
+  box-sizing: border-box;
+  display: flex;
+  background:
+    radial-gradient(circle at top left, rgba(255, 184, 0, 0.14), transparent 34%),
+    linear-gradient(180deg, #ffffff 0%, #fbfbfc 100%);
+  border-radius: 18px;
+  overflow: hidden;
+}
+.flash-sale-popup {
+  position: relative;
+  width: min(100%, 520px);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid rgba(205, 130, 18, 0.18);
+  box-shadow: 0 22px 48px rgba(130, 80, 20, 0.17);
+  overflow: visible;
+}
+.flash-sale-popup--portrait {
+  width: min(100%, 340px);
+  flex-direction: column;
+  text-align: center;
+}
+.flash-sale-popup--contain {
+  overflow: hidden;
+}
+.flash-sale-popup__icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.86);
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 28px rgba(130, 80, 20, 0.2);
+  overflow: hidden;
+}
+.flash-sale-popup__icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.flash-sale-popup__content {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+.flash-sale-popup__topline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.flash-sale-popup--portrait .flash-sale-popup__topline {
+  justify-content: center;
+}
+.flash-sale-popup__title {
+  margin: 0;
+  overflow: hidden;
+  color: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.flash-sale-popup__pill {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 700;
+}
+.flash-sale-popup__message {
+  margin: 0;
+  line-height: 1.35;
+}
+.flash-sale-popup__timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(17, 24, 39, 0.08);
+}
+.flash-sale-popup--portrait .flash-sale-popup__timer {
+  margin: 0 auto;
+}
+.flash-sale-popup__timer-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.5);
+}
+.flash-preview-note {
+  text-align: center;
+}
 @media (max-width: 1100px) {
   .flash-shell {
     flex-direction: column;
@@ -182,6 +288,10 @@ const FLASH_STYLES = `
   .flash-form,
   .flash-preview {
     min-width: 0;
+  }
+  .flash-preview-stage {
+    min-height: 300px;
+    padding: 32px 16px;
   }
 }
 `;
@@ -626,15 +736,40 @@ function NotificationPreview({ form, isMobile = false }) {
   const sized = Math.max(10, Math.min(28, Math.round(base * scale)));
   const showIcon = !!svgMarkup;
   const imageOverflow = showIcon && !isContain && !isPortrait;
-  const avatarOffset = Math.round(iconDim * 0.45);
-  const padTop = isPortrait ? 24 : 15;
-  const padRight = isPortrait ? 24 : 44;
-  const padBottom = isPortrait ? 24 : 15;
-  const padLeft = isPortrait ? 24 : imageOverflow ? 12 + avatarOffset : 15;
+  const avatarOffset = Math.round(iconDim * 0.5);
+  const padTop = isPortrait ? 24 : 18;
+  const padRight = isPortrait ? 22 : 22;
+  const padBottom = isPortrait ? 24 : 18;
+  const padLeft = isPortrait ? 22 : imageOverflow ? 18 + avatarOffset : 18;
   const background =
     form.template === "gradient"
       ? `linear-gradient(135deg, ${form.bgColor} 0%, ${form.bgAlt} 100%)`
       : form.bgColor;
+  const popupClasses = [
+    "flash-sale-popup",
+    isPortrait ? "flash-sale-popup--portrait" : "",
+    isContain || isPortrait ? "flash-sale-popup--contain" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const iconStyles = imageOverflow
+    ? {
+        position: "absolute",
+        left: 0,
+        top: "50%",
+        transform: "translate(-45%, -50%)",
+        width: iconDim,
+        height: iconDim,
+        borderRadius: 18,
+      }
+    : {
+        width: iconSize,
+        height: iconSize,
+        borderRadius: isPortrait ? 22 : 16,
+      };
+  const title = String(form.messageTitle || "Flash Sale").trim();
+  const offer = String(form.name || "Flash Sale: 20% OFF").trim();
+  const timer = String(form.messageText || "ends in 02:15 hours").trim();
 
   return (
     <div>
@@ -645,85 +780,76 @@ function NotificationPreview({ form, isMobile = false }) {
         @keyframes notif-bounce-in { 0% { transform: translateY(18px); opacity: 0 } 60% { transform: translateY(-6px); opacity: 1 } 100% { transform: translateY(0) } }
       `}</style>
 
-      <div style={{
-        fontFamily: form.fontFamily === "System" ? "ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto" : form.fontFamily,
-        background, color: form.textColor, 
-        borderRadius: 14,
-        boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-        paddingTop: padTop,
-        paddingRight: padRight,
-        paddingBottom: padBottom,
-        paddingLeft: padLeft,
-        border: "1px solid rgba(17,24,39,0.06)",
-        display: "flex",
-        alignItems: isPortrait ? "center" : "center",
-        gap: isPortrait ? 10 : 12,
-        flexDirection: isPortrait ? "column" : "row",
-        maxWidth: isMobile
-          ? mobileSizeToWidth(form?.mobileSize)
-          : isPortrait
-            ? 340
-            : 560,
-        position: "relative",
-        ...animStyle
-      }}>
-        {imageOverflow ? (
-          <div
-            style={{
-              position: "absolute",
-              left: "8px",
-              top: isPortrait ? 24 : "50%",
-              transform: isPortrait
-                ? "translate(-50%, 0)"
-                : "translate(-50%, -50%)",
-              width: iconDim,
-              height: iconDim,
-              borderRadius: 12,
-              overflow: "hidden",
-              background: "#f3f4f6",
-              flexShrink: 0,
-              display: "grid",
-              placeItems: "center",
-              boxShadow: "0 8px 18px rgba(0,0,0,0.18)",
-              border: "2px solid rgba(255,255,255,0.75)",
-            }}
-          >
-            <span
-              aria-hidden="true"
-              style={{
-                display: "block",
-                width: "100%",
-                height: "100%",
-              }}
-              dangerouslySetInnerHTML={{ __html: svgMarkup }}
-            />
-          </div>
-        ) : showIcon ? (
+      <div
+        className={popupClasses}
+        style={{
+          fontFamily:
+            form.fontFamily === "System"
+              ? "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto"
+              : form.fontFamily,
+          background,
+          color: form.textColor,
+          borderRadius: Math.max(12, Math.min(28, Number(form.rounded || 14) + 6)),
+          paddingTop: padTop,
+          paddingRight: padRight,
+          paddingBottom: padBottom,
+          paddingLeft: padLeft,
+          maxWidth: isMobile
+            ? mobileSizeToWidth(form?.mobileSize)
+            : isPortrait
+              ? 340
+              : 560,
+          ...animStyle,
+        }}
+      >
+        {showIcon ? (
           <span
             aria-hidden="true"
-            style={{
-              display: "block",
-              flexShrink: 0,
-              width: iconSize,
-              height: iconSize,
-            }}
+            className="flash-sale-popup__icon"
+            style={iconStyles}
             dangerouslySetInnerHTML={{ __html: svgMarkup }}
           />
         ) : null}
-        <div
-          style={{
-            display: "grid",
-            gap: 4,
-            minWidth: 0,
-            textAlign: isPortrait ? "center" : "left",
-          }}
-        >
-          <p style={{ margin: 0, color: form.numberColor, fontWeight: form.fontWeight ? Number(form.fontWeight) : 600, fontSize: sized }}>
-            {form.messageTitle || "Flash Sale"}
+        <div className="flash-sale-popup__content">
+          <div className="flash-sale-popup__topline">
+            <p
+              className="flash-sale-popup__title"
+              style={{
+                color: form.numberColor,
+                fontWeight: form.fontWeight ? Number(form.fontWeight) : 700,
+                fontSize: Math.max(15, sized + 1),
+              }}
+            >
+              {title}
+            </p>
+            <span
+              className="flash-sale-popup__pill"
+              style={{
+                background: form.priceTagBg,
+                color: form.priceColor,
+              }}
+            >
+              SALE
+            </span>
+          </div>
+          <p
+            className="flash-sale-popup__message"
+            style={{
+              fontSize: Math.max(13, sized - 1),
+              color: form.textColor,
+            }}
+          >
+            {offer}
           </p>
-          <p style={{ margin: 0, fontSize: sized, lineHeight: 1.5 }}>
-            <small>{form.name || "Flash Sale: 20% OFF"} - {form.messageText || "ends in 02:15 hours"}</small>
-          </p>
+          <span
+            className="flash-sale-popup__timer"
+            style={{
+              color: form.starColor || form.priceTagAlt,
+            }}
+          >
+            <span className="flash-sale-popup__timer-dot" />
+            {timer}
+          </span>
         </div>
       </div>
     </div>
@@ -735,17 +861,10 @@ function DesktopPreview({ form }) {
   const flex = posToFlex(form?.position);
   return (
     <div
+      className="flash-preview-stage"
       style={{
-        width: "100%",
-        minHeight: 320,
-        height: "100%",
-        overflow: "hidden",
-        position: "relative",
-        display: "flex",
-        padding: 0,
-        boxSizing: "border-box",
-        justifyContent: "center",
-        alignItems: "flex-start",
+        justifyContent: flex.justifyContent,
+        alignItems: flex.alignItems,
       }}
     >
       <NotificationPreview form={form} />
@@ -778,11 +897,13 @@ function MobilePreview({ form }) {
 /* Live Preview wrapper */
 function LivePreview({ form }) {
   return (
-    <BlockStack gap="300">
+    <BlockStack gap="300" className="flash-live-preview">
       <DesktopPreview form={form} />
-      <Text as="p" variant="bodySm" tone="subdued">
-        Preview reflects your desktop settings.
-      </Text>
+      <Box className="flash-preview-note">
+        <Text as="p" variant="bodySm" tone="subdued">
+          Preview reflects your desktop settings.
+        </Text>
+      </Box>
     </BlockStack>
   );
 }
