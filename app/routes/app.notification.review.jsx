@@ -978,7 +978,7 @@ function StyledPreviewCard({
         ))}
       <div style={{ display: "grid", gap: 6, minWidth: 0, flex: 1 }}>
         {showRating && (
-          <div style={{ color: starColor, fontSize: 20, letterSpacing: 1 }}>
+          <div style={{ color: starColor, fontSize: "20px !important", letterSpacing: 1 }}>
             {filledStars}
             <span style={{ color: "#d1d5db" }}>{emptyStars}</span>
           </div>
@@ -987,7 +987,7 @@ function StyledPreviewCard({
           <div
             style={{
               fontWeight: 800,
-              fontSize: 16,
+              fontSize: textSizeContent,
               lineHeight: 1.05,
               letterSpacing: 0.1,
               textTransform: "uppercase",
