@@ -181,6 +181,17 @@ const RECENT_STYLES = `
   flex: 1;
   min-width: 320px;
 }
+.recent-preview .popup-preview-panel__header {
+  border-bottom: 0;
+}
+.recent-preview .popup-preview-panel__surface {
+  min-height: 460px;
+  padding: 72px 20px 48px;
+  align-items: center;
+}
+.recent-preview .popup-preview-panel__content {
+  max-width: 100%;
+}
 .recent-preview-box {
   border-radius: 16px;
   min-height: 320px;
@@ -213,6 +224,10 @@ const RECENT_STYLES = `
   .recent-form,
   .recent-preview {
     min-width: 0;
+  }
+  .recent-preview .popup-preview-panel__surface {
+    min-height: 360px;
+    padding: 40px 12px 32px;
   }
 }
 `;
@@ -1203,7 +1218,10 @@ function Bubble({ form, order, isMobile = false }) {
   const avatarOffset = Math.round(avatarSize * 0.45);
   const portraitImageSize = isMobile ? 120 : 160;
   const showPortraitBlock = isPortrait && !hide.has("productImage");
-  const pad = 16;
+  const padY = isMobile ? 18 : 34;
+  const padX = isMobile ? 18 : 30;
+  const contentLeftPad = imageOverflow ? padX + avatarOffset + 8 : padX;
+  const bubbleRadius = isPortrait ? 18 : 22;
 
   const showTime = !hide.has("time");
   const background =
@@ -1239,17 +1257,20 @@ function Bubble({ form, order, isMobile = false }) {
             : form.fontFamily,
         background,
         color: form.textColor,
-        borderRadius: 18,
-        boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-        padding: pad,
-        paddingLeft: imageOverflow ? pad + avatarOffset : pad,
-        border: "1px solid rgba(17,24,39,0.06)",
+        borderRadius: bubbleRadius,
+        boxShadow: "0 18px 42px rgba(15, 23, 42, 0.10)",
+        padding: `${padY}px ${padX}px ${padY}px ${contentLeftPad}px`,
+        border: "1px solid rgba(15, 23, 42, 0.08)",
+        boxSizing: "border-box",
+        minHeight: isPortrait ? "auto" : 180,
+        width: isMobile ? "100%" : isPortrait ? 340 : "min(100%, 452px)",
         maxWidth: isMobile
           ? mobileSizeToWidth(form.mobileSize)
           : isPortrait
             ? 340
-            : 560,
+            : 452,
         position: "relative",
+        overflow: imageOverflow ? "visible" : "hidden",
         ...animStyle,
       }}
     >
@@ -1294,7 +1315,7 @@ function Bubble({ form, order, isMobile = false }) {
         <div
           style={{
             position: "absolute",
-            left: "0",
+            left: 0,
             top: isPortrait ? 24 : "50%",
             transform: isPortrait
               ? "translate(-50%, 0)"
@@ -1306,7 +1327,9 @@ function Bubble({ form, order, isMobile = false }) {
             flexShrink: 0,
             display: "grid",
             placeItems: "center",
-            border: "2px solid rgba(255,255,255,0.75)",
+            background: "#ffffff",
+            border: "2px solid rgba(255,255,255,0.9)",
+            boxShadow: "0 8px 18px rgba(15, 23, 42, 0.12)",
           }}
         >
           {showImage ? (
@@ -1365,8 +1388,8 @@ function Bubble({ form, order, isMobile = false }) {
           </div>
         )
       )}
-      <div style={{ minWidth: 0, margin: "10px" }}>
-        <p style={{ margin: 0, fontSize: sized }}>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <p style={{ margin: 0, fontSize: sized, lineHeight: 1.35 }}>
           {!hide.has("name") && (
             <span
               style={{
