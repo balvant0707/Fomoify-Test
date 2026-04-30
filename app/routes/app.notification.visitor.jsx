@@ -742,7 +742,7 @@ function PreviewCard({
   const portraitVisitor = isPortrait;
   const avatarSize = isPortrait ? 72 : 64;
   const avatarOffset = Math.round(avatarSize * 0.62);
-  const pad = 16;
+  const pad = 10;
   const showImageSlot = Boolean(showProductImage);
   const imageOverflow = showImageSlot && !isContainMode && !isPortrait;
   const rawName = product?.title || "Your product will show here";
@@ -822,8 +822,8 @@ function PreviewCard({
           : String(rawVal);
       const tokenStyle =
         key === "product_name"
-          ? { fontWeight: 700, textDecoration: "underline" }
-          : { fontWeight: 700 };
+          ? { fontWeight: 700,fontSize: contentFontSize, lineHeight: 1.35,textDecoration: "none",letterSpacing : "-0.02em", color: textColor }
+          : { fontWeight: 700,fontSize: contentFontSize, lineHeight: 1.35,textDecoration: "none",letterSpacing : "-0.02em", color: textColor };
       out.push(
         <span key={`v-${idx++}`} style={tokenStyle}>
           {valueText}
@@ -841,7 +841,7 @@ function PreviewCard({
     opacity,
     background,
     color: textColor,
-    borderRadius: 18,
+    borderRadius: 10,
     boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
     border: "1px solid rgba(0,0,0,0.06)",
     padding: pad,
