@@ -1116,7 +1116,7 @@ export default function AppIndex() {
                     <Box className="dashboard-app-icon" borderRadius="300" borderWidth="025" borderColor="border">
                       <img src="/images/cartlift.png" alt="" />
                     </Box>
-                    <text style={{ fontWeight: "bold", fontSize: "16px" }}
+                    <text style={{ fontWeight: "semibold", fontSize: "14px" }}
                       variant="headingSm"
                       fontWeight="bold"
                     >
