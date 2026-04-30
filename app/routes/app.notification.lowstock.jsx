@@ -956,7 +956,7 @@ export default function LowStockPopupPage() {
 
   const [design, setDesign] = useState({
     layout: "landscape",
-    size: 25,
+    size: 50,
     transparent: 10,
     template: "gradient",
     imageAppearance: "cover",
@@ -971,9 +971,9 @@ export default function LowStockPopupPage() {
   });
 
   const [textSize, setTextSize] = useState({
-    content: "12",
-    compareAt: "10",
-    price: "10",
+    content: "14",
+    compareAt: "12",
+    price: "12",
   });
 
   const [content, setContent] = useState({

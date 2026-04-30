@@ -1059,7 +1059,7 @@ export default function VisitorPopupPage() {
   const [design, setDesign] = useState({
     notiType: "visitor_list",
     layout: "landscape",
-    size: 30,
+    size: 50,
     transparent: 10,
     template: "solid",
     imageAppearance: "cover",
@@ -1074,9 +1074,9 @@ export default function VisitorPopupPage() {
   });
 
   const [textSize, setTextSize] = useState({
-    content: "12",
-    compareAt: "10",
-    price: "10",
+    content: "14",
+    compareAt: "12",
+    price: "12",
   });
 
   const [content, setContent] = useState({
