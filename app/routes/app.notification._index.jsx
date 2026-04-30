@@ -49,6 +49,9 @@ const DASHBOARD_STYLES = `
 }
 .notify-card-actions {
   padding-top: var(--p-space-300);
+  display: flex;
+  justify-content: start;
+  gap: var(--p-space-200);
 }
 `;
 
@@ -68,7 +71,7 @@ function DashboardCard({
         <InlineStack align="space-between" blockAlign="center" gap="400" wrap={false}>
           <Box className="notify-card-content">
           <BlockStack gap="150">
-            <Text as="h3" fontWeight="bold">{title}</Text>
+            <Text as="h3" fontSize="16px !important" fontWeight="bold">{title}</Text>
             <Text as="p" tone="subdued">{desc}</Text>
             <InlineStack gap="200" className="notify-card-actions">
               <Button variant="primary" onClick={onCreate} loading={loading} disabled={loading}>
