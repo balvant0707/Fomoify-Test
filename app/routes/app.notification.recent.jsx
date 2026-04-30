@@ -1190,9 +1190,9 @@ function Bubble({ form, order, isMobile = false }) {
   const imageFit = isContainImage ? "contain" : "cover";
   const sizeBase = Number(form.fontSize ?? form.rounded ?? 12) || 14;
   const sized = Math.max(
-    10,
+    6,
     Math.min(
-      28,
+      72,
       Math.round(sizeBase * (isMobile ? mobileSizeScale(form.mobileSize) : 1))
     )
   );
@@ -2338,9 +2338,13 @@ export default function RecentOrdersPopupPage() {
       </div>
 
       <div
-        className={`recent-preview ${
-          form.imageAppearance === "contain" ? "is-fit-image" : ""
-        }`}
+        className={[
+          "recent-preview",
+          `is-layout-${form.layout || "landscape"}`,
+          form.imageAppearance === "contain" ? "is-fit-image" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
       >
         <PopupPreviewPanel
           title="Preview"
