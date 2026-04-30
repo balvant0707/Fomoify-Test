@@ -1404,7 +1404,7 @@ function Bubble({ form, order, isMobile = false }) {
         )
       )}
       <div style={{ minWidth: 0, flex: 1 }}>
-        <p style={{ margin: 0, fontSize: sized, lineHeight: 1.35 }}>
+        <p style={{ margin: 0 }}>
           {!hide.has("name") && (
             <span
               style={{

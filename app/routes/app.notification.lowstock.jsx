@@ -843,7 +843,7 @@ function PreviewCard({
               transform: "translate(-50%, -50%)",
               width: avatarSize,
               height: avatarSize,
-              borderRadius: Math.round(avatarSize * 0.22),
+              borderRadius: 4,
               overflow: "hidden",
               background: "#f3f4f6",
               flexShrink: 0,
@@ -874,7 +874,7 @@ function PreviewCard({
             style={{
               width: avatarSize,
               height: avatarSize,
-              borderRadius: Math.round(avatarSize * 0.22),
+              borderRadius: 4,
               overflow: "hidden",
               background: "#f3f4f6",
               flexShrink: 0,

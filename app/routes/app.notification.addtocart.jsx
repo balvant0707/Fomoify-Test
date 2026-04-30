@@ -661,7 +661,7 @@ const LOW_STOCK_STYLES = `
   flex: 1;
   min-width: 360px;
 }
-.lowstock-preview {
+.addtocart-preview {
   flex: 1;
   min-width: 320px;
 }
@@ -676,7 +676,7 @@ const LOW_STOCK_STYLES = `
 .addtocart-preview.is-layout-portrait .popup-preview-panel__surface {
   padding: 0 !important;
 }
-.lowstock-preview.is-fit-image .popup-preview-panel__surface {
+.addtocart-preview.is-fit-image .popup-preview-panel__surface {
   padding: 0;
 }
 .addtocart-preview.is-fit-image .popup-preview-panel {
@@ -739,7 +739,7 @@ const LOW_STOCK_STYLES = `
     font-size: 12px;
   }
   .lowstock-form,
-  .lowstock-preview {
+  .addtocart-preview {
     min-width: 0;
   }
   .addtocart-preview .popup-preview-panel__surface {
@@ -981,7 +981,7 @@ function PreviewCard({
     opacity,
     background,
     color: textColor,
-    borderRadius: 18,
+    borderRadius: 10,
     boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
     border: "1px solid rgba(0,0,0,0.06)",
     padding: isPortrait ? 18 : 16,
@@ -1100,7 +1100,7 @@ function PreviewCard({
             transform: "translate(-50%, -50%)",
             width: avatarSize,
             height: avatarSize,
-            borderRadius: 14,
+            borderRadius: 10,
             overflow: "hidden",
             background: "#f3f4f6",
             flexShrink: 0,
@@ -1128,7 +1128,7 @@ function PreviewCard({
           style={{
             width: avatarSize,
             height: avatarSize,
-            borderRadius: 14,
+            borderRadius: 4,
             overflow: "hidden",
             background: "#f3f4f6",
             display: "grid",
@@ -1226,7 +1226,9 @@ function PreviewCard({
             gap: 12,
           }}
         >
-          <span>{resolvedTimestamp}</span>
+          <span style={{ fontSize: metaFontSize, lineHeight: 1.2 }}>
+            {resolvedTimestamp}
+          </span>
         </div>
       </div>
     </div>
@@ -2359,7 +2361,6 @@ export default function AddToCartPopupPage() {
 
               <div
                 className={[
-                  "lowstock-preview",
                   "addtocart-preview",
                   "is-popup-type-addtocart",
                   `is-layout-${design.layout || "landscape"}`,
@@ -2369,10 +2370,7 @@ export default function AddToCartPopupPage() {
                   .join(" ")}
               >
                 <PopupPreviewPanel
-                  title="Add to cart preview"
-                  description="Uses the selected product, customer tokens, price, rating, and current design settings."
-                  badge="Cart activity"
-                  emptyMessage={previewMessage}
+                  title="Preview"
                 >
                   <PreviewCard
                     layout={design.layout}
