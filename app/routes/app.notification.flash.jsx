@@ -790,6 +790,7 @@ function NotificationPreview({ form, isMobile = false }) {
   const offer = String(form.name || "Flash Sale: 20% OFF").trim();
   const timer = String(form.messageText || "ends in 02:15 hours").trim();
 
+  
   return (
     <div>
       <style>{`
