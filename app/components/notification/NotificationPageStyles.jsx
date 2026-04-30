@@ -9,8 +9,9 @@ const NOTIFICATION_PAGE_STYLES = `
 .notification-page button,
 .notification-page .Polaris-Text,
 .notification-page .Polaris-Button {
-  font-size: 12px !important;
+  font-size: 12px;
   line-height: 1.35 !important;
+  color: var(--p-color-text);
 }
 .notification-page h1,
 .notification-page h2,
@@ -21,7 +22,7 @@ const NOTIFICATION_PAGE_STYLES = `
 .notification-page .Polaris-Text--headingMd,
 .notification-page .Polaris-Text--headingLg,
 .notification-page .Polaris-Text--headingXl {
-  font-size: 14px !important;
+  font-size: 16px !important;
   line-height: 1.25 !important;
   font-weight: 700 !important;
 }
