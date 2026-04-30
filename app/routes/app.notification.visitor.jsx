@@ -740,7 +740,7 @@ function PreviewCard({
     imageModeRaw.includes("fit");
   const imageFit = isContainMode ? "contain" : "cover";
   const portraitVisitor = isPortrait;
-  const avatarSize = isPortrait ? 62 : 54;
+  const avatarSize = isPortrait ? 52 : 64;
   const avatarOffset = Math.round(avatarSize * 0.62);
   const pad = 10;
   const showImageSlot = Boolean(showProductImage);
@@ -822,8 +822,8 @@ function PreviewCard({
           : String(rawVal);
       const tokenStyle =
         key === "product_name"
-          ? { fontWeight: 700,fontSize: contentFontSize, lineHeight: 1.35,textDecoration: "none",letterSpacing : "-0.02em", color: textColor }
-          : { fontWeight: 700,fontSize: contentFontSize, lineHeight: 1.35,textDecoration: "none",letterSpacing : "-0.02em", color: textColor };
+          ? { fontWeight: 700,fontSize: contentFontSize, lineHeight: 1.35,textDecoration: "none", color: textColor }
+          : { fontWeight: 700,fontSize: contentFontSize, lineHeight: 1.35,textDecoration: "none", color: textColor };
       out.push(
         <span key={`v-${idx++}`} style={tokenStyle}>
           {valueText}
