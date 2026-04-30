@@ -789,7 +789,7 @@ function PreviewCard({
       return (
         <span
           key={`product-${idx}`}
-          style={{ fontWeight: 600, textDecoration: "none" }}
+          style={{ fontWeight: 600,fontSize: contentFontSize, lineHeight: 1.35,textDecoration: "none" }}
         >
           {safeName}
         </span>

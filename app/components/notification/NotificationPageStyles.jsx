@@ -11,7 +11,6 @@ const NOTIFICATION_PAGE_STYLES = `
 .notification-page .Polaris-Button {
   font-size: 12px;
   line-height: 1.35 !important;
-  color: var(--p-color-text);
 }
 .notification-page h1,
 .notification-page h2,
