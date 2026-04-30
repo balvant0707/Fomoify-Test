@@ -73,7 +73,7 @@ function DashboardCard({
           <BlockStack gap="150">
             <Text as="h3" fontSize="16px !important" fontWeight="bold">{title}</Text>
             <Text as="p" tone="subdued">{desc}</Text>
-            <InlineStack gap="200" className="notify-card-actions">
+            <InlineStack gap="200" className="notify-card-actions" style={{ display: "flex" , justifyContent: "start", gap: "var(--p-space-200)" }}>
               <Button variant="primary" onClick={onCreate} loading={loading} disabled={loading}>
                 {loading ? "Opening..." : "Create"}
               </Button>
