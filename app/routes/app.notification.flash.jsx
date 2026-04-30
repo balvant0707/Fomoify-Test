@@ -779,7 +779,7 @@ function NotificationPreview({ form, isMobile = false }) {
         transform: "translate(-45%, -50%)",
         width: iconDim,
         height: iconDim,
-        borderRadius: 18,
+        borderRadius: 10,
       }
     : {
         width: iconSize,
@@ -1232,6 +1232,8 @@ export default function FlashConfigPage() {
                       }
                     />
                   </BlockStack>
+                  <InlineStack gap="400" wrap={false} width="100%">
+                    <Box width="50%">
                   <TextField
                     label="Delay before first notification"
                     type="number"
@@ -1243,6 +1245,8 @@ export default function FlashConfigPage() {
                     step={1}
                     autoComplete="off"
                   />
+                  </Box>
+                  <Box width="50%">
                   <TextField
                     label="Display duration"
                     type="number"
@@ -1254,6 +1258,8 @@ export default function FlashConfigPage() {
                     step={1}
                     autoComplete="off"
                   />
+                  </Box>
+                  </InlineStack>
                   <InlineStack gap="400" wrap={false} width="100%">
                     <Box width="50%">
                       <TextField
@@ -1269,7 +1275,7 @@ export default function FlashConfigPage() {
                     </Box>
                     <Box width="50%">
                       <Select
-                        label=" "
+                        label="Type "
                         labelHidden
                         options={TIME_UNITS}
                         value={intervalUnit}
