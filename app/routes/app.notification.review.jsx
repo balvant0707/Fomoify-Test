@@ -2076,9 +2076,7 @@ export default function ReviewNotificationPage() {
               </div>
               <div className="review-preview">
                 <PopupPreviewPanel
-                  title="Review notification preview"
-                  description="Uses the product, rating, review tokens, and current visual settings."
-                  badge="Review proof"
+                  title="Preview"
                   emptyMessage={previewMessage}
                 >
                   <ActivePreviewCard
