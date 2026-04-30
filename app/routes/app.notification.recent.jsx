@@ -363,6 +363,7 @@ const DEFAULT_SAVED = {
   priceTagAlt: "#E66465",
   priceColor: "#FFFFFF",
   starColor: "#F06663",
+  fontSize: "14",
   rounded: "4",
   firstDelaySeconds: 1,
   durationSeconds: 8,
@@ -834,7 +835,8 @@ export async function loader({ request }) {
         priceTagAlt: source?.priceTagAlt ?? "#E66465",
         priceColor: source?.priceColor ?? "#FFFFFF",
         starColor: source?.starColor ?? "#F06663",
-        rounded: String(source?.rounded ?? 14),
+        fontSize: String(source?.fontSize ?? source?.rounded ?? 14),
+        rounded: String(source?.rounded ?? 12),
         firstDelaySeconds: Number(source?.firstDelaySeconds ?? 1),
         durationSeconds: Number(source?.durationSeconds ?? 1),
         alternateSeconds: Number(source?.alternateSeconds ?? 10),
@@ -968,6 +970,7 @@ export async function action({ request }) {
   const recentForm = {
     ...form,
     editId,
+    rounded: form?.fontSize ?? form?.rounded,
     messageTitlesJson: customerNames || [],
     locationsJson: locations || [],
     namesJson: Array.isArray(form?.namesJson) ? form.namesJson : [],
@@ -1185,7 +1188,7 @@ function Bubble({ form, order, isMobile = false }) {
     imageMode.includes("contain") ||
     imageMode.includes("fit");
   const imageFit = isContainImage ? "contain" : "cover";
-  const sizeBase = Number(form.rounded ?? 14) || 14;
+  const sizeBase = Number(form.fontSize ?? form.rounded ?? 12) || 14;
   const sized = Math.max(
     10,
     Math.min(
@@ -1701,6 +1704,7 @@ export default function RecentOrdersPopupPage() {
     priceTagAlt: saved.priceTagAlt ?? "#E66465",
     priceColor: saved.priceColor ?? "#FFFFFF",
     starColor: saved.starColor ?? "#F06663",
+    fontSize: saved.fontSize ?? saved.rounded ?? "14",
     rounded: saved.rounded,
     firstDelaySeconds: saved.firstDelaySeconds ?? 1,
     durationSeconds: saved.durationSeconds,
@@ -2236,11 +2240,11 @@ export default function RecentOrdersPopupPage() {
                       <TextField
                         type="number"
                         label="Font Size (px)"
-                        value={String(form.rounded)}
+                        value={String(form.fontSize ?? form.rounded ?? "")}
                         onChange={(v) =>
                           setForm((f) => ({
                             ...f,
-                            rounded: String(v),
+                            fontSize: String(v),
                           }))
                         }
                         autoComplete="off"
