@@ -1257,12 +1257,12 @@ function Bubble({ form, order, isMobile = false }) {
             : form.fontFamily,
         background,
         color: form.textColor,
-        borderRadius: bubbleRadius,
+        borderRadius: 10,
         boxShadow: "0 18px 42px rgba(15, 23, 42, 0.10)",
-        padding: `${padY}px ${padX}px ${padY}px ${contentLeftPad}px`,
+        padding: "10px 10px 10px 44px",
         border: "1px solid rgba(15, 23, 42, 0.08)",
         boxSizing: "border-box",
-        minHeight: isPortrait ? "auto" : 180,
+        minHeight: isPortrait ? "auto" : 100,
         width: isMobile ? "100%" : isPortrait ? 340 : "min(100%, 452px)",
         maxWidth: isMobile
           ? mobileSizeToWidth(form.mobileSize)
