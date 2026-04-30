@@ -303,17 +303,17 @@ const clampDaysParam = (value, fallback = 1) => {
 const DEFAULT_PREVIEW = {
   firstName: "Customer",
   lastName: "Name",
-  city: "Sample City",
+  city: "Lacation",
   state: "",
-  country: "Sample Country",
+  country: "",
   createdAt: new Date().toISOString(),
-  productTitle: "Your product will show here",
+  productTitle: "Product Title",
   productImage: null,
   productPrice: "99.00",
   productCompareAt: "129.00",
   products: [
     {
-      title: "Your product will show here",
+      title: "Product Title",
       image: null,
       handle: "",
       price: "99.00",

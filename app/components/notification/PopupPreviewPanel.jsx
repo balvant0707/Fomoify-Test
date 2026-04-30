@@ -12,16 +12,11 @@ const PANEL_STYLES = `
   min-height: 380px;
   border: 0;
   border-radius: 0;
-  background:
-    linear-gradient(90deg, rgba(227, 229, 231, 0.32) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(227, 229, 231, 0.32) 1px, transparent 1px),
-    linear-gradient(180deg, #fbfbfc 0%, #f4f6f8 100%);
-  background-size: 28px 28px, 28px 28px, auto;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: var(--p-space-400);
+  padding: var(--p-space-200);
 }
 .popup-preview-panel__content {
   width: 100%;
@@ -41,7 +36,7 @@ const PANEL_STYLES = `
   }
   .popup-preview-panel__surface {
     min-height: 320px;
-    padding: var(--p-space-300);
+    padding: var(--p-space-200);
   }
 }
 `;

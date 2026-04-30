@@ -65,7 +65,7 @@ const DASHBOARD_STYLES = `
   flex: 1;
 }
 .notify-card-actions {
-  width: min(100%, 380px);
+  width: fit-content;
   padding-top: var(--p-space-300);
   display: flex;
   align-items: center;
