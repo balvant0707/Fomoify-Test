@@ -920,11 +920,6 @@ function LivePreview({ form }) {
   return (
     <BlockStack gap="300" className="flash-live-preview">
       <DesktopPreview form={form} />
-      <Box className="flash-preview-note">
-        <Text as="p" variant="bodySm" tone="subdued">
-          Preview reflects your desktop settings.
-        </Text>
-      </Box>
     </BlockStack>
   );
 }
