@@ -704,7 +704,10 @@ function PreviewCard({
 
   const isPortrait = layout === "portrait";
   const imageMode = String(imageAppearance || "cover").toLowerCase().trim();
-  const isContainMode = imageMode === "contain" || imageMode.includes("fit");
+  const isContainMode =
+    imageMode === "contain" ||
+    imageMode.includes("contain") ||
+    imageMode.includes("fit");
   const imageFit = isContainMode ? "contain" : "cover";
   const avatarSize = isPortrait ? 56 : 64;
   const avatarOffset = Math.round(avatarSize * 0.45);

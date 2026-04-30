@@ -1197,7 +1197,8 @@ function Bubble({ form, order, isMobile = false }) {
     : "";
   const moreCount = Math.max(0, products.length - 1);
   const showImage = !!productImg;
-  const imageOverflow = showImage && !isContainImage && !isPortrait;
+  const showImageSlot = !hide.has("productImage");
+  const imageOverflow = showImageSlot && !isContainImage && !isPortrait;
   const avatarSize = isPortrait ? 56 : 64;
   const avatarOffset = Math.round(avatarSize * 0.45);
   const portraitImageSize = isMobile ? 120 : 160;
@@ -1310,45 +1311,61 @@ function Bubble({ form, order, isMobile = false }) {
             border: "2px solid rgba(255,255,255,0.75)",
           }}
         >
-          <img
-            src={productImg}
-            alt={productTitle || "Product"}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: imageFit,
-            }}
-            loading="lazy"
-            decoding="async"
-          />
-        </div>
-      ) : (
-        <div>
           {showImage ? (
             <img
               src={productImg}
               alt={productTitle || "Product"}
               style={{
-                width: avatarSize,
-                height: avatarSize,
+                width: "100%",
+                height: "100%",
                 objectFit: imageFit,
-                borderRadius: 6,
-                background: "#f4f4f5",
               }}
               loading="lazy"
               decoding="async"
             />
           ) : (
             <div
+              aria-hidden="true"
               style={{
-                width: avatarSize,
-                height: avatarSize,
-                borderRadius: 6,
-                background: "#f4f4f5",
+                width: "100%",
+                height: "100%",
+                background:
+                  "linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%)",
               }}
             />
           )}
         </div>
+      ) : (
+        showImageSlot && (
+          <div>
+            {showImage ? (
+              <img
+                src={productImg}
+                alt={productTitle || "Product"}
+                style={{
+                  width: avatarSize,
+                  height: avatarSize,
+                  objectFit: imageFit,
+                  borderRadius: 6,
+                  background: "#f4f4f5",
+                }}
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              <div
+                aria-hidden="true"
+                style={{
+                  width: avatarSize,
+                  height: avatarSize,
+                  borderRadius: 6,
+                  background:
+                    "linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%)",
+                }}
+              />
+            )}
+          </div>
+        )
       )}
       <div style={{ minWidth: 0, margin: "10px" }}>
         <p style={{ margin: 0, fontSize: sized }}>
@@ -1581,13 +1598,7 @@ function shouldShowPreviewCompare(priceText, compareText) {
 
 function LivePreview({ form, order }) {
   return (
-    <BlockStack gap="200">
-      <DesktopPreview form={form} order={order} />
-      <Text as="p" variant="bodySm" tone="subdued">
-        Orders are pulled strictly by the selected window (shop timezone).
-        Preview may show the latest order only for visual reference.
-      </Text>
-    </BlockStack>
+    <Bubble form={form} order={order} />
   );
 }
 

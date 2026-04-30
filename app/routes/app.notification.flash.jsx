@@ -607,7 +607,9 @@ function NotificationPreview({ form, isMobile = false }) {
     .trim()
     .toLowerCase();
   const isContain =
-    imageAppearance === "contain" || imageAppearance.includes("fit");
+    imageAppearance === "contain" ||
+    imageAppearance.includes("contain") ||
+    imageAppearance.includes("fit");
   const isPortrait = form.layout === "portrait";
   const iconDim = isPortrait ? 96 : 60;
   const iconSize = isPortrait ? 84 : isContain ? 48 : iconDim;

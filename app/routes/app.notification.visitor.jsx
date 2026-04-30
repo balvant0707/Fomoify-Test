@@ -707,7 +707,8 @@ function PreviewCard({
   const avatarSize = isPortrait ? 72 : 64;
   const avatarOffset = Math.round(avatarSize * 0.62);
   const pad = 16;
-  const imageOverflow = showProductImage && !isContainMode && !isPortrait;
+  const showImageSlot = Boolean(showProductImage);
+  const imageOverflow = showImageSlot && !isContainMode && !isPortrait;
   const rawName = product?.title || "Your product will show here";
   const safeName = formatProductName(rawName, productNameMode, productNameLimit);
   const templateContent = String(
@@ -841,7 +842,7 @@ function PreviewCard({
           x
         </button>
       )}
-      {showProductImage &&
+      {showImageSlot &&
         (imageOverflow ? (
           <div
             style={{
@@ -874,7 +875,15 @@ function PreviewCard({
                 decoding="async"
               />
             ) : (
-              <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+              <div
+                aria-hidden="true"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  background:
+                    "linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%)",
+                }}
+              />
             )}
           </div>
         ) : (
@@ -909,7 +918,15 @@ function PreviewCard({
                 decoding="async"
               />
             ) : (
-              <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+              <div
+                aria-hidden="true"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  background:
+                    "linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%)",
+                }}
+              />
             )}
           </div>
         ))}

@@ -602,7 +602,10 @@ function PreviewCard({
       ? `linear-gradient(135deg, ${bgColor} 0%, ${bgAlt} 100%)`
       : bgColor;
   const imageMode = String(imageAppearance || "cover").toLowerCase().trim();
-  const isContainMode = imageMode === "contain" || imageMode.includes("fit");
+  const isContainMode =
+    imageMode === "contain" ||
+    imageMode.includes("contain") ||
+    imageMode.includes("fit");
   const imageFit = isContainMode ? "contain" : "cover";
   const avatarSize = 56;
   const avatarOffset = Math.round(avatarSize * 0.45);
@@ -797,6 +800,7 @@ function PreviewCard({
 }
 
 function StyledPreviewCard({
+  reviewType,
   bgColor,
   bgAlt,
   template,
@@ -825,12 +829,16 @@ function StyledPreviewCard({
       ? `linear-gradient(135deg, ${bgColor} 0%, ${bgAlt} 100%)`
       : bgColor;
   const imageMode = String(imageAppearance || "cover").toLowerCase().trim();
-  const isContainMode = imageMode === "contain" || imageMode.includes("fit");
+  const isContainMode =
+    imageMode === "contain" ||
+    imageMode.includes("contain") ||
+    imageMode.includes("fit");
   const imageFit = isContainMode ? "contain" : "cover";
   const avatarSize = 56;
   const avatarOffset = Math.round(avatarSize * 0.45);
   const pad = 16;
   const imageOverflow = showProductImage && !isContainMode;
+  const isReviewContent = reviewType === "review_content";
 
   const rawProductName = product?.title || "DREAMY BLUE BALL GOWN";
   const safeProductName = formatProductName(
@@ -975,17 +983,19 @@ function StyledPreviewCard({
             <span style={{ color: "#d1d5db" }}>{emptyStars}</span>
           </div>
         )}
-        <div
-          style={{
-            fontWeight: 800,
-            fontSize: 16,
-            lineHeight: 1.05,
-            letterSpacing: 0.1,
-            textTransform: "uppercase",
-          }}
-        >
-          {safeProductName}
-        </div>
+        {isReviewContent && (
+          <div
+            style={{
+              fontWeight: 800,
+              fontSize: 16,
+              lineHeight: 1.05,
+              letterSpacing: 0.1,
+              textTransform: "uppercase",
+            }}
+          >
+            {safeProductName}
+          </div>
+        )}
         {showPriceTag && (
           <InlineStack gap="200" blockAlign="center">
             <span
@@ -1015,7 +1025,7 @@ function StyledPreviewCard({
           style={{
             fontSize: textSizeContent,
             lineHeight: 1.35,
-            fontStyle: "italic",
+            fontStyle: isReviewContent ? "italic" : "normal",
           }}
         >
           {resolvedContent}
@@ -1400,7 +1410,7 @@ export default function ReviewNotificationPage() {
   };
 
   const items = allProducts;
-  const ActivePreviewCard = StyledPreviewCard || PreviewCard;
+  const ActivePreviewCard = StyledPreviewCard;
 
   return (
     <Frame>
@@ -2072,6 +2082,7 @@ export default function ReviewNotificationPage() {
                   emptyMessage={previewMessage}
                 >
                   <ActivePreviewCard
+                    reviewType={design.reviewType}
                     bgColor={normalizeHex(design.bgColor, "#FFFFFF")}
                     bgAlt={normalizeHex(design.bgAlt, "#F3F4F6")}
                     template={design.template}

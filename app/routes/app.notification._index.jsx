@@ -27,6 +27,23 @@ const DASHBOARD_STYLES = `
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 16px;
 }
+.notify-card-shell {
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  background: #ffffff;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+.notify-card-shell:hover {
+  border-color: #1a73e8;
+  box-shadow: 0 10px 26px rgba(26, 115, 232, 0.14);
+  transform: translateY(-2px);
+}
+.notify-card-shell .Polaris-ShadowBevel {
+  --pc-shadow-bevel-content-xs: none;
+}
 .notify-card-media {
   width: 82px;
   height: 82px;
@@ -48,10 +65,15 @@ const DASHBOARD_STYLES = `
   flex: 1;
 }
 .notify-card-actions {
+  width: min(100%, 380px);
   padding-top: var(--p-space-300);
   display: flex;
-  justify-content: start;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--p-space-200);
+}
+.notify-card-actions .Polaris-Button {
+  flex: 0 0 auto;
 }
 `;
 
@@ -66,29 +88,31 @@ function DashboardCard({
   const imageSrc = `/images/${encodeURIComponent(imageName)}`;
 
   return (
-    <Card>
-      <Box padding="400">
-        <InlineStack align="space-between" blockAlign="center" gap="400" wrap={false}>
-          <Box className="notify-card-content">
-          <BlockStack gap="150">
-            <Text as="h3" fontSize="16px !important" fontWeight="bold">{title}</Text>
-            <Text as="p" tone="subdued">{desc}</Text>
-            <InlineStack gap="200" className="notify-card-actions" style={{ display: "flex" , justifyContent: "start", gap: "var(--p-space-200)" }}>
-              <Button variant="primary" onClick={onCreate} loading={loading} disabled={loading}>
-                {loading ? "Opening..." : "Create"}
-              </Button>
-              <Button onClick={onManage} disabled={loading}>
-                Manage
-              </Button>
-            </InlineStack>
-          </BlockStack>
-          </Box>
-          <div className="notify-card-media" aria-hidden>
-            <img src={imageSrc} alt="" />
-          </div>
-        </InlineStack>
-      </Box>
-    </Card>
+    <div className="notify-card-shell">
+      <Card>
+        <Box padding="400">
+          <InlineStack align="space-between" blockAlign="center" gap="400" wrap={false}>
+            <Box className="notify-card-content">
+              <BlockStack gap="150">
+                <Text as="h3" fontSize="16px !important" fontWeight="bold">{title}</Text>
+                <Text as="p" tone="subdued">{desc}</Text>
+                <div className="notify-card-actions">
+                  <Button variant="primary" onClick={onCreate} loading={loading} disabled={loading}>
+                    {loading ? "Opening..." : "Create"}
+                  </Button>
+                  <Button onClick={onManage} disabled={loading}>
+                    Manage
+                  </Button>
+                </div>
+              </BlockStack>
+            </Box>
+            <div className="notify-card-media" aria-hidden>
+              <img src={imageSrc} alt="" />
+            </div>
+          </InlineStack>
+        </Box>
+      </Card>
+    </div>
   );
 }
 
