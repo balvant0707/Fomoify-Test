@@ -1294,7 +1294,7 @@ function Bubble({ form, order, isMobile = false }) {
         <div
           style={{
             position: "absolute",
-            left: pad,
+            left: "0",
             top: isPortrait ? 24 : "50%",
             transform: isPortrait
               ? "translate(-50%, 0)"
@@ -1303,11 +1303,9 @@ function Bubble({ form, order, isMobile = false }) {
             height: avatarSize,
             borderRadius: 12,
             overflow: "hidden",
-            background: "#f3f4f6",
             flexShrink: 0,
             display: "grid",
             placeItems: "center",
-            boxShadow: "0 8px 18px rgba(0,0,0,0.18)",
             border: "2px solid rgba(255,255,255,0.75)",
           }}
         >
@@ -2305,9 +2303,7 @@ export default function RecentOrdersPopupPage() {
 
       <div className="recent-preview">
         <PopupPreviewPanel
-          title="Recent purchase preview"
-          description="Uses the selected order window and current design settings."
-          badge="Recent popup"
+          title="Preview"
         >
           <LivePreview form={form} order={preview} />
         </PopupPreviewPanel>
