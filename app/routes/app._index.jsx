@@ -938,6 +938,8 @@ export default function AppIndex() {
           </Text>
           <button
             type="button"
+            tone="subdued" 
+            variant="bodySm"
             className={`dashboard-embed-status dashboard-embed-status--${
               isEmbedActive ? "on" : "off"
             }`}
@@ -963,28 +965,6 @@ export default function AppIndex() {
             </Text>
           </Banner>
         )}
-
-        {/* App embed status */}
-        <Card>
-          <BlockStack gap="300">
-            <InlineStack align="space-between" blockAlign="center">
-              <InlineStack gap="200" blockAlign="center">
-                <DashboardIcon source={ThemeIcon} tone="info" />
-                <Text as="h3"  fontWeight="semibold">App embed status</Text>
-              </InlineStack>
-              <Badge tone={embedBadgeTone}>{embedBadgeText}</Badge>
-            </InlineStack>
-            <InlineStack gap="300" align="start">
-              <Button
-                variant="primary"
-                icon={ThemeEditIcon}
-                onClick={() => openThemeEditor(resolvedThemeId, "activate")}
-              >
-                Open App Embeds
-              </Button>
-            </InlineStack>
-          </BlockStack>
-        </Card>
 
         {/* Popup type slider */}
         <Card>
@@ -1147,6 +1127,7 @@ export default function AppIndex() {
                       monochrome
                       removeUnderline
                       variant="headingSm"
+                      fontWeight="bold"
                     >
                       CartLift: Cart Drawer & Upsell
                     </PolarisLink>
