@@ -189,6 +189,9 @@ const RECENT_STYLES = `
   padding: 72px 20px 48px;
   align-items: center;
 }
+.recent-preview.is-fit-image .popup-preview-panel__surface {
+  padding: 0;
+}
 .recent-preview .popup-preview-panel__content {
   max-width: 100%;
 }
@@ -228,6 +231,9 @@ const RECENT_STYLES = `
   .recent-preview .popup-preview-panel__surface {
     min-height: 360px;
     padding: 40px 12px 32px;
+  }
+  .recent-preview.is-fit-image .popup-preview-panel__surface {
+    padding: 0;
   }
 }
 `;
@@ -1221,7 +1227,7 @@ function Bubble({ form, order, isMobile = false }) {
   const padY = isMobile ? 10 : 14;
   const padX = isMobile ? 10 : 10;
   const contentLeftPad = imageOverflow ? padX + avatarOffset + 8 : padX;
-  const bubbleRadius = isPortrait ? 18 : 22;
+  const bubbleRadius = isPortrait ? 10 : 10;
 
   const showTime = !hide.has("time");
   const background =
@@ -2324,7 +2330,11 @@ export default function RecentOrdersPopupPage() {
         </BlockStack>
       </div>
 
-      <div className="recent-preview">
+      <div
+        className={`recent-preview ${
+          form.imageAppearance === "contain" ? "is-fit-image" : ""
+        }`}
+      >
         <PopupPreviewPanel
           title="Preview"
         >
