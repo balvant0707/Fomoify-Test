@@ -1154,34 +1154,8 @@ function PreviewCard({
       )}
 
       <div style={{ display: "grid", gap: isPortrait ? 8 : 6, minWidth: 0, flex: 1 }}>
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            width: "fit-content",
-            background: "rgba(0,0,0,0.82)",
-            color: "#ffffff",
-            borderRadius: 999,
-            padding: "3px 10px",
-            fontSize: badgeFontSize,
-            fontWeight: 700,
-            letterSpacing: 0.2,
-          }}
-        >
-          <span
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: "#ffffff",
-              opacity: 0.95,
-            }}
-          />
-          Added to cart
-        </div>
         {showRating && (
-          <div style={{ color: starColor, fontSize: ratingFontSize, letterSpacing: 1 }}>
+          <div style={{ color: starColor, fontSize: `${ratingFontSize * 1.5}px !important;`, letterSpacing: 1 }}>
             {"★★★★★".slice(0, product?.rating || 4)}
             <span style={{ color: "#d1d5db" }}>
               {"★★★★★".slice(0, 5 - (product?.rating || 4))}
