@@ -440,9 +440,9 @@ export async function loader({ request }) {
           starColor: toStr(source.starColor, "#F06663"),
         },
         textSize: {
-          content: toStr(source.textSizeContent, "14"),
-          compareAt: toStr(source.textSizeCompareAt, "12"),
-          price: toStr(source.textSizePrice, "12"),
+          content: toStr(source.textSizeContent, "12"),
+          compareAt: toStr(source.textSizeCompareAt, "10"),
+          price: toStr(source.textSizePrice, "10"),
         },
         content: {
           message: toStr(
@@ -1208,9 +1208,9 @@ export default function AddToCartPopupPage() {
   });
 
   const [textSize, setTextSize] = useState({
-    content: "14",
-    compareAt: "12",
-    price: "12",
+    content: "12",
+    compareAt: "10",
+    price: "10",
   });
 
   const [content, setContent] = useState({
@@ -2337,9 +2337,9 @@ export default function AddToCartPopupPage() {
                     )}
                     starColor={normalizeHex(design.starColor, "#F06663")}
                     imageAppearance={design.imageAppearance}
-                    textSizeContent={Number(textSize.content) || 14}
-                    textSizeCompare={Number(textSize.compareAt) || 12}
-                    textSizePrice={Number(textSize.price) || 12}
+                    textSizeContent={Number(textSize.content) || 12}
+                    textSizeCompare={Number(textSize.compareAt) || 10}
+                    textSizePrice={Number(textSize.price) || 10}
                     contentText={content.message}
                     timestampText={content.timestamp}
                     avgTime={content.avgTime}

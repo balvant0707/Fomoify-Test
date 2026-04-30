@@ -204,9 +204,9 @@ export async function loader({ request }) {
           starColor: toStr(source.starColor, "#FFD240"),
         },
         textSize: {
-          content: toStr(source.textSizeContent, "14"),
-          compareAt: toStr(source.textSizeCompareAt, "13"),
-          price: toStr(source.textSizePrice, "13"),
+          content: toStr(source.textSizeContent, "12"),
+          compareAt: toStr(source.textSizeCompareAt, "10"),
+          price: toStr(source.textSizePrice, "10"),
         },
         content: {
           message: toStr(
@@ -1038,9 +1038,9 @@ export default function VisitorPopupPage() {
   });
 
   const [textSize, setTextSize] = useState({
-    content: "14",
-    compareAt: "13",
-    price: "13",
+    content: "12",
+    compareAt: "10",
+    price: "10",
   });
 
   const [content, setContent] = useState({
@@ -2132,9 +2132,9 @@ export default function VisitorPopupPage() {
                     priceColor={normalizeHex(design.priceColor, "#FFFFFF")}
                     starColor={normalizeHex(design.starColor, "#FFD240")}
                     imageAppearance={design.imageAppearance}
-                    textSizeContent={Number(textSize.content) || 14}
-                    textSizeCompare={Number(textSize.compareAt) || 13}
-                    textSizePrice={Number(textSize.price) || 13}
+                    textSizeContent={Number(textSize.content) || 12}
+                    textSizeCompare={Number(textSize.compareAt) || 10}
+                    textSizePrice={Number(textSize.price) || 10}
                     contentText={content.message}
                     timestampText={content.timestamp}
                     avgTime={content.avgTime}
