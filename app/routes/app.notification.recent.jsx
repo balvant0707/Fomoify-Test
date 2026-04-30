@@ -185,7 +185,7 @@ const RECENT_STYLES = `
   border-bottom: 0;
 }
 .recent-preview .popup-preview-panel__surface {
-  min-height: 460px;
+  min-height: 300px;
   padding: 72px 20px 48px;
   align-items: center;
 }
