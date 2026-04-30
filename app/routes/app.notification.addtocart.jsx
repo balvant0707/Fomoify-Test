@@ -665,6 +665,26 @@ const LOW_STOCK_STYLES = `
   flex: 1;
   min-width: 320px;
 }
+.addtocart-preview .popup-preview-panel__header {
+  border-bottom: 0;
+}
+.addtocart-preview .popup-preview-panel__surface {
+  min-height: 300px;
+  padding: 0 0 0 30px;
+  align-items: center;
+}
+.addtocart-preview.is-layout-portrait .popup-preview-panel__surface {
+  padding: 0 !important;
+}
+.lowstock-preview.is-fit-image .popup-preview-panel__surface {
+  padding: 0;
+}
+.addtocart-preview.is-fit-image .popup-preview-panel {
+  padding-right: var(--p-space-400);
+}
+.addtocart-preview .popup-preview-panel__content {
+  max-width: 100%;
+}
 .lowstock-preview-box {
   border: 1px solid #e5e7eb;
   border-radius: 16px;
@@ -721,6 +741,13 @@ const LOW_STOCK_STYLES = `
   .lowstock-form,
   .lowstock-preview {
     min-width: 0;
+  }
+  .addtocart-preview .popup-preview-panel__surface {
+    min-height: 360px;
+    padding: 40px 12px 32px;
+  }
+  .addtocart-preview.is-fit-image .popup-preview-panel__surface {
+    padding: 0;
   }
 }
 `;
@@ -2305,7 +2332,17 @@ export default function AddToCartPopupPage() {
                 </BlockStack>
               </div>
 
-              <div className="lowstock-preview">
+              <div
+                className={[
+                  "lowstock-preview",
+                  "addtocart-preview",
+                  "is-popup-type-addtocart",
+                  `is-layout-${design.layout || "landscape"}`,
+                  design.imageAppearance === "contain" ? "is-fit-image" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
                 <PopupPreviewPanel
                   title="Add to cart preview"
                   description="Uses the selected product, customer tokens, price, rating, and current design settings."

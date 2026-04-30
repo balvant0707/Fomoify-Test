@@ -23,6 +23,7 @@ const buildEditorRedirect = (request, params) => {
   if (Number.isInteger(id) && id > 0) {
     sp.set("editId", String(id));
   }
+  sp.set("mode", "edit");
 
   const search = sp.toString();
   return `/app/notification/${key}${search ? `?${search}` : ""}`;

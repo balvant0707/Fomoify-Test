@@ -151,6 +151,26 @@ const FLASH_STYLES = `
   flex: 1;
   min-width: 320px;
 }
+.flash-preview .popup-preview-panel__header {
+  border-bottom: 0;
+}
+.flash-preview .popup-preview-panel__surface {
+  min-height: 300px;
+  padding: 0 0 0 30px;
+  align-items: center;
+}
+.flash-preview.is-layout-portrait .popup-preview-panel__surface {
+  padding: 0 !important;
+}
+.flash-preview.is-fit-image .popup-preview-panel__surface {
+  padding: 0;
+}
+.flash-preview.is-fit-image .popup-preview-panel {
+  padding-right: var(--p-space-400);
+}
+.flash-preview .popup-preview-panel__content {
+  max-width: 100%;
+}
 .flash-preview-box {
   border: 1px solid #e5e7eb;
   border-radius: 16px;
@@ -305,6 +325,13 @@ const FLASH_STYLES = `
   .flash-preview-stage {
     min-height: 300px;
     padding: 32px 16px;
+  }
+  .flash-preview .popup-preview-panel__surface {
+    min-height: 360px;
+    padding: 40px 12px 32px;
+  }
+  .flash-preview.is-fit-image .popup-preview-panel__surface {
+    padding: 0;
   }
 }
   .flash-popup__message {
@@ -1556,7 +1583,16 @@ export default function FlashConfigPage() {
         </BlockStack>
       </div>
 
-      <div className="flash-preview">
+      <div
+        className={[
+          "flash-preview",
+          "is-popup-type-flash",
+          `is-layout-${form.layout || "landscape"}`,
+          form.imageAppearance === "contain" ? "is-fit-image" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
         <PopupPreviewPanel
           title="Preview"
         >

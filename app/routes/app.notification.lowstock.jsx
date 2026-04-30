@@ -438,6 +438,26 @@ const LOW_STOCK_STYLES = `
   flex: 1;
   min-width: 320px;
 }
+.lowstock-preview .popup-preview-panel__header {
+  border-bottom: 0;
+}
+.lowstock-preview .popup-preview-panel__surface {
+  min-height: 300px;
+  padding: 0 0 0 30px;
+  align-items: center;
+}
+.lowstock-preview.is-layout-portrait .popup-preview-panel__surface {
+  padding: 0 !important;
+}
+.lowstock-preview.is-fit-image .popup-preview-panel__surface {
+  padding: 0;
+}
+.lowstock-preview.is-fit-image .popup-preview-panel {
+  padding-right: var(--p-space-400);
+}
+.lowstock-preview .popup-preview-panel__content {
+  max-width: 100%;
+}
 .lowstock-preview-box {
   border: 1px solid #e5e7eb;
   border-radius: 16px;
@@ -494,6 +514,13 @@ const LOW_STOCK_STYLES = `
   .lowstock-form,
   .lowstock-preview {
     min-width: 0;
+  }
+  .lowstock-preview .popup-preview-panel__surface {
+    min-height: 360px;
+    padding: 40px 12px 32px;
+  }
+  .lowstock-preview.is-fit-image .popup-preview-panel__surface {
+    padding: 0;
   }
 }
 `;
@@ -1939,7 +1966,16 @@ export default function LowStockPopupPage() {
                 </BlockStack>
               </div>
 
-              <div className="lowstock-preview">
+              <div
+                className={[
+                  "lowstock-preview",
+                  "is-popup-type-lowstock",
+                  `is-layout-${design.layout || "landscape"}`,
+                  design.imageAppearance === "contain" ? "is-fit-image" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
                 <PopupPreviewPanel
                   title="Low stock preview"
                   description="Uses the selected product, stock threshold, urgency copy, and current design settings."

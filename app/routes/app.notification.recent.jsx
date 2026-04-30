@@ -189,6 +189,9 @@ const RECENT_STYLES = `
   padding: 0px 0px 0 30px;
   align-items: center;
 }
+  .recent-preview.is-layout-portrait .popup-preview-panel__surface {
+    padding: 0 !important;
+}
 .recent-preview.is-fit-image .popup-preview-panel__surface {
   padding: 0;
 }
@@ -2340,6 +2343,7 @@ export default function RecentOrdersPopupPage() {
       <div
         className={[
           "recent-preview",
+          "is-popup-type-recent",
           `is-layout-${form.layout || "landscape"}`,
           form.imageAppearance === "contain" ? "is-fit-image" : "",
         ]

@@ -399,6 +399,26 @@ const VISITOR_STYLES = `
   flex: 1;
   min-width: 320px;
 }
+.visitor-preview .popup-preview-panel__header {
+  border-bottom: 0;
+}
+.visitor-preview .popup-preview-panel__surface {
+  min-height: 300px;
+  padding: 0 0 0 30px;
+  align-items: center;
+}
+.visitor-preview.is-layout-portrait .popup-preview-panel__surface {
+  padding: 0 !important;
+}
+.visitor-preview.is-fit-image .popup-preview-panel__surface {
+  padding: 0;
+}
+.visitor-preview.is-fit-image .popup-preview-panel {
+  padding-right: var(--p-space-400);
+}
+.visitor-preview .popup-preview-panel__content {
+  max-width: 100%;
+}
 .visitor-preview-box {
   border: 1px solid #e5e7eb;
   border-radius: 16px;
@@ -455,6 +475,13 @@ const VISITOR_STYLES = `
   .visitor-form,
   .visitor-preview {
     min-width: 0;
+  }
+  .visitor-preview .popup-preview-panel__surface {
+    min-height: 360px;
+    padding: 40px 12px 32px;
+  }
+  .visitor-preview.is-fit-image .popup-preview-panel__surface {
+    padding: 0;
   }
 }
 `;
@@ -2106,7 +2133,16 @@ export default function VisitorPopupPage() {
                   )}
                 </BlockStack>
               </div>
-              <div className="visitor-preview">
+              <div
+                className={[
+                  "visitor-preview",
+                  "is-popup-type-visitor",
+                  `is-layout-${design.layout || "landscape"}`,
+                  design.imageAppearance === "contain" ? "is-fit-image" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
                 <PopupPreviewPanel
                   title="Visitor popup preview"
                   description="Uses the selected product, customer fallback data, visitor copy, and current design settings."
