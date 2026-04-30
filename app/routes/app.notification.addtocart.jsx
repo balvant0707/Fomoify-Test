@@ -1040,17 +1040,31 @@ function PreviewCard({
   );
   const productName = tokenValues.product_name;
   const productIndex = resolvedContent.indexOf(productName);
+  const contentTextSpanStyle = {
+    fontSize: contentFontSize,
+    lineHeight: 1.35,
+  };
   const contentNode =
     productIndex >= 0 ? (
       <>
-        {resolvedContent.slice(0, productIndex)}
-        <span style={{ fontWeight: 600, textDecoration: "underline" }}>
+        <span style={contentTextSpanStyle}>
+          {resolvedContent.slice(0, productIndex)}
+        </span>
+        <span
+          style={{
+            ...contentTextSpanStyle,
+            fontWeight: 600,
+            textDecoration: "underline",
+          }}
+        >
           {productName}
         </span>
-        {resolvedContent.slice(productIndex + productName.length)}
+        <span style={contentTextSpanStyle}>
+          {resolvedContent.slice(productIndex + productName.length)}
+        </span>
       </>
     ) : (
-      resolvedContent
+      <span style={contentTextSpanStyle}>{resolvedContent}</span>
     );
 
   return (

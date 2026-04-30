@@ -795,6 +795,11 @@ function PreviewCard({
     tokenValues
   );
   const contentNode = (() => {
+    const textSpanStyle = {
+      fontSize: contentFontSize,
+      lineHeight: 1.35,
+      color: textColor,
+    };
     const normalized = {};
     Object.entries(tokenValues).forEach(([k, v]) => {
       normalized[String(k || "").trim().toLowerCase()] = v;
@@ -812,7 +817,13 @@ function PreviewCard({
       if (key === "product_name" && before) {
         before = before.replace(/\s+$/, "");
       }
-      if (before) out.push(<span key={`t-${idx++}`}>{before}</span>);
+      if (before) {
+        out.push(
+          <span key={`t-${idx++}`} style={textSpanStyle}>
+            {before}
+          </span>
+        );
+      }
       if (key === "product_name") {
         out.push(<br key={`br-${idx++}`} />);
       }
@@ -832,9 +843,15 @@ function PreviewCard({
       );
       last = m.index + m[0].length;
     }
-    if (!found) return resolvedContent;
+    if (!found) return <span style={textSpanStyle}>{resolvedContent}</span>;
     const tail = templateContent.slice(last);
-    if (tail) out.push(<span key={`t-${idx++}`}>{tail}</span>);
+    if (tail) {
+      out.push(
+        <span key={`t-${idx++}`} style={textSpanStyle}>
+          {tail}
+        </span>
+      );
+    }
     return out;
   })();
   const cardStyle = {

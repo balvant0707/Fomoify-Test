@@ -1411,6 +1411,7 @@ function Bubble({ form, order, isMobile = false }) {
                 color: form.numberColor,
                 fontWeight: Number(form.fontWeight || 600),
                 fontSize: Math.round(sized * 1.02),
+                lineHeight: 1.35,
               }}
             >
               {name || "Customer Name from Location"}
@@ -1423,6 +1424,7 @@ function Bubble({ form, order, isMobile = false }) {
                 color: form.numberColor,
                 fontWeight: Number(form.fontWeight || 600),
                 fontSize: sized,
+                lineHeight: 1.35,
               }}
             >
               {loc}
@@ -1432,6 +1434,7 @@ function Bubble({ form, order, isMobile = false }) {
           <span style={{
                 color: form.numberColor,
                 fontSize: Math.round(sized * 0.92),
+                lineHeight: 1.35,
               }}>
             {productTitle
               ? `${form.messageText || "bought this product recently"} "${productTitle}"`

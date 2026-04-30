@@ -664,7 +664,11 @@ function PreviewCard({
     timestampText || "{review_date}",
     tokenValues
   );
-  const contentNode = resolvedContent;
+  const contentNode = (
+    <span style={{ fontSize: textSizeContent, lineHeight: 1.35 }}>
+      {resolvedContent}
+    </span>
+  );
 
   return (
     <div
@@ -1031,7 +1035,9 @@ function StyledPreviewCard({
               textTransform: "uppercase",
             }}
           >
-            {safeProductName}
+            <span style={{ fontSize: contentFontSize, lineHeight: 1.05 }}>
+              {safeProductName}
+            </span>
           </div>
         )}
         {showPriceTag && (
@@ -1066,7 +1072,9 @@ function StyledPreviewCard({
             fontStyle: isReviewContent ? "italic" : "normal",
           }}
         >
-          {resolvedContent}
+          <span style={{ fontSize: contentFontSize, lineHeight: 1.35 }}>
+            {resolvedContent}
+          </span>
         </div>
         <div
           style={{
@@ -1078,7 +1086,9 @@ function StyledPreviewCard({
             color: timestampColor,
           }}
         >
-          <span>{resolvedTimestamp}</span>
+          <span style={{ fontSize: metaFontSize, lineHeight: 1.2 }}>
+            {resolvedTimestamp}
+          </span>
         </div>
       </div>
     </div>

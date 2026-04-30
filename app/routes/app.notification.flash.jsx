@@ -872,7 +872,9 @@ function NotificationPreview({ form, isMobile = false }) {
                 fontSize: Math.max(15, sized + 1),
               }}
             >
-              {title}
+              <span style={{ fontSize: Math.max(15, sized + 1), lineHeight: 1.2 }}>
+                {title}
+              </span>
             </p>
             <span
               className="flash-sale-popup__pill"
@@ -892,16 +894,21 @@ function NotificationPreview({ form, isMobile = false }) {
               color: form.textColor,
             }}
           >
-            {offer}
+            <span style={{ fontSize: Math.max(13, sized - 1), lineHeight: 1.35 }}>
+              {offer}
+            </span>
           </p>
           <span
             className="flash-sale-popup__timer"
             style={{
               color: form.starColor || form.priceTagAlt,
+              fontSize: Math.max(11, sized - 2),
             }}
           >
             <span className="flash-sale-popup__timer-dot" />
-            {timer}
+            <span style={{ fontSize: Math.max(11, sized - 2), lineHeight: 1.2 }}>
+              {timer}
+            </span>
           </span>
           </div>
         </div>

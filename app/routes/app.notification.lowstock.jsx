@@ -806,7 +806,7 @@ function PreviewCard({
         </span>
       );
     }
-    return <span style={{ color: numberColor, fontWeight: 500,fontSize: contentFontSize -1, lineHeight: 1.35,letterSpacing : "-0.02em"}} key={`text-${idx}`}>{part}</span>;
+    return <span style={{ color: numberColor, fontWeight: 500,fontSize: Math.max(6, contentFontSize - 1), lineHeight: 1.35,letterSpacing : "-0.02em"}} key={`text-${idx}`}>{part}</span>;
   });
 
   return (
