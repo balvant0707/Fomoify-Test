@@ -124,7 +124,7 @@ export async function loader({ request }) {
           starColor: toStr(source.starColor, "#FFCF0D"),
         },
         textSize: {
-          content: toStr(source.textSizeContent, "14"),
+          content: toStr(source.textSizeContent, "12"),
           compareAt: toStr(source.textSizeCompareAt, "12"),
           price: toStr(source.textSizePrice, "12"),
         },
@@ -646,7 +646,7 @@ function PreviewCard({
         borderRadius: 18,
         boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
         border: "1px solid rgba(0,0,0,0.06)",
-        padding: pad,
+        padding: 0,
         paddingLeft: imageOverflow ? pad + avatarOffset : pad,
         display: "flex",
         gap: 14,
@@ -682,7 +682,7 @@ function PreviewCard({
           <div
             style={{
               position: "absolute",
-              left: "8px",
+              left: "0",
               top: "50%",
               transform: "translate(-50%, -50%)",
               width: avatarSize,
@@ -849,7 +849,7 @@ function StyledPreviewCard({
   const tokenValues = {
     reviewer_name: "Jane B.",
     review_title: "Great product!",
-    review_body: "This product is amazing! I love it!!!",
+    review_body: "This product is amazing!",
     reviewer_country: "abroad",
     reviewer_city: "London",
     product_name: safeProductName,
@@ -892,8 +892,8 @@ function StyledPreviewCard({
           aria-label="Close"
           style={{
             position: "absolute",
-            top: -12,
-            right: -12,
+            top: 0 ,
+            right: 0,
             border: "none",
             background: "transparent",
             color: textColor,
@@ -2105,7 +2105,7 @@ export default function ReviewNotificationPage() {
                       "#FFFFFF"
                     )}
                     starColor={normalizeHex(design.starColor, "#FFCF0D")}
-                    textSizeContent={Number(textSize.content) || 14}
+                    textSizeContent={Number(textSize.content) || 12}
                     textSizeCompare={Number(textSize.compareAt) || 12}
                     textSizePrice={Number(textSize.price) || 12}
                     contentText={content.message}

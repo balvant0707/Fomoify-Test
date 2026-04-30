@@ -15,7 +15,6 @@ const PANEL_STYLES = `
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
   padding: var(--p-space-200);
 }
 .popup-preview-panel__content {
