@@ -643,7 +643,7 @@ function PreviewCard({
       style={{
         background,
         color: textColor,
-        borderRadius: 18,
+        borderRadius: 10,
         boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
         border: "1px solid rgba(0,0,0,0.06)",
         padding: 0,
@@ -874,14 +874,14 @@ function StyledPreviewCard({
       style={{
         background,
         color: textColor,
-        borderRadius: 18,
+        borderRadius: 10,
         boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
         border: "1px solid rgba(0,0,0,0.06)",
-        padding: pad,
+        padding: "5px",
         paddingLeft: imageOverflow ? pad + avatarOffset : pad,
         display: "flex",
         gap: 14,
-        alignItems: "flex-start",
+        alignItems: "center",
         position: "relative",
         maxWidth: 460,
       }}
