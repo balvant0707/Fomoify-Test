@@ -1,4 +1,5 @@
 const cache = new Map();
+const pending = new Map();
 
 export function getCache(key) {
   const hit = cache.get(key);
@@ -18,6 +19,17 @@ export function setCache(key, value, ttlMs = 30000) {
 export async function getOrSetCache(key, ttlMs, loader) {
   const cached = getCache(key);
   if (cached) return cached;
-  const value = await loader();
-  return setCache(key, value, ttlMs);
+
+  const existingLoad = pending.get(key);
+  if (existingLoad) return existingLoad;
+
+  const load = Promise.resolve()
+    .then(loader)
+    .then((value) => setCache(key, value, ttlMs))
+    .finally(() => {
+      pending.delete(key);
+    });
+
+  pending.set(key, load);
+  return load;
 }

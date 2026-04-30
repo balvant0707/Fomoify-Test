@@ -1,8 +1,8 @@
 // app/db.server.js
 import { PrismaClient } from "@prisma/client";
 
-const DEFAULT_CONNECTION_LIMIT = "1";
-const DEFAULT_POOL_TIMEOUT = "20";
+const DEFAULT_CONNECTION_LIMIT = "5";
+const DEFAULT_POOL_TIMEOUT = "30";
 
 function buildPrismaOptions() {
   const rawUrl = process.env.DATABASE_URL;
