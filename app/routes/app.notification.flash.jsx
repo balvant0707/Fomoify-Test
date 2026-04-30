@@ -790,7 +790,7 @@ function NotificationPreview({ form, isMobile = false }) {
   const offer = String(form.name || "Flash Sale: 20% OFF").trim();
   const timer = String(form.messageText || "ends in 02:15 hours").trim();
 
-  
+
   return (
     <div>
       <style>{`
@@ -1276,8 +1276,7 @@ export default function FlashConfigPage() {
                     </Box>
                     <Box width="50%">
                       <Select
-                        label="Type "
-                        labelHidden
+                        label="Unit"
                         options={TIME_UNITS}
                         value={intervalUnit}
                         onChange={onIntervalUnitChange}
