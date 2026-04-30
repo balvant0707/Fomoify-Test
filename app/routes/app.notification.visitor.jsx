@@ -740,7 +740,7 @@ function PreviewCard({
     imageModeRaw.includes("fit");
   const imageFit = isContainMode ? "contain" : "cover";
   const portraitVisitor = isPortrait;
-  const avatarSize = isPortrait ? 72 : 64;
+  const avatarSize = isPortrait ? 62 : 54;
   const avatarOffset = Math.round(avatarSize * 0.62);
   const pad = 10;
   const showImageSlot = Boolean(showProductImage);
@@ -850,7 +850,7 @@ function PreviewCard({
     position: "relative",
     flexDirection: isPortrait ? "column" : "row",
     gap: isPortrait ? 14 : imageOverflow ? 14 : 12,
-    alignItems: "flex-start",
+    alignItems: "center",
     maxWidth: layout === "portrait" ? 360 : 460,
   };
 
@@ -928,7 +928,7 @@ function PreviewCard({
             style={{
               width: avatarSize,
               height: avatarSize,
-              borderRadius: Math.round(avatarSize * 0.22),
+              borderRadius: 4,
               overflow: "hidden",
               background: portraitVisitor ? "#ffffff" : "#f3f4f6",
               flexShrink: 0,
@@ -938,7 +938,7 @@ function PreviewCard({
                 ? "0 10px 22px rgba(0,0,0,0.14)"
                 : "0 6px 14px rgba(0,0,0,0.12)",
               border: "1px solid rgba(15,23,42,0.08)",
-              alignSelf: isPortrait ? "center" : "flex-start",
+              alignSelf: "center",
               margin: portraitVisitor ? "2px auto 2px" : undefined,
             }}
           >
