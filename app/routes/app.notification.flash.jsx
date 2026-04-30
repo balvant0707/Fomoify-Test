@@ -166,11 +166,7 @@ const FLASH_STYLES = `
   padding: 42px 32px;
   box-sizing: border-box;
   display: flex;
-  background:
-    radial-gradient(circle at top left, rgba(255, 184, 0, 0.14), transparent 34%),
-    linear-gradient(180deg, #ffffff 0%, #fbfbfc 100%);
-  border-radius: 18px;
-  overflow: hidden;
+  border-radius: 10px;
 }
 .flash-sale-popup {
   position: relative;
@@ -206,7 +202,8 @@ const FLASH_STYLES = `
 }
 .flash-sale-popup__content {
   min-width: 0;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 7px;
 }
 .flash-sale-popup__topline {
@@ -262,6 +259,25 @@ const FLASH_STYLES = `
 }
 .flash-preview-note {
   text-align: center;
+}
+.flash-preview-stage {
+  background: linear-gradient(135deg, #f0f4f8 0%, #e8ecf1 100%);
+}
+.flash-sale-popup__cta {
+  align-self: flex-start;
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: opacity 120ms ease, transform 80ms ease;
+}
+.flash-sale-popup__cta:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+.flash-sale-popup--portrait .flash-sale-popup__cta {
+  width: 100%;
+  align-self: unset;
 }
 @media (max-width: 1100px) {
   .flash-shell {
@@ -850,6 +866,20 @@ function NotificationPreview({ form, isMobile = false }) {
             <span className="flash-sale-popup__timer-dot" />
             {timer}
           </span>
+          <button
+            type="button"
+            className="flash-sale-popup__cta"
+            style={{
+              background: form.priceTagBg,
+              color: form.priceColor,
+              borderRadius: Math.max(6, sized - 2),
+              padding: `${Math.max(6, sized - 7)}px ${Math.max(12, sized)}px`,
+              fontSize: Math.max(11, sized - 2),
+              fontWeight: 700,
+            }}
+          >
+            Add to Cart
+          </button>
         </div>
       </div>
     </div>
