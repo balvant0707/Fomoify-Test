@@ -972,7 +972,8 @@ function PreviewCard({
     imageMode.includes("contain") ||
     imageMode.includes("fit");
   const imageFit = isContainImage ? "contain" : "cover";
-  const avatarSize = isPortrait ? 66 : 64;
+  const portraitImageSize = 120;
+  const avatarSize = isPortrait ? portraitImageSize : 64;
   const avatarOffset = Math.round(avatarSize * 0.45);
   const useFloatingImage = showProductImage && !isPortrait && !isContainImage;
   const cardStyle = {

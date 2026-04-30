@@ -634,7 +634,8 @@ function PreviewCard({
     imageMode.includes("contain") ||
     imageMode.includes("fit");
   const imageFit = isContainMode ? "contain" : "cover";
-  const avatarSize = 56;
+  const portraitImageSize = 120;
+  const avatarSize = isContainMode ? portraitImageSize : 56;
   const avatarOffset = Math.round(avatarSize * 0.45);
   const pad = 16;
   const imageOverflow = showProductImage && !isContainMode;
@@ -870,7 +871,8 @@ function StyledPreviewCard({
     imageMode.includes("contain") ||
     imageMode.includes("fit");
   const imageFit = isContainMode ? "contain" : "cover";
-  const avatarSize = 56;
+  const portraitImageSize = 120;
+  const avatarSize = isContainMode ? portraitImageSize : 56;
   const avatarOffset = Math.round(avatarSize * 0.45);
   const pad = 16;
   const imageOverflow = showProductImage && !isContainMode;

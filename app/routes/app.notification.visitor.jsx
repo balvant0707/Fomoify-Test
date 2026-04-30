@@ -740,7 +740,8 @@ function PreviewCard({
     imageModeRaw.includes("fit");
   const imageFit = isContainMode ? "contain" : "cover";
   const portraitVisitor = isPortrait;
-  const avatarSize = isPortrait ? 52 : 64;
+  const portraitImageSize = 120;
+  const avatarSize = isPortrait ? portraitImageSize : 64;
   const avatarOffset = Math.round(avatarSize * 0.62);
   const pad = 10;
   const showImageSlot = Boolean(showProductImage);

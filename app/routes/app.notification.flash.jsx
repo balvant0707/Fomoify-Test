@@ -767,8 +767,13 @@ function NotificationPreview({ form, isMobile = false }) {
     imageAppearance.includes("contain") ||
     imageAppearance.includes("fit");
   const isPortrait = form.layout === "portrait";
-  const iconDim = isPortrait ? 96 : 60;
-  const iconSize = isPortrait ? 84 : isContain ? 48 : iconDim;
+  const portraitImageSize = 96;
+  const iconDim = isPortrait ? portraitImageSize : 60;
+  const iconSize = isPortrait
+    ? Math.round(portraitImageSize * 0.875)
+    : isContain
+      ? 48
+      : iconDim;
 
   const svgMarkup = useMemo(() => {
     const uploaded = extractFirstSvg(form.iconSvg || "");

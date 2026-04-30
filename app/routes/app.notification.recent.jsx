@@ -1410,6 +1410,7 @@ function Bubble({ form, order, isMobile = false }) {
               style={{
                 color: form.numberColor,
                 fontWeight: Number(form.fontWeight || 600),
+                fontSize: Math.round(sized * 1.02),
               }}
             >
               {name || "Customer Name from Location"}
@@ -1421,13 +1422,17 @@ function Bubble({ form, order, isMobile = false }) {
               style={{
                 color: form.numberColor,
                 fontWeight: Number(form.fontWeight || 600),
+                fontSize: sized,
               }}
             >
               {loc}
             </span>
           )}
           <br />
-          <span>
+          <span style={{
+                color: form.numberColor,
+                fontSize: Math.round(sized * 0.92),
+              }}>
             {productTitle
               ? `${form.messageText || "bought this product recently"} "${productTitle}"`
               : form.messageText || "placed an order"}
