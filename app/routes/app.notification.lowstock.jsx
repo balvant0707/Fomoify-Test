@@ -789,7 +789,7 @@ function PreviewCard({
       return (
         <span
           key={`product-${idx}`}
-          style={{ fontWeight: 600,fontSize: contentFontSize, lineHeight: 1.35,textDecoration: "none" }}
+          style={{ fontWeight: 700,fontSize: contentFontSize, lineHeight: 1.35,textDecoration: "none",letterSpacing : "-0.02em", color: textColor }}
         >
           {safeName}
         </span>
@@ -799,13 +799,13 @@ function PreviewCard({
       return (
         <span
           key={`count-${idx}`}
-          style={{ color: numberColor, fontWeight: 700,fontSize: contentFontSize, lineHeight: 1.35 }}
+          style={{ color: numberColor, fontWeight: 700,fontSize: contentFontSize, lineHeight: 1.35,letterSpacing : "-0.02em" }}
         >
           {safeCount}
         </span>
       );
     }
-    return <span style={{ color: numberColor, fontWeight: 500,fontSize: contentFontSize, lineHeight: 1.35 }} key={`text-${idx}`}>{part}</span>;
+    return <span style={{ color: numberColor, fontWeight: 500,fontSize: contentFontSize -1, lineHeight: 1.35,letterSpacing : "-0.02em"}} key={`text-${idx}`}>{part}</span>;
   });
 
   return (
@@ -817,13 +817,13 @@ function PreviewCard({
           style={{
             position: "absolute",
             top: 0,
-            right: -10,
+            right: 10,
             border: "none",
             background: "transparent",
             color: textColor,
             display: "grid",
             placeItems: "center",
-            fontSize: 16,
+            fontSize: 18,
             lineHeight: 1,
             padding: 0,
             cursor: "pointer",
