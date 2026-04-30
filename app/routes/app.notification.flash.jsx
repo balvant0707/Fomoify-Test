@@ -307,6 +307,12 @@ const FLASH_STYLES = `
     padding: 32px 16px;
   }
 }
+  .flash-popup__message {
+    display: flex;
+    justify-content: start;
+    gap: 5px;
+    align-items: center;
+}
 `;
 
 function LayoutIcon() {
@@ -802,7 +808,7 @@ function NotificationPreview({ form, isMobile = false }) {
               : form.fontFamily,
           background,
           color: form.textColor,
-          borderRadius: Math.max(12, Math.min(28, Number(form.rounded || 14) + 6)),
+          borderRadius:10,
           paddingTop: padTop,
           paddingRight: padRight,
           paddingBottom: padBottom,
