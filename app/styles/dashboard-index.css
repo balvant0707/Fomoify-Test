@@ -23,6 +23,7 @@
 }
 
 .dashboard-embed-status {
+  font-size: 12px !important;
   flex-shrink: 0;
   min-height: 34px;
   padding: var(--p-space-150) var(--p-space-300);
