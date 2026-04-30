@@ -1218,8 +1218,8 @@ function Bubble({ form, order, isMobile = false }) {
   const avatarOffset = Math.round(avatarSize * 0.45);
   const portraitImageSize = isMobile ? 120 : 160;
   const showPortraitBlock = isPortrait && !hide.has("productImage");
-  const padY = isMobile ? 18 : 34;
-  const padX = isMobile ? 18 : 30;
+  const padY = isMobile ? 10 : 14;
+  const padX = isMobile ? 10 : 10;
   const contentLeftPad = imageOverflow ? padX + avatarOffset + 8 : padX;
   const bubbleRadius = isPortrait ? 18 : 22;
 
@@ -1259,7 +1259,7 @@ function Bubble({ form, order, isMobile = false }) {
         color: form.textColor,
         borderRadius: 10,
         boxShadow: "0 18px 42px rgba(15, 23, 42, 0.10)",
-        padding: "10px 10px 10px 44px",
+        padding: `${padY}px ${padX}px ${padY}px ${contentLeftPad}px`,
         border: "1px solid rgba(15, 23, 42, 0.08)",
         boxSizing: "border-box",
         minHeight: isPortrait ? "auto" : 100,
