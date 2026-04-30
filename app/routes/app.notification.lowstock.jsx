@@ -816,14 +816,14 @@ function PreviewCard({
           aria-label="Close"
           style={{
             position: "absolute",
-            top: 8,
-            right: 8,
+            top: 0,
+            right: -10,
             border: "none",
             background: "transparent",
             color: textColor,
             display: "grid",
             placeItems: "center",
-            fontSize: 20,
+            fontSize: 16,
             lineHeight: 1,
             padding: 0,
             cursor: "pointer",
