@@ -799,13 +799,13 @@ function PreviewCard({
       return (
         <span
           key={`count-${idx}`}
-          style={{ color: numberColor, fontWeight: 700 }}
+          style={{ color: numberColor, fontWeight: 700,fontSize: contentFontSize, lineHeight: 1.35 }}
         >
           {safeCount}
         </span>
       );
     }
-    return <span key={`text-${idx}`}>{part}</span>;
+    return <span style={{ color: numberColor, fontWeight: 500,fontSize: contentFontSize, lineHeight: 1.35 }} key={`text-${idx}`}>{part}</span>;
   });
 
   return (
