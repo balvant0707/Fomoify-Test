@@ -186,7 +186,7 @@ const RECENT_STYLES = `
 }
 .recent-preview .popup-preview-panel__surface {
   min-height: 300px;
-  padding: 72px 20px 48px;
+  padding: 0px 0px 0 30px;
   align-items: center;
 }
 .recent-preview.is-fit-image .popup-preview-panel__surface {
