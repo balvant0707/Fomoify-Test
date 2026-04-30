@@ -57,6 +57,8 @@ const CONTACT_FORM_INITIAL = {
   message: "",
 };
 const SUPPORT_HELP_URL = "https://fomoifysalespopupproof.tawk.help/category/features";
+const WHATSAPP_SUPPORT_MESSAGE =
+  "Hi Fomoify Support, I need help with my Shopify app.";
 const SCHEDULE_CALL_URL =
   "https://outlook.office.com/book/ShopifyGrowthConsultationCall@m2webdesigning.com/";
 const PROMOTED_UPSELL_APP_URL = "https://apps.shopify.com/cartlift-cart-drawer-upsell";
@@ -661,6 +663,9 @@ export default function AppIndex() {
     : hasFreshPingSignal;
   const embedBadgeTone = isEmbedActive ? "success" : "critical";
   const embedBadgeText = `App embed: ${isEmbedActive ? "ON" : "OFF"}`;
+  const whatsappSupportUrl = `https://wa.me/?text=${encodeURIComponent(
+    `${WHATSAPP_SUPPORT_MESSAGE}${shopDomain ? ` Store: ${shopDomain}` : ""}`
+  )}`;
   const shouldShowReviewPopup = Boolean(
     dashboardReviewPopupStatus?.shouldShowReviewPopup
   );
@@ -927,6 +932,20 @@ export default function AppIndex() {
       <div className="dashboard-index-page">
       <style>{INDEX_PAGE_INLINE_CSS}</style>
       <BlockStack gap="400">
+        <div className="dashboard-page-header">
+          <Text as="h1" variant="headingLg" fontWeight="bold">
+            Dashboard
+          </Text>
+          <button
+            type="button"
+            className={`dashboard-embed-status dashboard-embed-status--${
+              isEmbedActive ? "on" : "off"
+            }`}
+            onClick={() => openThemeEditor(resolvedThemeId, "activate")}
+          >
+            {embedBadgeText}
+          </button>
+        </div>
 
         {/* Review top banner */}
         {showTopReviewBanner && (
@@ -1065,7 +1084,14 @@ export default function AppIndex() {
                       </BlockStack>
                       <Text tone="subdued">Reach out anytime for support, feedback, or just to share your progress.</Text>
                       <InlineStack gap="200" align="center" wrap>
-                        <Button icon={ChatIcon} onClick={openContactModal}>WhatsApp</Button>
+                        <Button
+                          icon={ChatIcon}
+                          onClick={() =>
+                            window.open(whatsappSupportUrl, "_blank", "noopener,noreferrer")
+                          }
+                        >
+                          WhatsApp
+                        </Button>
                         <Button icon={ExternalIcon} onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}>
                           Knowledge Base
                         </Button>
@@ -1120,6 +1146,7 @@ export default function AppIndex() {
                       target="_blank"
                       monochrome
                       removeUnderline
+                      variant="headingSm"
                     >
                       CartLift: Cart Drawer & Upsell
                     </PolarisLink>
