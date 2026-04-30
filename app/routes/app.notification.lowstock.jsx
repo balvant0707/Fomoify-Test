@@ -904,14 +904,14 @@ function PreviewCard({
 
       <div style={{ display: "grid", gap: 6, minWidth: 0, flex: 1 }}>
         {showRating && (
-          <div style={{ color: starColor, fontSize: ratingFontSize }}>
+          <div style={{ color: starColor, fontSize: `${ratingFontSize}px !important` }}>
             {"*****".slice(0, product?.rating || 4)}
             <span style={{ color: "#d1d5db" }}>
               {"*****".slice(0, 5 - (product?.rating || 4))}
             </span>
           </div>
         )}
-        <div style={{ fontSize: `${contentFontSize} !important`, lineHeight: 1.35 }}>
+        <div style={{ fontSize: `${contentFontSize}px !important`, lineHeight: 1.35 }}>
           {contentNode}
         </div>
         {showPriceTag && (
@@ -920,7 +920,7 @@ function PreviewCard({
               style={{
                 background: priceTagBg,
                 color: priceColor,
-                fontSize: priceFontSize,
+                fontSize: `${priceFontSize}px !important`,
                 padding: "2px 8px",
                 borderRadius: 6,
                 fontWeight: 600,
@@ -931,7 +931,7 @@ function PreviewCard({
             <span
               style={{
                 color: priceTagAlt,
-                fontSize: compareFontSize,
+                fontSize: `${compareFontSize}px !important`,
                 textDecoration: "line-through",
               }}
             >
