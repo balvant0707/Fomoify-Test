@@ -753,7 +753,7 @@ function PreviewCard({
     opacity,
     background,
     color: textColor,
-    borderRadius: 18,
+    borderRadius: 10,
     boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
     border: "1px solid rgba(0,0,0,0.06)",
     padding: pad,
@@ -789,7 +789,7 @@ function PreviewCard({
       return (
         <span
           key={`product-${idx}`}
-          style={{ fontWeight: 600, textDecoration: "underline" }}
+          style={{ fontWeight: 600, textDecoration: "none" }}
         >
           {safeName}
         </span>
@@ -837,7 +837,7 @@ function PreviewCard({
           <div
             style={{
               position: "absolute",
-              left: "8px",
+              left: "0",
               top: "50%",
               transform: "translate(-50%, -50%)",
               width: avatarSize,
@@ -911,7 +911,7 @@ function PreviewCard({
             </span>
           </div>
         )}
-        <div style={{ fontSize: contentFontSize, lineHeight: 1.35 }}>
+        <div style={{ fontSize: `${contentFontSize} !important`, lineHeight: 1.35 }}>
           {contentNode}
         </div>
         {showPriceTag && (
