@@ -1,12 +1,25 @@
 .dashboard-page-header {
   min-height: 82px;
   margin: calc(var(--p-space-400) * -1) calc(var(--p-space-400) * -1) 0;
-  padding: var(--p-space-300);
+  padding: var(--p-space-600);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--p-space-400);
   background: #f1f1f1;
+}
+
+.dashboard-page-title {
+  margin: 0;
+  color: #303030;
+  font-size: 24px !important;
+  line-height: 32px !important;
+  font-weight: 700;
+}
+
+.dashboard-index-page .dashboard-page-title {
+  font-size: 24px !important;
+  line-height: 32px !important;
 }
 
 .dashboard-embed-status {

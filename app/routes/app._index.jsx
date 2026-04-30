@@ -655,11 +655,10 @@ export default function AppIndex() {
     hasThemeEmbedCheck && embedContextState.appEmbedFound === true;
   const hasFreshPingSignal =
     embedPing?.isFresh === true || embedPing?.isOn === true;
-  const isEmbedStatusLoading = isEmbedContextLoading || isEmbedPingLoading;
-  // Use theme result when embed block is positively identified; otherwise trust ping fallback.
-  const isEmbedActive = hasThemeEmbedSignal
-    ? Boolean(embedContextState.appEmbedEnabled)
-    : hasFreshPingSignal;
+  const isEmbedStatusLoading = isEmbedContextLoading && isEmbedPingLoading;
+  const isEmbedActive =
+    hasFreshPingSignal ||
+    (hasThemeEmbedSignal && Boolean(embedContextState.appEmbedEnabled));
   const embedBadgeText = isEmbedStatusLoading
     ? "App embed: CHECKING"
     : `App embed: ${isEmbedActive ? "ON" : "OFF"}`;
@@ -933,9 +932,7 @@ export default function AppIndex() {
       <style>{INDEX_PAGE_INLINE_CSS}</style>
       <BlockStack gap="400">
         <div className="dashboard-page-header">
-          <Text as="h1" variant="headingLg" fontWeight="bold" fontSize="24px !important">
-            Dashboard
-          </Text>
+          <h1 className="dashboard-page-title">Dashboard</h1>
           <button
             type="button"
             className={`dashboard-embed-status dashboard-embed-status--${
