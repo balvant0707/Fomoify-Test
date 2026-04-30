@@ -50,7 +50,7 @@ export function PopupPreviewPanel({
   return (
     <Card padding="0">
       <style>{PANEL_STYLES}</style>
-      <Box className="popup-preview-panel" style={{ paddingRight: "0 !important" }}>
+      <Box className="popup-preview-panel">
         <BlockStack gap="400">
           <InlineStack
             align="space-between"

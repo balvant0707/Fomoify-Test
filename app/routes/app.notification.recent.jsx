@@ -192,6 +192,9 @@ const RECENT_STYLES = `
 .recent-preview.is-fit-image .popup-preview-panel__surface {
   padding: 0;
 }
+.recent-preview.is-fit-image .popup-preview-panel {
+    padding-right: unset !important;
+  }
 .recent-preview .popup-preview-panel__content {
   max-width: 100%;
 }
