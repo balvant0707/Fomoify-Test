@@ -19,8 +19,10 @@ const buildEditorRedirect = (request, params) => {
 
   const url = new URL(request.url);
   const sp = new URLSearchParams(url.search);
-  sp.delete("id");
-  sp.delete("editId");
+  const id = Number(params?.id);
+  if (Number.isInteger(id) && id > 0) {
+    sp.set("editId", String(id));
+  }
 
   const search = sp.toString();
   return `/app/notification/${key}${search ? `?${search}` : ""}`;

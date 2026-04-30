@@ -37,8 +37,6 @@ import {
   HeartIcon,
   PageHeartIcon,
   StarIcon,
-  ThemeEditIcon,
-  ThemeIcon,
 } from "@shopify/polaris-icons";
 import { APP_EMBED_HANDLE } from "../utils/themeEmbed.shared";
 import { getEmbedPingStatus } from "../utils/embedPingStatus.server";
@@ -657,12 +655,14 @@ export default function AppIndex() {
     hasThemeEmbedCheck && embedContextState.appEmbedFound === true;
   const hasFreshPingSignal =
     embedPing?.isFresh === true || embedPing?.isOn === true;
+  const isEmbedStatusLoading = isEmbedContextLoading || isEmbedPingLoading;
   // Use theme result when embed block is positively identified; otherwise trust ping fallback.
   const isEmbedActive = hasThemeEmbedSignal
     ? Boolean(embedContextState.appEmbedEnabled)
     : hasFreshPingSignal;
-  const embedBadgeTone = isEmbedActive ? "success" : "critical";
-  const embedBadgeText = `App embed: ${isEmbedActive ? "ON" : "OFF"}`;
+  const embedBadgeText = isEmbedStatusLoading
+    ? "App embed: CHECKING"
+    : `App embed: ${isEmbedActive ? "ON" : "OFF"}`;
   const whatsappSupportUrl = `https://wa.me/?text=${encodeURIComponent(
     `${WHATSAPP_SUPPORT_MESSAGE}${shopDomain ? ` Store: ${shopDomain}` : ""}`
   )}`;
@@ -933,15 +933,13 @@ export default function AppIndex() {
       <style>{INDEX_PAGE_INLINE_CSS}</style>
       <BlockStack gap="400">
         <div className="dashboard-page-header">
-          <Text as="h1" variant="headingLg" fontWeight="bold">
+          <Text as="h1" variant="headingLg" fontWeight="bold" fontSize="24px !important">
             Dashboard
           </Text>
           <button
             type="button"
-            tone="subdued" 
-            variant="bodySm"
             className={`dashboard-embed-status dashboard-embed-status--${
-              isEmbedActive ? "on" : "off"
+              isEmbedStatusLoading ? "checking" : isEmbedActive ? "on" : "off"
             }`}
             onClick={() => openThemeEditor(resolvedThemeId, "activate")}
           >
@@ -1121,15 +1119,12 @@ export default function AppIndex() {
                     <Box className="dashboard-app-icon" borderRadius="300" borderWidth="025" borderColor="border">
                       <img src="/images/cartlift.png" alt="" />
                     </Box>
-                    <PolarisLink
-                      href={PROMOTED_UPSELL_APP_URL}
-                      target="_blank"
-                      removeUnderline
+                    <text style={{ fontWeight: "bold", fontSize: "16px" }}
                       variant="headingSm"
                       fontWeight="bold"
                     >
                       CartLift: Cart Drawer & Upsell
-                    </PolarisLink>
+                    </text>
                     <Badge>Upsell</Badge>
                   </InlineStack>
                   <Text tone="subdued">

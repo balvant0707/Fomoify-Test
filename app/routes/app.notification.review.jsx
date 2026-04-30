@@ -26,6 +26,8 @@ import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import { saveReviewPopup } from "../models/popup-config.server";
 import prisma from "../db.server";
+import { PopupPreviewPanel } from "../components/notification/PopupPreviewPanel";
+import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
 const JUDGE_ME_INTEGRATION_KEY = "integration_judge_me";
 const isTransientDbError = (error) => {
@@ -72,6 +74,9 @@ export async function loader({ request }) {
     });
   }
   const shop = session?.shop;
+  const reqUrl = new URL(request.url);
+  const editIdNum = Number(reqUrl.searchParams.get("editId") || reqUrl.searchParams.get("id"));
+  const editId = Number.isInteger(editIdNum) && editIdNum > 0 ? editIdNum : null;
 
   const parseArr = (raw) => {
     if (Array.isArray(raw)) return raw;
@@ -95,10 +100,11 @@ export async function loader({ request }) {
     const model = prisma?.reviewpopupconfig || prisma?.reviewPopupConfig || null;
     const source =
       shop && model?.findFirst
-        ? await model.findFirst({
-            where: { shop },
-            orderBy: { id: "desc" },
-          })
+        ? await model.findFirst(
+            editId
+              ? { where: { id: editId, shop } }
+              : { where: { shop }, orderBy: { id: "desc" } }
+          )
         : null;
 
     if (source) {
@@ -1404,8 +1410,9 @@ export default function ReviewNotificationPage() {
         }}
         primaryAction={{ content: "Save", onAction: save, loading: saving }}
       >
+        <NotificationPageStyles />
         <style>{REVIEW_STYLES}</style>
-        <div className="review-shell">
+        <div className="review-shell notification-page">
           <div className="review-sidebar">
             {NAV_ITEMS.map(({ id, label, Icon }) => (
               <button
@@ -2056,61 +2063,49 @@ export default function ReviewNotificationPage() {
                 </BlockStack>
               </div>
               <div className="review-preview">
-                <Card>
-                  <Box padding="4">
-                    <BlockStack gap="300">
-                      <Text as="h3" variant="headingMd">
-                        Preview
-                      </Text>
-                      <div className="review-preview-box">
-                        {previewMessage ? (
-                          <div style={{ textAlign: "center" }}>
-                            <Text as="p" tone="subdued">
-                              {previewMessage}
-                            </Text>
-                          </div>
-                        ) : (
-                          <ActivePreviewCard
-                            bgColor={normalizeHex(design.bgColor, "#FFFFFF")}
-                            bgAlt={normalizeHex(design.bgAlt, "#F3F4F6")}
-                            template={design.template}
-                            imageAppearance={design.imageAppearance}
-                            textColor={normalizeHex(design.textColor, "#000000")}
-                            timestampColor={normalizeHex(
-                              design.timestampColor,
-                              "#696969"
-                            )}
-                            priceTagBg={normalizeHex(
-                              design.priceTagBg,
-                              "#593E3F"
-                            )}
-                            priceTagAlt={normalizeHex(
-                              design.priceTagAlt,
-                              "#E66465"
-                            )}
-                            priceColor={normalizeHex(
-                              design.priceColor,
-                              "#FFFFFF"
-                            )}
-                            starColor={normalizeHex(design.starColor, "#FFCF0D")}
-                            textSizeContent={Number(textSize.content) || 14}
-                            textSizeCompare={Number(textSize.compareAt) || 12}
-                            textSizePrice={Number(textSize.price) || 12}
-                            contentText={content.message}
-                            timestampText={content.timestamp}
-                            showProductImage={data.showProductImage}
-                            showPriceTag={data.showPriceTag}
-                            showRating={data.showRating}
-                            showClose={behavior.showClose}
-                            product={previewProduct}
-                            productNameMode={productNameMode}
-                            productNameLimit={productNameLimit}
-                          />
-                        )}
-                      </div>
-                    </BlockStack>
-                  </Box>
-                </Card>
+                <PopupPreviewPanel
+                  title="Review notification preview"
+                  description="Uses the product, rating, review tokens, and current visual settings."
+                  badge="Review proof"
+                  emptyMessage={previewMessage}
+                >
+                  <ActivePreviewCard
+                    bgColor={normalizeHex(design.bgColor, "#FFFFFF")}
+                    bgAlt={normalizeHex(design.bgAlt, "#F3F4F6")}
+                    template={design.template}
+                    imageAppearance={design.imageAppearance}
+                    textColor={normalizeHex(design.textColor, "#000000")}
+                    timestampColor={normalizeHex(
+                      design.timestampColor,
+                      "#696969"
+                    )}
+                    priceTagBg={normalizeHex(
+                      design.priceTagBg,
+                      "#593E3F"
+                    )}
+                    priceTagAlt={normalizeHex(
+                      design.priceTagAlt,
+                      "#E66465"
+                    )}
+                    priceColor={normalizeHex(
+                      design.priceColor,
+                      "#FFFFFF"
+                    )}
+                    starColor={normalizeHex(design.starColor, "#FFCF0D")}
+                    textSizeContent={Number(textSize.content) || 14}
+                    textSizeCompare={Number(textSize.compareAt) || 12}
+                    textSizePrice={Number(textSize.price) || 12}
+                    contentText={content.message}
+                    timestampText={content.timestamp}
+                    showProductImage={data.showProductImage}
+                    showPriceTag={data.showPriceTag}
+                    showRating={data.showRating}
+                    showClose={behavior.showClose}
+                    product={previewProduct}
+                    productNameMode={productNameMode}
+                    productNameLimit={productNameLimit}
+                  />
+                </PopupPreviewPanel>
               </div>
             </div>
             <div className="review-help">

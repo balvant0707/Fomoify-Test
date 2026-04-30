@@ -32,6 +32,8 @@ import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { saveRecentPopup } from "../models/popup-config.server";
+import { PopupPreviewPanel } from "../components/notification/PopupPreviewPanel";
+import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
 /* ---------------- constants ---------------- */
 const KEY = "recent";
@@ -1572,9 +1574,6 @@ function shouldShowPreviewCompare(priceText, compareText) {
 function LivePreview({ form, order }) {
   return (
     <BlockStack gap="200">
-      <Text as="h3" variant="headingMd">
-        Live Preview
-      </Text>
       <DesktopPreview form={form} order={order} />
       <Text as="p" variant="bodySm" tone="subdued">
         Orders are pulled strictly by the selected window (shop timezone).
@@ -1787,8 +1786,9 @@ export default function RecentOrdersPopupPage() {
           disabled: saving || unusable,
         }}
       >
+        <NotificationPageStyles />
         <style>{RECENT_STYLES}</style>
-<div className="recent-shell">
+<div className="recent-shell notification-page">
   <div className="recent-sidebar">
     {NAV_ITEMS.map(({ id, label, Icon }) => (
       <button
@@ -2285,13 +2285,13 @@ export default function RecentOrdersPopupPage() {
       </div>
 
       <div className="recent-preview">
-        <Card>
-          <Box padding="4">
-            <div className="recent-preview-box">
-              <LivePreview form={form} order={preview} />
-            </div>
-          </Box>
-        </Card>
+        <PopupPreviewPanel
+          title="Recent purchase preview"
+          description="Uses the selected order window and current design settings."
+          badge="Recent popup"
+        >
+          <LivePreview form={form} order={preview} />
+        </PopupPreviewPanel>
       </div>
     </div>
   </div>

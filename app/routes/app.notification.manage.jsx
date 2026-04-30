@@ -6,6 +6,7 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { getOrSetCache } from "../utils/serverCache.server";
 import NotificationTable from "../components/dashboard/NotificationTable";
+import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
 const POPUP_KEYS = [
   "recent",
@@ -329,48 +330,51 @@ export default function NotificationManagePage() {
       title="Manage Notifications"
       backAction={{ content: "Back", url: "/app/notification" }}
     >
-      <Suspense
-        fallback={
-          <Card>
-            <div
-              style={{
-                padding: 16,
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <Spinner size="small" />
-              <Text as="span" tone="subdued">
-                Loading notifications...
-              </Text>
-            </div>
-          </Card>
-        }
-      >
-        <Await
-          resolve={rows}
-          errorElement={
+      <NotificationPageStyles />
+      <div className="notification-page">
+        <Suspense
+          fallback={
             <Card>
-              <div style={{ padding: 16 }}>
-                <Text as="p" tone="critical">
-                  Failed to load notifications.
+              <div
+                style={{
+                  padding: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <Spinner size="small" />
+                <Text as="span" tone="subdued">
+                  Loading notifications...
                 </Text>
               </div>
             </Card>
           }
         >
-          {(data) => (
-            <NotificationTable
-              rows={data.rows}
-              total={data.total}
-              page={critical.page}
-              pageSize={critical.pageSize}
-              filters={critical.filters}
-            />
-          )}
-        </Await>
-      </Suspense>
+          <Await
+            resolve={rows}
+            errorElement={
+              <Card>
+                <div style={{ padding: 16 }}>
+                  <Text as="p" tone="critical">
+                    Failed to load notifications.
+                  </Text>
+                </div>
+              </Card>
+            }
+          >
+            {(data) => (
+              <NotificationTable
+                rows={data.rows}
+                total={data.total}
+                page={critical.page}
+                pageSize={critical.pageSize}
+                filters={critical.filters}
+              />
+            )}
+          </Await>
+        </Suspense>
+      </div>
     </Page>
   );
 }

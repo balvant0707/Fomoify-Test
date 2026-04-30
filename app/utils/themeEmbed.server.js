@@ -6,6 +6,10 @@ export { APP_EMBED_HANDLE };
 
 const toLower = (value) => String(value || "").trim().toLowerCase();
 const normalizeToken = (value) => toLower(value).replace(/[^a-z0-9]/g, "");
+const normalizeShopifyAppUrl = (value) =>
+  toLower(value)
+    .replace(/^shopify:\/\//, "")
+    .replace(/[^a-z0-9/_-]/g, "");
 const toBool = (value) => {
   if (value === true || value === 1) return true;
   const v = toLower(value);
@@ -284,11 +288,14 @@ export async function getThemeEmbedState({
       )
     );
 
+    const expectedBlockPath = `blocks/${toLower(embedHandle)}`;
+    const expectedBlockPathUnderscore = expectedBlockPath.replace(/-/g, "_");
     const matches = entries
       .filter(({ blockId, block }) => {
         const type = toLower(block?.type);
         if (!type) return false;
 
+        const appUrl = normalizeShopifyAppUrl(type);
         const normalizedType = normalizeToken(type);
         const normalizedBlockId = normalizeToken(blockId);
         const normalizedName = normalizeToken(
@@ -304,6 +311,13 @@ export async function getThemeEmbedState({
           normalizedBlockId.includes("shopifyapps");
         if (!hasAppType) {
           return false;
+        }
+
+        if (
+          appUrl.includes(expectedBlockPath) ||
+          appUrl.includes(expectedBlockPathUnderscore)
+        ) {
+          return true;
         }
 
         const haystack = `${normalizedType} ${normalizedBlockId} ${normalizedName} ${normalizedTarget}`;

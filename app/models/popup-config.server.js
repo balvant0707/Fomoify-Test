@@ -307,7 +307,16 @@ export async function saveVisitorPopup(shop, form) {
     selectedCollectionsJson: toJson(form?.selectedCollections),
   };
 
-  return upsertByShopWithSplitFallback(table, shop, data, "visitorpopupconfig");
+  const preferredId = toInt(form?.editId ?? form?.id);
+
+  return upsertByShopWithSplitFallback(
+    table,
+    shop,
+    data,
+    "visitorpopupconfig",
+    SPLIT_SELECTION_COLUMNS,
+    preferredId
+  );
 }
 
 export async function saveLowStockPopup(shop, form) {
@@ -383,11 +392,15 @@ export async function saveLowStockPopup(shop, form) {
     selectedCollectionsJson: toJson(form?.selectedCollections),
   };
 
+  const preferredId = toInt(form?.editId ?? form?.id);
+
   return upsertByShopWithSplitFallback(
     table,
     shop,
     data,
-    "lowstockpopupconfig"
+    "lowstockpopupconfig",
+    SPLIT_SELECTION_COLUMNS,
+    preferredId
   );
 }
 
@@ -655,5 +668,13 @@ export async function saveFlashPopup(shop, form) {
     selectedProductsJson: JSON.stringify(form?.selectedProductsJson ?? []),
   };
 
-  return upsertByShop(prisma.flashpopupconfig, shop, data, "flashpopupconfig");
+  const preferredId = toInt(form?.editId ?? form?.id);
+
+  return upsertByShop(
+    prisma.flashpopupconfig,
+    shop,
+    data,
+    "flashpopupconfig",
+    preferredId
+  );
 }

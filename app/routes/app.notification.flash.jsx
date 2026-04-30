@@ -10,6 +10,8 @@ import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { saveFlashPopup } from "../models/popup-config.server";
+import { PopupPreviewPanel } from "../components/notification/PopupPreviewPanel";
+import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
 /* ---------------- Constants ---------------- */
 const KEY = "flash";
@@ -266,6 +268,9 @@ const NAV_ITEMS = [
 export async function loader({ request }) {
   const { session } = await authenticate.admin(request);
   const shop = session?.shop;
+  const reqUrl = new URL(request.url);
+  const editIdNum = Number(reqUrl.searchParams.get("editId") || reqUrl.searchParams.get("id"));
+  const editId = Number.isInteger(editIdNum) && editIdNum > 0 ? editIdNum : null;
   let last = null;
 
   if (shop) {
@@ -273,10 +278,11 @@ export async function loader({ request }) {
       const model =
         prisma?.flashpopupconfig || prisma?.flashPopupConfig || null;
       if (model?.findFirst) {
-        last = await model.findFirst({
-          where: { shop },
-          orderBy: { id: "desc" },
-        });
+        last = await model.findFirst(
+          editId
+            ? { where: { id: editId, shop } }
+            : { where: { shop }, orderBy: { id: "desc" } }
+        );
       }
     } catch (e) {
       console.error("[Flash loader] flashpopupconfig findFirst failed:", e);
@@ -307,6 +313,7 @@ export async function loader({ request }) {
       : enabledRaw === true || enabledRaw === 1 || enabledRaw === "1";
 
   const saved = {
+    id: source?.id ?? editId ?? null,
     enabled,
     showType: source?.showType ?? "allpage",
     messageTitle: source?.messageTitle ?? messageTitlesJson[0] ?? "Flash Sale",
@@ -770,7 +777,6 @@ function MobilePreview({ form }) {
 function LivePreview({ form }) {
   return (
     <BlockStack gap="300">
-      <Text as="h3" variant="headingMd">Live Preview</Text>
       <DesktopPreview form={form} />
       <Text as="p" variant="bodySm" tone="subdued">
         Preview reflects your desktop settings.
@@ -812,6 +818,7 @@ export default function FlashConfigPage() {
   const [namesList, setNamesList] = useState(defaultNames);
 
   const [form, setForm] = useState({
+    editId: saved?.id ?? null,
     enabled: saved?.enabled ? ["enabled"] : ["disabled"],
     showType: saved?.showType ?? "allpage",
 
@@ -953,6 +960,7 @@ export default function FlashConfigPage() {
       setSaving(true);
       const payload = {
         ...form,
+        editId: form.editId,
         // send arrays; server will stringify
         messageTitlesJson: titlesList.length ? titlesList : defaultTitles,
         locationsJson: locationsList.length ? locationsList : defaultLocations,
@@ -1002,8 +1010,9 @@ export default function FlashConfigPage() {
         backAction={{ content: "Back", onAction: () => navigate(notificationUrl) }}
         primaryAction={{ content: "Save", onAction: save, loading: saving, disabled: saving }}
       >
+        <NotificationPageStyles />
         <style>{FLASH_STYLES}</style>
-<div className="flash-shell">
+<div className="flash-shell notification-page">
   <div className="flash-sidebar">
     {NAV_ITEMS.map(({ id, label, Icon }) => (
       <button
@@ -1403,13 +1412,13 @@ export default function FlashConfigPage() {
       </div>
 
       <div className="flash-preview">
-        <Card>
-          <Box padding="4">
-            <div className="flash-preview-box">
-              <LivePreview form={form} />
-            </div>
-          </Box>
-        </Card>
+        <PopupPreviewPanel
+          title="Flash sale preview"
+          description="Updates from the sale title, colors, icon, placement, and motion settings."
+          badge="Flash popup"
+        >
+          <LivePreview form={form} />
+        </PopupPreviewPanel>
       </div>
     </div>
   </div>

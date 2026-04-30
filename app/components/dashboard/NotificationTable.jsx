@@ -15,6 +15,7 @@ import {
   TextField,
   Toast,
 } from "@shopify/polaris";
+import { DeleteIcon, EditIcon } from "@shopify/polaris-icons";
 import {
   Form,
   useFetcher,
@@ -283,6 +284,13 @@ export default function NotificationTable({
     submit(fd, { method: "get", replace: true });
   };
 
+  const editUrlFor = (row) => {
+    const sp = new URLSearchParams(location.search);
+    sp.set("editId", String(row.id));
+    sp.delete("page");
+    return `/app/notification/${row.key}?${sp.toString()}`;
+  };
+
   const qLower = (query || "").trim().toLowerCase();
   const safeRows = Array.isArray(rows) ? rows : [];
 
@@ -517,17 +525,17 @@ export default function NotificationTable({
                       <IndexTable.Cell>
                         <InlineStack align="start" gap="200">
                           <Button
-                            onClick={() => navigate(`/app/notification/${row.key}`)}
-                          >
-                            Edit
-                          </Button>
+                            icon={EditIcon}
+                            accessibilityLabel={`Edit ${TITLES[row.key] || "notification"}`}
+                            onClick={() => navigate(editUrlFor(row))}
+                          />
                           <Button
+                            icon={DeleteIcon}
+                            accessibilityLabel={`Delete ${TITLES[row.key] || "notification"}`}
                             tone="critical"
                             variant="secondary"
                             onClick={() => openDelete(row)}
-                          >
-                            Delete
-                          </Button>
+                          />
                         </InlineStack>
                       </IndexTable.Cell>
                     </IndexTable.Row>

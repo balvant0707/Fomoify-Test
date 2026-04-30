@@ -1,8 +1,9 @@
 // app/routes/app.notification._index.jsx
 import React, { useState, useCallback } from "react";
-import { Page, Button, Loading } from "@shopify/polaris";
+import { Page, Button, Loading, Card, BlockStack, InlineStack, Text, Box } from "@shopify/polaris";
 import { useNavigate } from "@remix-run/react";
 import { authenticate } from "../shopify.server";
+import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
 export const links = () => [
   {
@@ -26,49 +27,21 @@ const DASHBOARD_STYLES = `
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 16px;
 }
-.notify-card {
-  border-radius: 16px;
-  border: 1px solid #e6e6e6;
-  background: #ffffff;
-  padding: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  box-shadow: 0 8px 20px rgba(15, 15, 15, 0.06);
-}
-.notify-card-body {
+.notify-card-media {
+  width: 82px;
+  height: 82px;
+  flex-shrink: 0;
   display: grid;
-  gap: 8px;
+  place-items: center;
+  border: 1px solid #e3e5e7;
+  border-radius: 8px;
+  background: #f8f9fb;
+  overflow: hidden;
 }
-.notify-card-title {
-  font-size: 15px;
-  font-weight: 700;
-}
-.notify-card-desc {
-  font-size: 13px;
-  color: #6b6b6b;
-  max-width: 300px;
-}
-.notify-actions {
-  display: flex;
-  gap: 10px;
-}
-.notify-card-right {
-  display: grid;
-  gap: 8px;
-  justify-items: end;
-}
-.notify-bar {
-  height: 10px;
-  width: 86px;
-  border-radius: 999px;
-  background: #e5e7eb;
-}
-.notify-bar.is-primary {
-  height: 12px;
-  width: 96px;
-  background: #2f855a;
+.notify-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 `;
 
@@ -83,29 +56,27 @@ function DashboardCard({
   const imageSrc = `/images/${encodeURIComponent(imageName)}`;
 
   return (
-    <div className="notify-card">
-      <div className="notify-card-body">
-        <div className="notify-card-title">{title}</div>
-        <div className="notify-card-desc">{desc}</div>
-        <div className="notify-actions">
-          <Button primary onClick={onCreate} loading={loading} disabled={loading}>
-            {loading ? "Opening..." : "Create"}
-          </Button>
-          <Button onClick={onManage} disabled={loading}>
-            Manage
-          </Button>
-        </div>
-      </div>
-      <div className="notify-card-right" aria-hidden>
-        <img
-          src={imageSrc}
-          alt={`${title} preview`}
-          width={80}
-          height={80}
-          style={{ borderRadius: 8, objectFit: "contain" }}
-        />
-      </div>
-    </div>
+    <Card>
+      <Box padding="400">
+        <InlineStack align="space-between" blockAlign="center" gap="400" wrap={false}>
+          <BlockStack gap="250">
+            <Text as="h3" fontWeight="bold">{title}</Text>
+            <Text as="p" tone="subdued">{desc}</Text>
+            <InlineStack gap="200">
+              <Button variant="primary" onClick={onCreate} loading={loading} disabled={loading}>
+                {loading ? "Opening..." : "Create"}
+              </Button>
+              <Button onClick={onManage} disabled={loading}>
+                Manage
+              </Button>
+            </InlineStack>
+          </BlockStack>
+          <div className="notify-card-media" aria-hidden>
+            <img src={imageSrc} alt="" />
+          </div>
+        </InlineStack>
+      </Box>
+    </Card>
   );
 }
 
@@ -181,8 +152,9 @@ export default function NotificationDashboardIndex() {
     <>
       {loadingKey && <Loading />}
       <Page title="Sales Popups & Flash Bars">
+        <NotificationPageStyles />
         <style>{DASHBOARD_STYLES}</style>
-        <div className="notify-page">
+        <div className="notify-page notification-page">
           <div className="notify-grid">
             {CARD_DATA.map((card) => (
               <DashboardCard

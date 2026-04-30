@@ -27,6 +27,8 @@ import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import { saveAddToCartPopup } from "../models/popup-config.server";
 import prisma from "../db.server";
+import { PopupPreviewPanel } from "../components/notification/PopupPreviewPanel";
+import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
 const SAMPLE_ADD_TO_CART_CUSTOMER = Object.freeze({
   first_name: "Jenna",
@@ -1536,8 +1538,9 @@ export default function AddToCartPopupPage() {
         backAction={{ content: "Back", onAction: () => navigate(notificationUrl) }}
         primaryAction={{ content: "Save", onAction: save, loading: saving }}
       >
+        <NotificationPageStyles />
         <style>{LOW_STOCK_STYLES}</style>
-        <div className="lowstock-shell">
+        <div className="lowstock-shell notification-page">
           <div className="lowstock-sidebar">
             {NAV_ITEMS.map(({ id, label, Icon }) => (
               <button
@@ -2298,67 +2301,55 @@ export default function AddToCartPopupPage() {
               </div>
 
               <div className="lowstock-preview">
-                <Card>
-                  <Box padding="4">
-                    <BlockStack gap="300">
-                      <Text as="h3" variant="headingMd">
-                        Preview
-                      </Text>
-                      <div className="lowstock-preview-box">
-                        {previewMessage ? (
-                          <div style={{ textAlign: "center" }}>
-                            <Text as="p" tone="subdued">
-                              {previewMessage}
-                            </Text>
-                          </div>
-                        ) : (
-                          <PreviewCard
-                            layout={design.layout}
-                            size={design.size}
-                            transparency={design.transparent}
-                            bgColor={normalizeHex(design.bgColor, "#FFFBD2")}
-                            bgAlt={normalizeHex(design.bgAlt, "#FBCFCF")}
-                            textColor={normalizeHex(design.textColor, "#000000")}
-                            timestampColor={normalizeHex(
-                              design.timestampColor,
-                              "#FBF9F9"
-                            )}
-                            priceTagBg={normalizeHex(
-                              design.priceTagBg,
-                              "#593E3F"
-                            )}
-                            priceTagAlt={normalizeHex(
-                              design.priceTagAlt,
-                              "#E66465"
-                            )}
-                            priceColor={normalizeHex(
-                              design.priceColor,
-                              "#FFFFFF"
-                            )}
-                            starColor={normalizeHex(design.starColor, "#F06663")}
-                            imageAppearance={design.imageAppearance}
-                            textSizeContent={Number(textSize.content) || 14}
-                            textSizeCompare={Number(textSize.compareAt) || 12}
-                            textSizePrice={Number(textSize.price) || 12}
-                            contentText={content.message}
-                            timestampText={content.timestamp}
-                            avgTime={content.avgTime}
-                            avgUnit={content.avgUnit}
-                            showProductImage={data.showProductImage}
-                            showPriceTag={data.showPriceTag}
-                            showRating={data.showRating}
-                            showClose={behavior.showClose}
-                            product={previewProduct}
-                            previewCustomer={previewCustomer}
-                            template={design.template}
-                            productNameMode={productNameMode}
-                            productNameLimit={productNameLimit}
-                          />
-                        )}
-                      </div>
-                    </BlockStack>
-                  </Box>
-                </Card>
+                <PopupPreviewPanel
+                  title="Add to cart preview"
+                  description="Uses the selected product, customer tokens, price, rating, and current design settings."
+                  badge="Cart activity"
+                  emptyMessage={previewMessage}
+                >
+                  <PreviewCard
+                    layout={design.layout}
+                    size={design.size}
+                    transparency={design.transparent}
+                    bgColor={normalizeHex(design.bgColor, "#FFFBD2")}
+                    bgAlt={normalizeHex(design.bgAlt, "#FBCFCF")}
+                    textColor={normalizeHex(design.textColor, "#000000")}
+                    timestampColor={normalizeHex(
+                      design.timestampColor,
+                      "#FBF9F9"
+                    )}
+                    priceTagBg={normalizeHex(
+                      design.priceTagBg,
+                      "#593E3F"
+                    )}
+                    priceTagAlt={normalizeHex(
+                      design.priceTagAlt,
+                      "#E66465"
+                    )}
+                    priceColor={normalizeHex(
+                      design.priceColor,
+                      "#FFFFFF"
+                    )}
+                    starColor={normalizeHex(design.starColor, "#F06663")}
+                    imageAppearance={design.imageAppearance}
+                    textSizeContent={Number(textSize.content) || 14}
+                    textSizeCompare={Number(textSize.compareAt) || 12}
+                    textSizePrice={Number(textSize.price) || 12}
+                    contentText={content.message}
+                    timestampText={content.timestamp}
+                    avgTime={content.avgTime}
+                    avgUnit={content.avgUnit}
+                    showProductImage={data.showProductImage}
+                    showPriceTag={data.showPriceTag}
+                    showRating={data.showRating}
+                    showClose={behavior.showClose}
+                    product={previewProduct}
+                    previewCustomer={previewCustomer}
+                    template={design.template}
+                    productNameMode={productNameMode}
+                    productNameLimit={productNameLimit}
+                  />
+                </PopupPreviewPanel>
               </div>
             </div>
 

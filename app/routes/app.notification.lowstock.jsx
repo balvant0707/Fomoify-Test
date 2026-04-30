@@ -27,6 +27,8 @@ import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import { saveLowStockPopup } from "../models/popup-config.server";
 import prisma from "../db.server";
+import { PopupPreviewPanel } from "../components/notification/PopupPreviewPanel";
+import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
 const errorText = (value, fallback = "Save failed") => {
   if (typeof value === "string" && value.trim()) return value;
@@ -87,6 +89,9 @@ async function saveWithRetry(shop, form, retries = 2) {
 export async function loader({ request }) {
   const { session } = await authenticate.admin(request);
   const shop = session?.shop;
+  const reqUrl = new URL(request.url);
+  const editIdNum = Number(reqUrl.searchParams.get("editId") || reqUrl.searchParams.get("id"));
+  const editId = Number.isInteger(editIdNum) && editIdNum > 0 ? editIdNum : null;
 
   const parseJsonLoose = (raw) => {
     if (raw === undefined || raw === null) return null;
@@ -155,10 +160,9 @@ export async function loader({ request }) {
     const model = prisma?.lowstockpopupconfig || prisma?.lowStockPopupConfig || null;
     let source = null;
     if (shop && model?.findFirst) {
-      const findArgs = {
-        where: { shop },
-        orderBy: { id: "desc" },
-      };
+      const findArgs = editId
+        ? { where: { id: editId, shop } }
+        : { where: { shop }, orderBy: { id: "desc" } };
       try {
         source = await model.findFirst(findArgs);
       } catch (error) {
@@ -218,6 +222,7 @@ export async function loader({ request }) {
     if (source) {
       const { dataProducts, visibilityProducts } = parseProductSelections(source);
       saved = {
+        id: source.id,
         design: {
           layout: toStr(source.layout, "landscape"),
           size: toNum(source.size, 60),
@@ -1186,6 +1191,7 @@ export default function LowStockPopupPage() {
     try {
       const endpoint = `${location.pathname}${location.search || ""}`;
       const form = {
+        editId: saved?.id ?? null,
         design,
         textSize,
         content,
@@ -1243,8 +1249,9 @@ export default function LowStockPopupPage() {
         backAction={{ content: "Back", onAction: () => navigate(notificationUrl) }}
         primaryAction={{ content: "Save", onAction: save, loading: saving }}
       >
+        <NotificationPageStyles />
         <style>{LOW_STOCK_STYLES}</style>
-        <div className="lowstock-shell">
+        <div className="lowstock-shell notification-page">
           <div className="lowstock-sidebar">
             {NAV_ITEMS.map(({ id, label, Icon }) => (
               <button
@@ -1929,70 +1936,58 @@ export default function LowStockPopupPage() {
               </div>
 
               <div className="lowstock-preview">
-                <Card>
-                  <Box padding="4">
-                    <BlockStack gap="300">
-                      <Text as="h3" variant="headingMd">
-                        Preview
-                      </Text>
-                      <div className="lowstock-preview-box">
-                        {previewMessage ? (
-                          <div style={{ textAlign: "center" }}>
-                            <Text as="p" tone="subdued">
-                              {previewMessage}
-                            </Text>
-                          </div>
-                        ) : (
-                          <PreviewCard
-                            layout={design.layout}
-                            size={design.size}
-                            transparency={design.transparent}
-                            bgColor={normalizeHex(design.bgColor, "#FFFBD2")}
-                            bgAlt={normalizeHex(design.bgAlt, "#FBCFCF")}
-                            textColor={normalizeHex(
-                              design.textColor,
-                              "#000000"
-                            )}
-                            numberColor={normalizeHex(
-                              design.numberColor,
-                              "#000000"
-                            )}
-                            priceTagBg={normalizeHex(
-                              design.priceTagBg,
-                              "#593E3F"
-                            )}
-                            priceTagAlt={normalizeHex(
-                              design.priceTagAlt,
-                              "#E66465"
-                            )}
-                            priceColor={normalizeHex(
-                              design.priceColor,
-                              "#FFFFFF"
-                            )}
-                            starColor={normalizeHex(
-                              design.starColor,
-                              "#F06663"
-                            )}
-                            imageAppearance={design.imageAppearance}
-                            textSizeContent={Number(textSize.content) || 14}
-                            textSizeCompare={Number(textSize.compareAt) || 12}
-                            textSizePrice={Number(textSize.price) || 12}
-                            contentText={content.message}
-                            stockCount={data.stockUnder}
-                            showProductImage={data.showProductImage}
-                            showPriceTag={data.showPriceTag}
-                            showRating={data.showRating}
-                            showClose={behavior.showClose}
-                            product={previewProduct}
-                            template={design.template}
-                            productNameMode={productNameMode}
-                            productNameLimit={productNameLimit}
-                          />
-                        )}
-                      </div>
-                    </BlockStack>
-                  </Box>
-                </Card>
+                <PopupPreviewPanel
+                  title="Low stock preview"
+                  description="Uses the selected product, stock threshold, urgency copy, and current design settings."
+                  badge="Stock urgency"
+                  emptyMessage={previewMessage}
+                >
+                  <PreviewCard
+                    layout={design.layout}
+                    size={design.size}
+                    transparency={design.transparent}
+                    bgColor={normalizeHex(design.bgColor, "#FFFBD2")}
+                    bgAlt={normalizeHex(design.bgAlt, "#FBCFCF")}
+                    textColor={normalizeHex(
+                      design.textColor,
+                      "#000000"
+                    )}
+                    numberColor={normalizeHex(
+                      design.numberColor,
+                      "#000000"
+                    )}
+                    priceTagBg={normalizeHex(
+                      design.priceTagBg,
+                      "#593E3F"
+                    )}
+                    priceTagAlt={normalizeHex(
+                      design.priceTagAlt,
+                      "#E66465"
+                    )}
+                    priceColor={normalizeHex(
+                      design.priceColor,
+                      "#FFFFFF"
+                    )}
+                    starColor={normalizeHex(
+                      design.starColor,
+                      "#F06663"
+                    )}
+                    imageAppearance={design.imageAppearance}
+                    textSizeContent={Number(textSize.content) || 14}
+                    textSizeCompare={Number(textSize.compareAt) || 12}
+                    textSizePrice={Number(textSize.price) || 12}
+                    contentText={content.message}
+                    stockCount={data.stockUnder}
+                    showProductImage={data.showProductImage}
+                    showPriceTag={data.showPriceTag}
+                    showRating={data.showRating}
+                    showClose={behavior.showClose}
+                    product={previewProduct}
+                    template={design.template}
+                    productNameMode={productNameMode}
+                    productNameLimit={productNameLimit}
+                  />
+                </PopupPreviewPanel>
               </div>
             </div>
 
