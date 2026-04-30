@@ -779,7 +779,7 @@ function NotificationPreview({ form, isMobile = false }) {
 
   const base = Number(form.rounded ?? 14) || 14;
   const scale = isMobile ? mobileSizeScale(form?.mobileSize) : 1;
-  const sized = Math.max(10, Math.min(28, Math.round(base * scale)));
+  const sized = Math.max(6, Math.min(72, Math.round(base * scale)));
   const showIcon = !!svgMarkup;
   const imageOverflow = showIcon && !isContain && !isPortrait;
   const avatarOffset = Math.round(iconDim * 0.5);

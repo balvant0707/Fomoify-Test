@@ -190,7 +190,7 @@ export async function loader({ request }) {
         design: {
           notiType: toStr(source.notiType, "visitor_list"),
           layout: toStr(source.layout, "landscape"),
-          size: toNum(source.size, 30),
+          size: toNum(source.size, 40),
           transparent: toNum(source.transparent, 10),
           template: toStr(source.template, "solid"),
           imageAppearance: toStr(source.imageAppearance, "cover"),
@@ -713,6 +713,15 @@ function PreviewCard({
   productNameLimit,
   previewCustomer,
 }) {
+  const clampFontSize = (value, fallback) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.max(6, Math.min(72, n)) : fallback;
+  };
+  const contentFontSize = clampFontSize(textSizeContent, 12);
+  const compareFontSize = clampFontSize(textSizeCompare, 10);
+  const priceFontSize = clampFontSize(textSizePrice, 10);
+  const metaFontSize = Math.max(6, Math.round(contentFontSize * 0.9));
+  const ratingFontSize = Math.max(8, Math.round(contentFontSize * 1.1));
   const scale = 0.8 + (size / 100) * 0.4;
   const opacity = 1 - (transparency / 100) * 0.7;
   const background =
@@ -874,7 +883,7 @@ function PreviewCard({
           <div
             style={{
               position: "absolute",
-              left: "8px",
+              left: "0px",
               top: "50%",
               transform: "translate(-50%, -50%)",
               width: avatarSize,
@@ -971,7 +980,7 @@ function PreviewCard({
           <div
             style={{
               color: starColor,
-              fontSize: portraitVisitor ? 18 : 12,
+              fontSize: ratingFontSize,
               lineHeight: 1,
             }}
           >
@@ -981,13 +990,13 @@ function PreviewCard({
             </span>
           </div>
         )}
-        <div style={{ fontSize: textSizeContent, fontWeight: 400 }}>
+        <div style={{ fontSize: contentFontSize, fontWeight: 400 }}>
           {contentNode}
         </div>
         {!hasProductToken && (
           <div
             style={{
-              fontSize: textSizeContent,
+              fontSize: contentFontSize,
               fontWeight: 600,
               textDecoration: "underline",
               lineHeight: 1.4,
@@ -1002,7 +1011,7 @@ function PreviewCard({
               style={{
                 background: priceTagBg,
                 color: priceColor,
-                fontSize: textSizePrice,
+                fontSize: priceFontSize,
                 padding: "2px 8px",
                 borderRadius: 6,
                 fontWeight: 600,
@@ -1013,7 +1022,7 @@ function PreviewCard({
             <span
               style={{
                 color: priceTagAlt,
-                fontSize: textSizeCompare,
+                fontSize: compareFontSize,
                 textDecoration: "line-through",
               }}
             >
@@ -1027,7 +1036,7 @@ function PreviewCard({
             alignItems: "center",
             justifyContent: "space-between",
             gap: 12,
-            fontSize: 12,
+            fontSize: metaFontSize,
             color: timestampColor,
           }}
         >
@@ -2144,10 +2153,7 @@ export default function VisitorPopupPage() {
                   .join(" ")}
               >
                 <PopupPreviewPanel
-                  title="Visitor popup preview"
-                  description="Uses the selected product, customer fallback data, visitor copy, and current design settings."
-                  badge="Visitor activity"
-                  emptyMessage={previewMessage}
+                  title="Preview"
                 >
                   <PreviewCard
                     layout={design.layout}

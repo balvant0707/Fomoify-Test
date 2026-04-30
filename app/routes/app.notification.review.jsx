@@ -851,6 +851,15 @@ function StyledPreviewCard({
   productNameMode,
   productNameLimit,
 }) {
+  const clampFontSize = (value, fallback) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.max(6, Math.min(72, n)) : fallback;
+  };
+  const contentFontSize = clampFontSize(textSizeContent, 12);
+  const compareFontSize = clampFontSize(textSizeCompare, 10);
+  const priceFontSize = clampFontSize(textSizePrice, 10);
+  const metaFontSize = Math.max(6, Math.round(contentFontSize * 0.9));
+  const ratingFontSize = Math.max(8, Math.round(contentFontSize * 1.25));
   const background =
     template === "gradient"
       ? `linear-gradient(135deg, ${bgColor} 0%, ${bgAlt} 100%)`
@@ -926,7 +935,7 @@ function StyledPreviewCard({
             color: textColor,
             display: "grid",
             placeItems: "center",
-            fontSize: "18px !important",
+            fontSize: Math.max(12, Math.round(contentFontSize * 1.1)),
             lineHeight: 1,
             padding: 0,
             cursor: "pointer",
@@ -1005,7 +1014,7 @@ function StyledPreviewCard({
         ))}
       <div style={{ display: "grid", gap: 6, minWidth: 0, flex: 1 }}>
         {showRating && (
-          <div style={{ color: starColor, fontSize: "20px !important", letterSpacing: 1 }}>
+          <div style={{ color: starColor, fontSize: ratingFontSize, letterSpacing: 1 }}>
             {filledStars}
             <span style={{ color: "#d1d5db" }}>{emptyStars}</span>
           </div>
@@ -1014,7 +1023,7 @@ function StyledPreviewCard({
           <div
             style={{
               fontWeight: 800,
-              fontSize: textSizeContent,
+              fontSize: contentFontSize,
               lineHeight: 1.05,
               letterSpacing: 0.1,
               textTransform: "uppercase",
@@ -1029,7 +1038,7 @@ function StyledPreviewCard({
               style={{
                 background: priceTagBg,
                 color: priceColor,
-                fontSize: textSizePrice,
+                fontSize: priceFontSize,
                 padding: "2px 8px",
                 borderRadius: 6,
                 fontWeight: 600,
@@ -1040,7 +1049,7 @@ function StyledPreviewCard({
             <span
               style={{
                 color: priceTagAlt,
-                fontSize: textSizeCompare,
+                fontSize: compareFontSize,
                 textDecoration: "line-through",
               }}
             >
@@ -1050,7 +1059,7 @@ function StyledPreviewCard({
         )}
         <div
           style={{
-            fontSize: textSizeContent,
+            fontSize: contentFontSize,
             lineHeight: 1.35,
             fontStyle: isReviewContent ? "italic" : "normal",
           }}
@@ -1063,7 +1072,7 @@ function StyledPreviewCard({
             alignItems: "center",
             justifyContent: "space-between",
             gap: 12,
-            fontSize: 12,
+            fontSize: metaFontSize,
             color: timestampColor,
           }}
         >

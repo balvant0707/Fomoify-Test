@@ -946,6 +946,16 @@ function PreviewCard({
   productNameMode,
   productNameLimit,
 }) {
+  const clampFontSize = (value, fallback) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.max(6, Math.min(72, n)) : fallback;
+  };
+  const contentFontSize = clampFontSize(textSizeContent, 12);
+  const compareFontSize = clampFontSize(textSizeCompare, 10);
+  const priceFontSize = clampFontSize(textSizePrice, 10);
+  const metaFontSize = Math.max(6, Math.round(contentFontSize * 0.9));
+  const ratingFontSize = Math.max(8, Math.round(contentFontSize * 1.1));
+  const badgeFontSize = Math.max(6, Math.round(contentFontSize * 0.9));
   const scale = 0.8 + (size / 100) * 0.4;
   const opacity = 1 - (transparency / 100) * 0.7;
   const background =
@@ -1139,7 +1149,7 @@ function PreviewCard({
             color: "#ffffff",
             borderRadius: 999,
             padding: "3px 10px",
-            fontSize: 12,
+            fontSize: badgeFontSize,
             fontWeight: 700,
             letterSpacing: 0.2,
           }}
@@ -1156,14 +1166,14 @@ function PreviewCard({
           Added to cart
         </div>
         {showRating && (
-          <div style={{ color: starColor, fontSize: 12, letterSpacing: 1 }}>
+          <div style={{ color: starColor, fontSize: ratingFontSize, letterSpacing: 1 }}>
             {"★★★★★".slice(0, product?.rating || 4)}
             <span style={{ color: "#d1d5db" }}>
               {"★★★★★".slice(0, 5 - (product?.rating || 4))}
             </span>
           </div>
         )}
-        <div style={{ fontSize: textSizeContent, lineHeight: 1.35 }}>
+        <div style={{ fontSize: contentFontSize, lineHeight: 1.35 }}>
           {contentNode}
         </div>
         {showPriceTag && (
@@ -1172,7 +1182,7 @@ function PreviewCard({
               style={{
                 background: priceTagBg,
                 color: priceColor,
-                fontSize: textSizePrice,
+                fontSize: priceFontSize,
                 padding: "2px 8px",
                 borderRadius: 6,
                 fontWeight: 600,
@@ -1183,7 +1193,7 @@ function PreviewCard({
             <span
               style={{
                 color: priceTagAlt,
-                fontSize: textSizeCompare,
+                fontSize: compareFontSize,
                 textDecoration: "line-through",
               }}
             >
@@ -1196,7 +1206,7 @@ function PreviewCard({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            fontSize: 12,
+            fontSize: metaFontSize,
             color: timestampColor,
             gap: 12,
           }}
