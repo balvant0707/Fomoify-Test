@@ -1124,7 +1124,6 @@ export default function AppIndex() {
                     <PolarisLink
                       href={PROMOTED_UPSELL_APP_URL}
                       target="_blank"
-                      monochrome
                       removeUnderline
                       variant="headingSm"
                       fontWeight="bold"

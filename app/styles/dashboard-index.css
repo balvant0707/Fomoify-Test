@@ -1,7 +1,7 @@
 .dashboard-page-header {
   min-height: 82px;
   margin: calc(var(--p-space-400) * -1) calc(var(--p-space-400) * -1) 0;
-  padding: var(--p-space-600);
+  padding: var(--p-space-300);
   display: flex;
   align-items: center;
   justify-content: space-between;
