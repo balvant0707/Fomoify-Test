@@ -927,7 +927,7 @@ function StyledPreviewCard({
                 style={{
                   width: "100%",
                   height: "100%",
-                  objectFit: "cover",
+                  objectFit: imageFit,
                 }}
                 loading="lazy"
                 decoding="async"

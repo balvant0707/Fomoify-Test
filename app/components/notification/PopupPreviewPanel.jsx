@@ -25,6 +25,10 @@ const PANEL_STYLES = `
 }
 .popup-preview-panel__content {
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
 }
 .popup-preview-panel__empty {
   max-width: 280px;

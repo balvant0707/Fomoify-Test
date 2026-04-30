@@ -1153,7 +1153,14 @@ function Bubble({ form, order, isMobile = false }) {
     [form.animation]
   );
   const isPortrait = form.layout === "portrait";
-  const imageFit = form.imageAppearance === "contain" ? "contain" : "cover";
+  const imageMode = String(form.imageAppearance || "cover")
+    .trim()
+    .toLowerCase();
+  const isContainImage =
+    imageMode === "contain" ||
+    imageMode.includes("contain") ||
+    imageMode.includes("fit");
+  const imageFit = isContainImage ? "contain" : "cover";
   const sizeBase = Number(form.rounded ?? 14) || 14;
   const sized = Math.max(
     10,
@@ -1190,8 +1197,7 @@ function Bubble({ form, order, isMobile = false }) {
     : "";
   const moreCount = Math.max(0, products.length - 1);
   const showImage = !!productImg;
-  const imageOverflow =
-    showImage && form.imageAppearance === "cover" && !isPortrait;
+  const imageOverflow = showImage && !isContainImage && !isPortrait;
   const avatarSize = isPortrait ? 56 : 64;
   const avatarOffset = Math.round(avatarSize * 0.45);
   const portraitImageSize = isMobile ? 120 : 160;
@@ -1310,7 +1316,7 @@ function Bubble({ form, order, isMobile = false }) {
             style={{
               width: "100%",
               height: "100%",
-              objectFit: "cover",
+              objectFit: imageFit,
             }}
             loading="lazy"
             decoding="async"
@@ -1369,7 +1375,9 @@ function Bubble({ form, order, isMobile = false }) {
           )}
           <br />
           <span>
-            {productTitle ? `bought "${productTitle}"` : "placed an order"}
+            {productTitle
+              ? `${form.messageText || "bought this product recently"} "${productTitle}"`
+              : form.messageText || "placed an order"}
             {moreCount > 0 && !hide.has("productTitle")
               ? ` +${moreCount} more`
               : ""}
