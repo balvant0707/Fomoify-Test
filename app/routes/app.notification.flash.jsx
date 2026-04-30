@@ -163,7 +163,6 @@ const FLASH_STYLES = `
 .flash-preview-stage {
   width: 100%;
   min-height: 340px;
-  padding: 42px 32px;
   box-sizing: border-box;
   display: flex;
   border-radius: 10px;
@@ -260,9 +259,7 @@ const FLASH_STYLES = `
 .flash-preview-note {
   text-align: center;
 }
-.flash-preview-stage {
-  background: linear-gradient(135deg, #f0f4f8 0%, #e8ecf1 100%);
-}
+
 .flash-sale-popup__cta {
   align-self: flex-start;
   font-family: inherit;
@@ -848,6 +845,7 @@ function NotificationPreview({ form, isMobile = false }) {
               SALE
             </span>
           </div>
+          <div className="flash-popup__message">
           <p
             className="flash-sale-popup__message"
             style={{
@@ -866,20 +864,7 @@ function NotificationPreview({ form, isMobile = false }) {
             <span className="flash-sale-popup__timer-dot" />
             {timer}
           </span>
-          <button
-            type="button"
-            className="flash-sale-popup__cta"
-            style={{
-              background: form.priceTagBg,
-              color: form.priceColor,
-              borderRadius: Math.max(6, sized - 2),
-              padding: `${Math.max(6, sized - 7)}px ${Math.max(12, sized)}px`,
-              fontSize: Math.max(11, sized - 2),
-              fontWeight: 700,
-            }}
-          >
-            Add to Cart
-          </button>
+          </div>
         </div>
       </div>
     </div>
@@ -893,8 +878,8 @@ function DesktopPreview({ form }) {
     <div
       className="flash-preview-stage"
       style={{
-        justifyContent: flex.justifyContent,
-        alignItems: flex.alignItems,
+        justifyContent: "center",
+        alignItems: "center",
       }}
     >
       <NotificationPreview form={form} />
@@ -1566,9 +1551,7 @@ export default function FlashConfigPage() {
 
       <div className="flash-preview">
         <PopupPreviewPanel
-          title="Flash sale preview"
-          description="Updates from the sale title, colors, icon, placement, and motion settings."
-          badge="Flash popup"
+          title="Preview"
         >
           <LivePreview form={form} />
         </PopupPreviewPanel>
