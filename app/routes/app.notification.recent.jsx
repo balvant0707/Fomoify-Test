@@ -193,7 +193,7 @@ const RECENT_STYLES = `
   padding: 0;
 }
 .recent-preview.is-fit-image .popup-preview-panel {
-    padding-right: unset !important;
+    padding-right: var(--p-space-400);
   }
 .recent-preview .popup-preview-panel__content {
   max-width: 100%;
@@ -363,7 +363,7 @@ const DEFAULT_SAVED = {
   priceTagAlt: "#E66465",
   priceColor: "#FFFFFF",
   starColor: "#F06663",
-  fontSize: "14",
+  fontSize: "12",
   rounded: "4",
   firstDelaySeconds: 1,
   durationSeconds: 8,
@@ -835,7 +835,7 @@ export async function loader({ request }) {
         priceTagAlt: source?.priceTagAlt ?? "#E66465",
         priceColor: source?.priceColor ?? "#FFFFFF",
         starColor: source?.starColor ?? "#F06663",
-        fontSize: String(source?.fontSize ?? source?.rounded ?? 14),
+        fontSize: String(source?.fontSize ?? source?.rounded ?? 12),
         rounded: String(source?.rounded ?? 12),
         firstDelaySeconds: Number(source?.firstDelaySeconds ?? 1),
         durationSeconds: Number(source?.durationSeconds ?? 1),
