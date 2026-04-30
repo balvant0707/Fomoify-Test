@@ -862,14 +862,14 @@ function PreviewCard({
           aria-label="Close"
           style={{
             position: "absolute",
-            top: 8,
-            right: 8,
+            top: 5,
+            right: 10,
             border: "none",
             background: "transparent",
             color: textColor,
             display: "grid",
             placeItems: "center",
-            fontSize: 20,
+            fontSize: 16,
             lineHeight: 1,
             padding: 0,
             cursor: "pointer",
@@ -888,7 +888,7 @@ function PreviewCard({
               transform: "translate(-50%, -50%)",
               width: avatarSize,
               height: avatarSize,
-              borderRadius: Math.round(avatarSize * 0.22),
+              borderRadius: 4,
               overflow: "hidden",
               background: "#f3f4f6",
               flexShrink: 0,
@@ -896,6 +896,7 @@ function PreviewCard({
               placeItems: "center",
               boxShadow: "0 8px 18px rgba(0,0,0,0.18)",
               border: "2px solid rgba(255,255,255,0.75)",
+              alignSelf: "center !important",
             }}
           >
             {product?.image ? (
