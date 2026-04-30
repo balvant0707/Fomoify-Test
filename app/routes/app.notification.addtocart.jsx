@@ -1157,7 +1157,7 @@ function PreviewCard({
         {showRating && (
           <div style={{ color: starColor, fontSize: `${ratingFontSize * 1.5}px !important;`, letterSpacing: 1 }}>
             {"★★★★★".slice(0, product?.rating || 4)}
-            <span style={{ color: "#d1d5db" }}>
+            <span style={{ color: "#d1d5db" ,fontSize: `${ratingFontSize * 1.5}px !important;`}}>
               {"★★★★★".slice(0, 5 - (product?.rating || 4))}
             </span>
           </div>
