@@ -43,6 +43,13 @@ const DASHBOARD_STYLES = `
   height: 100%;
   object-fit: contain;
 }
+.notify-card-content {
+  min-width: 0;
+  flex: 1;
+}
+.notify-card-actions {
+  padding-top: var(--p-space-300);
+}
 `;
 
 function DashboardCard({
@@ -59,10 +66,11 @@ function DashboardCard({
     <Card>
       <Box padding="400">
         <InlineStack align="space-between" blockAlign="center" gap="400" wrap={false}>
-          <BlockStack gap="250">
+          <Box className="notify-card-content">
+          <BlockStack gap="150">
             <Text as="h3" fontWeight="bold">{title}</Text>
             <Text as="p" tone="subdued">{desc}</Text>
-            <InlineStack gap="200">
+            <InlineStack gap="200" className="notify-card-actions">
               <Button variant="primary" onClick={onCreate} loading={loading} disabled={loading}>
                 {loading ? "Opening..." : "Create"}
               </Button>
@@ -71,6 +79,7 @@ function DashboardCard({
               </Button>
             </InlineStack>
           </BlockStack>
+          </Box>
           <div className="notify-card-media" aria-hidden>
             <img src={imageSrc} alt="" />
           </div>

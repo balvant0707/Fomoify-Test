@@ -429,7 +429,7 @@ export async function loader({ request }) {
           size: toNum(source.size, 60),
           transparent: toNum(source.transparent, 10),
           template: toStr(source.template, "gradient"),
-          imageAppearance: toStr(source.imageAppearance, "contain"),
+          imageAppearance: toStr(source.imageAppearance, "cover"),
           bgColor: toStr(source.bgColor, "#CCC01E"),
           bgAlt: toStr(source.bgAlt, "#7E6060"),
           textColor: toStr(source.textColor, "#F9EEEE"),
@@ -927,7 +927,7 @@ function PreviewCard({
       : bgColor;
 
   const isPortrait = layout === "portrait";
-  const imageMode = String(imageAppearance || "contain").toLowerCase();
+  const imageMode = String(imageAppearance || "cover").toLowerCase();
   const isContainImage = imageMode === "contain" || imageMode.includes("fit");
   const imageFit = isContainImage ? "contain" : "cover";
   const avatarSize = isPortrait ? 66 : 64;
@@ -1191,7 +1191,7 @@ export default function AddToCartPopupPage() {
     size: 25,
     transparent: 10,
     template: "gradient",
-    imageAppearance: "contain",
+    imageAppearance: "cover",
     bgColor: "#CCC01E",
     bgAlt: "#7E6060",
     textColor: "#F9EEEE",
@@ -1741,7 +1741,7 @@ export default function AddToCartPopupPage() {
                               onChange={(v) =>
                                 setDesign((d) => ({
                                   ...d,
-                                  imageAppearance: v[0] || "contain",
+                                  imageAppearance: v[0] || "cover",
                                 }))
                               }
                             />

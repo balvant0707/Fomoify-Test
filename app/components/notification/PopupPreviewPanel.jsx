@@ -10,8 +10,8 @@ const PANEL_STYLES = `
 }
 .popup-preview-panel__surface {
   min-height: 380px;
-  border: var(--p-border-width-025) solid #dfe3e8;
-  border-radius: var(--p-border-radius-300);
+  border: 0;
+  border-radius: 0;
   background:
     linear-gradient(90deg, rgba(227, 229, 231, 0.32) 1px, transparent 1px),
     linear-gradient(180deg, rgba(227, 229, 231, 0.32) 1px, transparent 1px),

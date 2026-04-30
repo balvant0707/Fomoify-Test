@@ -254,7 +254,7 @@ export async function saveVisitorPopup(shop, form) {
     size: toInt(form?.design?.size),
     transparent: toInt(form?.design?.transparent),
     template: toStr(form?.design?.template),
-    imageAppearance: toStr(form?.design?.imageAppearance || "contain"),
+    imageAppearance: toStr(form?.design?.imageAppearance || "cover"),
     bgColor: toStr(form?.design?.bgColor),
     bgAlt: toStr(form?.design?.bgAlt),
     textColor: toStr(form?.design?.textColor),

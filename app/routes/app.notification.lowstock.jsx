@@ -703,12 +703,13 @@ function PreviewCard({
       : bgColor;
 
   const isPortrait = layout === "portrait";
-  const imageMode = imageAppearance || "cover";
-  const imageFit = imageMode === "contain" ? "contain" : "cover";
+  const imageMode = String(imageAppearance || "cover").toLowerCase().trim();
+  const isContainMode = imageMode === "contain" || imageMode.includes("fit");
+  const imageFit = isContainMode ? "contain" : "cover";
   const avatarSize = isPortrait ? 56 : 64;
   const avatarOffset = Math.round(avatarSize * 0.45);
   const pad = 16;
-  const imageOverflow = showProductImage && imageMode === "cover" && !isPortrait;
+  const imageOverflow = showProductImage && !isContainMode && !isPortrait;
   const cardStyle = {
     transform: `scale(${scale})`,
     opacity,
@@ -820,7 +821,7 @@ function PreviewCard({
                 style={{
                   width: "100%",
                   height: "100%",
-                  objectFit: "cover",
+                  objectFit: imageFit,
                 }}
                 loading="lazy"
                 decoding="async"
