@@ -738,7 +738,7 @@ function PreviewCard({
     imageModeRaw === "contaion" ||
     imageModeRaw.includes("contain") ||
     imageModeRaw.includes("fit");
-  const imageFit = isContainMode ? "contain" : "cover";
+  const imageFit = "cover";
   const portraitVisitor = isPortrait;
   const portraitImageSize = 120;
   const avatarSize = isPortrait ? portraitImageSize : 64;

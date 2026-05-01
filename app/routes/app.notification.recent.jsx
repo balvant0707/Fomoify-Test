@@ -1190,7 +1190,7 @@ function Bubble({ form, order, isMobile = false }) {
     imageMode === "contain" ||
     imageMode.includes("contain") ||
     imageMode.includes("fit");
-  const imageFit = isContainImage ? "contain" : "cover";
+  const imageFit = "cover";
   const sizeBase = Number(form.fontSize ?? form.rounded ?? 12) || 14;
   const sized = Math.max(
     6,
