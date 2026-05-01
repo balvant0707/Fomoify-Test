@@ -10,6 +10,8 @@ const normalizeShopifyAppUrl = (value) =>
   toLower(value)
     .replace(/^shopify:\/\//, "")
     .replace(/[^a-z0-9/_-]/g, "");
+const normalizeWords = (value) =>
+  toLower(value).replace(/[^a-z0-9]+/g, " ").trim();
 const toBool = (value) => {
   if (value === true || value === 1) return true;
   const v = toLower(value);
@@ -30,6 +32,22 @@ const toThemeGid = (value) => {
 };
 const isObjectRecord = (value) =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
+const isBlockLike = (value) =>
+  isObjectRecord(value) && typeof value.type === "string";
+const entriesFromBlocks = (blocks) => {
+  if (Array.isArray(blocks)) {
+    return blocks
+      .filter(isBlockLike)
+      .map((block, index) => ({
+        blockId: String(block.id || block.name || block.type || index),
+        block,
+      }));
+  }
+  if (!isObjectRecord(blocks)) return [];
+  return Object.entries(blocks)
+    .filter(([, block]) => isObjectRecord(block))
+    .map(([blockId, block]) => ({ blockId: String(blockId), block }));
+};
 const collectThemeBlockMaps = (parsed) => {
   const maps = [];
   const pushBlocks = (value) => {
@@ -105,11 +123,10 @@ const getActiveRootBlockEntries = (parsed) => {
     blocks = parsed?.current?.blocks ?? null;
   }
   // Fallback for non-standard layouts
-  if (!isObjectRecord(blocks)) blocks = parsed?.blocks ?? null;
-  if (!isObjectRecord(blocks)) return [];
-  return Object.entries(blocks)
-    .filter(([, block]) => isObjectRecord(block))
-    .map(([blockId, block]) => ({ blockId: String(blockId), block }));
+  if (!isObjectRecord(blocks) && !Array.isArray(blocks)) {
+    blocks = parsed?.blocks ?? null;
+  }
+  return entriesFromBlocks(blocks);
 };
 
 const hasRestAssetResources = (admin) =>
@@ -253,16 +270,7 @@ export async function getThemeEmbedState({
       return { enabled: false, found: false, checked: false };
     }
 
-    // --- DEBUG: log current structure ---
-    console.log("[theme-embed:debug] themeId:", themeId, "| current type:", typeof parsed?.current);
     const entries = getActiveRootBlockEntries(parsed);
-    console.log("[theme-embed:debug] root block entries:", entries.length);
-    entries.forEach(({ blockId, block }) => {
-      console.log(
-        `[theme-embed:debug]   blockId=${blockId} | type=${block?.type} | disabled=${JSON.stringify(block?.disabled)}`
-      );
-    });
-    // --- END DEBUG ---
 
     if (!entries.length) {
       return { enabled: false, found: false, checked: true };
@@ -275,6 +283,10 @@ export async function getThemeEmbedState({
         handleToken.replace(/-/g, "_"),
         handleToken.replace(/_/g, "-"),
         handleToken.replace(/[-_]/g, ""),
+        "app-embed",
+        "app_embed",
+        "core-embed",
+        "core_embed",
       ])
     ).filter(Boolean);
     const normalizedHandleVariants = handleVariants
@@ -282,7 +294,7 @@ export async function getThemeEmbedState({
       .filter(Boolean);
     const appMarkers = Array.from(
       new Set(
-        [apiKey, extId, embedHandle, "fomoify", "fomo", "coreembed"]
+        [apiKey, extId, embedHandle, "fomoify", "fomo", "m2fomo", "coreembed"]
           .map((item) => normalizeToken(item))
           .filter(Boolean)
       )
@@ -304,6 +316,20 @@ export async function getThemeEmbedState({
         const normalizedTarget = normalizeToken(
           block?.target || block?.settings?.target
         );
+        const normalizedSchemaName = normalizeToken(block?.settings?.schemaName);
+        const readableHaystack = normalizeWords(
+          [
+            type,
+            blockId,
+            block?.name,
+            block?.settings?.name,
+            block?.target,
+            block?.settings?.target,
+            block?.settings?.schemaName,
+          ]
+            .filter(Boolean)
+            .join(" ")
+        );
         const hasAppType =
           type.includes("shopify://apps/") ||
           type.includes("/apps/") ||
@@ -322,7 +348,7 @@ export async function getThemeEmbedState({
 
         const haystack = `${normalizedType} ${normalizedBlockId} ${normalizedName} ${normalizedTarget}`;
         const hasHandleMatch = normalizedHandleVariants.some((variant) =>
-          haystack.includes(variant)
+          haystack.includes(variant) || normalizedSchemaName.includes(variant)
         );
         if (hasHandleMatch) return true;
         const hasAppMarker = appMarkers.some((marker) => haystack.includes(marker));
@@ -332,18 +358,17 @@ export async function getThemeEmbedState({
           normalizedName.includes("embed") ||
           normalizedTarget.includes("embed") ||
           normalizedType.includes("appblock");
-        return hasAppMarker && hasEmbedHint;
+        if (hasAppMarker && hasEmbedHint) return true;
+
+        return (
+          hasEmbedHint &&
+          /\b(fomoify|fomo|m2fomo)\b/.test(readableHaystack) &&
+          /\b(core|app|embed)\b/.test(readableHaystack)
+        );
       })
       .map(({ block }) => block);
     const found = matches.length > 0;
     const enabled = matches.some((block) => !toBool(block?.disabled));
-
-    // --- DEBUG: log match result ---
-    console.log("[theme-embed:debug] matched blocks:", matches.length, "| found:", found, "| enabled:", enabled);
-    matches.forEach((block, i) => {
-      console.log(`[theme-embed:debug]   match[${i}] type=${block?.type} disabled=${JSON.stringify(block?.disabled)}`);
-    });
-    // --- END DEBUG ---
 
     return { enabled, found, checked: true };
   } catch (error) {

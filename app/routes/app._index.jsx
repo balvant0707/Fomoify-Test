@@ -655,7 +655,7 @@ export default function AppIndex() {
     hasThemeEmbedCheck && embedContextState.appEmbedFound === true;
   const hasFreshPingSignal =
     embedPing?.isFresh === true || embedPing?.isOn === true;
-  const isEmbedStatusLoading = isEmbedContextLoading && isEmbedPingLoading;
+  const isEmbedStatusLoading = isEmbedContextLoading || isEmbedPingLoading;
   const isEmbedActive =
     hasFreshPingSignal ||
     (hasThemeEmbedSignal && Boolean(embedContextState.appEmbedEnabled));
