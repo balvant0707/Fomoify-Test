@@ -1034,7 +1034,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       border-radius:${cardRadius}px;
       background:${bgFlash}; color:${cfg.fontColor || "#fff"};
       box-shadow:0 12px 28px rgba(15,23,42,.14);
-      font-family:${cfg.fontFamily};
       animation:${inAnim} ${DUR.in}ms ease-out both;
     `;
     (mode === "mobile" ? posMobile : posDesktop)(wrap, cfg);
@@ -1205,7 +1204,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       e.stopPropagation();
       clearTimeout(tid);
       autoClose();
-      onDone && onDone("closed");
     };
 
     document.body.appendChild(wrap);
@@ -1278,7 +1276,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     border-radius:${cardRadius}px;
     background:${bgRecent}; color:${cfg.fontColor || "#111"};
     box-shadow:0 12px 28px rgba(15,23,42,.14);
-    font-family:${cfg.fontFamily };
     animation:${inAnim} ${DUR.in}ms ease-out both;
   `;
     (mode === "mobile" ? posMobile : posDesktop)(wrap, cfg);
@@ -1490,7 +1487,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       e.stopPropagation();
       clearTimeout(tid);
       autoClose();
-      onDone && onDone("closed");
     };
 
     document.body.appendChild(wrap);
@@ -1517,10 +1513,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     const isLowStock = popupType === "lowstock";
     const isAddToCart = popupType === "addtocart";
     const isReview = popupType === "review";
-    const fontFamily = safe(
-      cfg.fontFamily,
-      "system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif"
-    );
     const truncateSnippet = (value, max = 52) => {
       const text = String(value || "").replace(/\s+/g, " ").trim();
       if (!text) return "";
@@ -1594,7 +1586,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       position:fixed; z-index:9999; box-sizing:border-box;
       width:${mode === "mobile" ? "min(92vw,420px)" : ""};
       overflow:visible; cursor:pointer;
-      font-family:${fontFamily};
       animation:${inAnim} ${DUR.in}ms ease-out both;
       transform-origin:${transformOrigin};
     `;
@@ -2033,7 +2024,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       e.stopPropagation();
       clearTimeout(tid);
       autoClose();
-      onDone && onDone("closed");
     };
 
     document.body.appendChild(wrap);
@@ -2086,7 +2076,12 @@ document.addEventListener("DOMContentLoaded", async function () {
             const s = getSeq();
             if (!s.length) return;
             const cfg = s[this.idx % s.length];
+            let fallbackTimer = null;
+            let queued = false;
             const queueNext = () => {
+              if (queued) return;
+              queued = true;
+              if (fallbackTimer) clearTimeout(fallbackTimer);
               if (runId !== this.runId) return;
               const gap = gapSeconds(cfg);
               this.idx = (this.idx + 1) % s.length;
@@ -2094,6 +2089,12 @@ document.addEventListener("DOMContentLoaded", async function () {
             };
             try {
               this.el = this.renderer(cfg, this.mode, queueNext);
+              const visibleMs = Math.max(
+                1,
+                displaySecondsFrom(cfg.durationSeconds, cfg.duration, cfg.visibleSeconds)
+              ) * 1000;
+              const outMs = Math.max(120, getAnimDur(cfg).out || 0);
+              fallbackTimer = setTimeout(queueNext, visibleMs + outMs + 1000);
             } catch {
               queueNext();
             }
@@ -2144,7 +2145,12 @@ document.addEventListener("DOMContentLoaded", async function () {
             if (!this.seq.length) return;
             const item = this.seq[this.idx % this.seq.length]; // {type, cfg}
             const renderer = rendererForType(item.type);
+            let fallbackTimer = null;
+            let queued = false;
             const queueNext = () => {
+              if (queued) return;
+              queued = true;
+              if (fallbackTimer) clearTimeout(fallbackTimer);
               if (runId !== this.runId) return;
               const gap = gapSeconds(item.cfg);
               this.idx = (this.idx + 1) % this.seq.length;
@@ -2152,6 +2158,12 @@ document.addEventListener("DOMContentLoaded", async function () {
             };
             try {
               this.el = renderer(item.cfg, "mobile", queueNext);
+              const visibleMs = Math.max(
+                1,
+                displaySecondsFrom(item.cfg.durationSeconds, item.cfg.duration, item.cfg.visibleSeconds)
+              ) * 1000;
+              const outMs = Math.max(120, getAnimDur(item.cfg).out || 0);
+              fallbackTimer = setTimeout(queueNext, visibleMs + outMs + 1000);
             } catch {
               queueNext();
             }
