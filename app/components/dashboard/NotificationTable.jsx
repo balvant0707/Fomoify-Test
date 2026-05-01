@@ -285,9 +285,8 @@ export default function NotificationTable({
   };
 
   const editUrlFor = (row) => {
-    const sp = new URLSearchParams(location.search);
+    const sp = new URLSearchParams();
     sp.set("editId", String(row.id));
-    sp.delete("page");
     return `/app/notification/${row.key}?${sp.toString()}`;
   };
 
