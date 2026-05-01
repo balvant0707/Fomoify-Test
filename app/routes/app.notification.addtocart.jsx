@@ -426,7 +426,7 @@ export async function loader({ request }) {
         id: source.id,
         design: {
           layout: toStr(source.layout, "landscape"),
-          size: toNum(source.size, 60),
+          size: toNum(source.size, 50),
           transparent: toNum(source.transparent, 10),
           template: toStr(source.template, "gradient"),
           imageAppearance: toStr(source.imageAppearance, "cover"),

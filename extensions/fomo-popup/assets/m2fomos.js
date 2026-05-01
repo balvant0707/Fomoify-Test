@@ -1037,11 +1037,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     const card = document.createElement("div");
     card.className = "fomo-card";
-    const coverBoxSize = mode === "mobile" ? Math.max(mt.img, 52) : 60;
-    const containIconSize = mode === "mobile" ? Math.max(42, mt.img - 6) : 48;
-    const portraitIconSize = mode === "mobile" ? 50 : 70;
+    const iconBoxSize = mode === "mobile" ? Math.max(mt.img || 0, 56) : 64;
     const mobileLeftPad = imageOverflow
-      ? 12 + Math.round(coverBoxSize * 0.45)
+      ? 12 + Math.round(iconBoxSize * 0.45)
       : 14;
     const desktopLeftPad = imageOverflow ? 44 : 25;
     const padTop = mode === "mobile" ? (isPortrait ? 22 : mt.pad + 4) : isPortrait ? 28 : 20;
@@ -1070,11 +1068,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     img.className = "fomo-icon";
     img.alt = "Flash";
     img.src = cfg.uploadedImage || cfg.image || FLAME_SVG;
-    const iSize = isPortrait
-      ? portraitIconSize
-      : imageOverflow
-        ? coverBoxSize
-        : containIconSize;
+    const iSize = iconBoxSize;
     img.style.cssText = `width:${iSize}px;height:${iSize}px;object-fit:${isContain ? "contain" : "cover"};object-position:center center;border-radius:${POPUP_IMAGE_RADIUS}px;background:transparent;flex:0 0 ${iSize}px;pointer-events:none;`;
     img.onerror = () => {
       img.src = FLAME_SVG;
@@ -1088,7 +1082,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         left:8px;
         top:50%;
         transform:translate(-50%, -50%);
-        width:${coverBoxSize}px;height:${coverBoxSize}px;
+        width:${iconBoxSize}px;height:${iconBoxSize}px;
         border-radius:${POPUP_IMAGE_RADIUS}px;
         overflow:hidden;
         background:#f3f4f6;
@@ -1260,11 +1254,9 @@ document.addEventListener("DOMContentLoaded", async function () {
     const imageOverflow = imageFit === "cover" && !isPortrait && showImage;
     const pad = mode === "mobile" ? mt.pad : 12;
     const rightPad = 44;
-    const iSize = mode === "mobile" ? Math.max(mt.img || 0, 52) : 62;
-    const portraitImageSize = mode === "mobile" ? 60 : 80;
-    const inlineImageSize = isPortrait ? portraitImageSize : iSize;
-    const inlineImageWidth =
-      isContain && !isPortrait ? Math.round(inlineImageSize * 1.2) : inlineImageSize;
+    const iSize = mode === "mobile" ? Math.max(mt.img || 0, 56) : 64;
+    const inlineImageSize = iSize;
+    const inlineImageWidth = inlineImageSize;
     const inlineImageOverflow = "hidden";
     const inlineImageRadiusResolved = POPUP_IMAGE_RADIUS;
     const imageTextGap = mode === "mobile" ? 10 : 12;
@@ -1324,22 +1316,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         place-items:center;pointer-events:none;
         align-self:center;
       `;
-    }
-    if (isContain && !imageOverflow) {
-      const syncContainWidth = () => {
-        const naturalWidth = Number(img.naturalWidth) || 0;
-        const naturalHeight = Number(img.naturalHeight) || 0;
-        if (!naturalWidth || !naturalHeight) return;
-        const ratio = Math.max(0.65, Math.min(1.85, naturalWidth / naturalHeight));
-        const targetWidth = Math.max(
-          Math.round(inlineImageSize * 0.72),
-          Math.round(inlineImageSize * ratio)
-        );
-        imgWrap.style.width = `${targetWidth}px`;
-        imgWrap.style.flexBasis = `${targetWidth}px`;
-      };
-      img.onload = syncContainWidth;
-      if (img.complete) syncContainWidth();
     }
     imgWrap.appendChild(img);
 
@@ -1535,6 +1511,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const DUR = getAnimDur(cfg);
     const popupType = String(cfg.popupType || "").toLowerCase();
     const isVisitor = popupType === "visitor";
+    const isLowStock = popupType === "lowstock";
     const isAddToCart = popupType === "addtocart";
     const isReview = popupType === "review";
     const fontFamily = safe(
@@ -1586,22 +1563,14 @@ document.addEventListener("DOMContentLoaded", async function () {
           ? 12
           : 14
     );
+    const padY = isLowStock ? pad + (mode === "mobile" ? 6 : 8) : pad;
     const gap = Math.round(
       mode === "mobile" ? (isVisitor ? 12 : 10) : isVisitor ? 14 : 12
     );
-    const imgSize = Math.round((mode === "mobile" ? 56 : 64));
+    const imgSize = Math.round(mode === "mobile" ? 56 : 64);
     const imgOffset = Math.round(imgSize * (isVisitor ? 0.62 : 0.45));
-    const inlineSize = isPortrait
-      ? portraitVisitor
-        ? mode === "mobile"
-          ? 70
-          : 72
-        : 56
-      : imgSize;
-    const inlineWidth =
-      isContain && !isPortrait
-        ? Math.round(inlineSize * (isAddToCart || isReview ? 1.2 : 1.12))
-        : inlineSize;
+    const inlineSize = imgSize;
+    const inlineWidth = inlineSize;
     const inlineWrapRadius = POPUP_IMAGE_RADIUS;
     const inlineWrapOverflow = "hidden";
 
@@ -1649,7 +1618,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     card.style.cssText = `
       display:flex; gap:${gap}px; align-items:${alignItems};
       flex-direction:${isPortrait ? "column" : "row"};
-      position:relative; padding:${pad}px;
+      position:relative; padding:${padY}px ${pad}px;
       font-size:${fontSize}px; line-height:1.35;
       padding-left:${leftPad}px;
     `;
@@ -1692,34 +1661,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     img.onerror = () => {
       imgWrap.style.display = "none";
     };
-    if (isContain && !imageOverflow) {
-      const syncContainWidth = () => {
-        const naturalWidth = Number(img.naturalWidth) || 0;
-        const naturalHeight = Number(img.naturalHeight) || 0;
-        if (!naturalWidth || !naturalHeight) return;
-        const ratio = Math.max(0.65, Math.min(1.85, naturalWidth / naturalHeight));
-        const targetWidth = Math.max(
-          Math.round(inlineSize * 0.72),
-          Math.round(inlineSize * ratio)
-        );
-        imgWrap.style.width = `${targetWidth}px`;
-        imgWrap.style.flexBasis = `${targetWidth}px`;
-      };
-      img.onload = syncContainWidth;
-    }
     img.src = cfg.productImage || cfg.image || "";
-    if (isContain && !imageOverflow && img.complete && Number(img.naturalWidth || 0) > 0) {
-      const ratio = Math.max(
-        0.65,
-        Math.min(1.85, Number(img.naturalWidth || 0) / Number(img.naturalHeight || 1))
-      );
-      const targetWidth = Math.max(
-        Math.round(inlineSize * 0.72),
-        Math.round(inlineSize * ratio)
-      );
-      imgWrap.style.width = `${targetWidth}px`;
-      imgWrap.style.flexBasis = `${targetWidth}px`;
-    }
     imgWrap.appendChild(img);
 
     const body = document.createElement("div");
