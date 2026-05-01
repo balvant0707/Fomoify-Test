@@ -143,6 +143,22 @@ const POPUP_CARD_DATA = [
     path: "/app/notification/review",
     imageName: "Review notification.png",
   },
+  {
+    key: "visitor-block",
+    title: "Visitor Block",
+    desc: "Show visitor count inside product information on all or selected products.",
+    path: "/app/visitor-block",
+    managePath: "/app/visitor-block",
+    imageName: "Visitor Popup - new.png",
+  },
+  {
+    key: "stock-block",
+    title: "Stock Block",
+    desc: "Show stock status inside product information on all or selected products.",
+    path: "/app/stock-block",
+    managePath: "/app/stock-block",
+    imageName: "low stock popup.png",
+  },
 ];
 
 
@@ -785,10 +801,10 @@ export default function AppIndex() {
   );
 
   const goPopupManage = useCallback(
-    (key) => {
+    (key, path = "/app/notification/manage") => {
       if (popupLoadingKey) return;
       setPopupLoadingKey(`${key}-manage`);
-      setTimeout(() => navigate(appUrl("/app/notification/manage")), 350);
+      setTimeout(() => navigate(appUrl(path)), 350);
     },
     [appUrl, navigate, popupLoadingKey]
   );
@@ -990,7 +1006,7 @@ export default function AppIndex() {
                             desc={card.desc}
                             imageName={card.imageName}
                             onCreate={() => goPopupCreate(card.path, card.key)}
-                            onManage={() => goPopupManage(card.key)}
+                            onManage={() => goPopupManage(card.key, card.managePath)}
                             loading={
                               popupLoadingKey === `${card.key}-create` ||
                               popupLoadingKey === `${card.key}-manage`

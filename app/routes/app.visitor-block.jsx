@@ -17,7 +17,6 @@ import {
   TextField,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
-import StockSpecificBox from "../components/productInfo/StockSpecificBox";
 import VisitorSpecificBox from "../components/productInfo/VisitorSpecificBox";
 
 export const loader = async ({ request }) => {
@@ -46,15 +45,6 @@ const styles = `
   border-radius: 8px;
   padding: 18px 20px;
 }
-.product-info-lines {
-  display: flex;
-  flex-direction: column;
-}
-.product-info-lines.is-inline {
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-}
 .product-info-line {
   display: inline-flex;
   align-items: center;
@@ -65,12 +55,6 @@ const styles = `
   place-items: center;
   flex: 0 0 auto;
 }
-.product-info-dot {
-  display: inline-block;
-  border-radius: 999px;
-  box-shadow: inset 0 0 0 2px rgba(255,255,255,.72);
-  flex: 0 0 auto;
-}
 `;
 
 const iconOptions = [
@@ -78,11 +62,6 @@ const iconOptions = [
   { label: "Fire", value: "fire" },
   { label: "User", value: "user" },
   { label: "None", value: "none" },
-];
-
-const layoutOptions = [
-  { label: "Stacked", value: "stacked" },
-  { label: "Inline", value: "inline" },
 ];
 
 const alignOptions = [
@@ -105,13 +84,13 @@ const behaviorOptions = [
 ];
 
 const iconFor = (icon) => {
-  if (icon === "fire") return "🔥";
-  if (icon === "user") return "●";
+  if (icon === "fire") return "*";
+  if (icon === "user") return "o";
   if (icon === "none") return "";
-  return "👁";
+  return "O";
 };
 
-export default function ProductInfoBlockDesigner() {
+export default function VisitorBlockConfiguration() {
   const [visitorEnabled, setVisitorEnabled] = useState(true);
   const [visitorMin, setVisitorMin] = useState("12");
   const [visitorMax, setVisitorMax] = useState("42");
@@ -122,25 +101,9 @@ export default function ProductInfoBlockDesigner() {
   const [visitorIconColor, setVisitorIconColor] = useState("#6B4B7A");
   const [visitorRefresh, setVisitorRefresh] = useState("20");
   const [visitorBehavior, setVisitorBehavior] = useState("fixed");
-
-  const [stockEnabled, setStockEnabled] = useState(true);
-  const [lowStockThreshold, setLowStockThreshold] = useState("5");
-  const [showExactStock, setShowExactStock] = useState(false);
-  const [hideOutOfStock, setHideOutOfStock] = useState(false);
-  const [inStockText, setInStockText] = useState("In stock");
-  const [lowStockText, setLowStockText] = useState("Only {count} left");
-  const [outOfStockText, setOutOfStockText] = useState("Out of stock");
-  const [inStockDotColor, setInStockDotColor] = useState("#42D66B");
-  const [lowStockDotColor, setLowStockDotColor] = useState("#F59E0B");
-  const [outStockDotColor, setOutStockDotColor] = useState("#EF4444");
   const [visitorProductScope, setVisitorProductScope] = useState("all");
   const [visitorProductModalOpen, setVisitorProductModalOpen] = useState(false);
   const [selectedVisitorProductIds, setSelectedVisitorProductIds] = useState([
-    "bedside-table",
-  ]);
-  const [stockProductScope, setStockProductScope] = useState("all");
-  const [stockProductModalOpen, setStockProductModalOpen] = useState(false);
-  const [selectedStockProductIds, setSelectedStockProductIds] = useState([
     "bedside-table",
   ]);
 
@@ -150,7 +113,6 @@ export default function ProductInfoBlockDesigner() {
   const [iconSize, setIconSize] = useState(18);
   const [spacing, setSpacing] = useState(12);
   const [textWeight, setTextWeight] = useState("500");
-  const [layout, setLayout] = useState("stacked");
   const [alignment, setAlignment] = useState("left");
   const [topMargin, setTopMargin] = useState(0);
   const [bottomMargin, setBottomMargin] = useState(0);
@@ -163,20 +125,15 @@ export default function ProductInfoBlockDesigner() {
   }, [visitorMin, visitorMax]);
 
   const visitorText = visitorTemplate.replace("{count}", visitorCount);
-  const previewStockCount = Math.max(1, Number(lowStockThreshold) || 5);
-  const stockText = showExactStock
-    ? lowStockText.replace("{count}", previewStockCount)
-    : inStockText;
-  const stockDot = showExactStock ? lowStockDotColor : inStockDotColor;
   const justify =
     alignment === "center" ? "center" : alignment === "right" ? "flex-end" : "flex-start";
 
   return (
     <Page
-      title="Product information block"
-      subtitle="Design-only settings for visitor and stock signals inside product information."
+      title="Visitor Block"
+      subtitle="Configuration for visitor count inside product information."
       backAction={{ content: "Back", url: "/app" }}
-      primaryAction={{ content: "Save design", disabled: true }}
+      primaryAction={{ content: "Save configuration", disabled: true }}
     >
       <style>{styles}</style>
       <div className="product-info-designer">
@@ -193,11 +150,7 @@ export default function ProductInfoBlockDesigner() {
                       Controls the line that shows how many shoppers are viewing the product.
                     </Text>
                   </BlockStack>
-                  <Checkbox
-                    label="Show"
-                    checked={visitorEnabled}
-                    onChange={setVisitorEnabled}
-                  />
+                  <Checkbox label="Show" checked={visitorEnabled} onChange={setVisitorEnabled} />
                 </InlineStack>
                 <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
                   <TextField label="Minimum count" value={visitorMin} onChange={setVisitorMin} type="number" autoComplete="off" />
@@ -232,46 +185,6 @@ export default function ProductInfoBlockDesigner() {
 
             <Card>
               <BlockStack gap="400">
-                <InlineStack align="space-between" blockAlign="center">
-                  <BlockStack gap="100">
-                    <Text as="h2" variant="headingMd">
-                      Stock status
-                    </Text>
-                    <Text as="p" tone="subdued">
-                      Controls the stock availability line shown below the visitor count.
-                    </Text>
-                  </BlockStack>
-                  <Checkbox label="Show" checked={stockEnabled} onChange={setStockEnabled} />
-                </InlineStack>
-                <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
-                  <TextField label="Low stock threshold" value={lowStockThreshold} onChange={setLowStockThreshold} type="number" autoComplete="off" />
-                  <Checkbox label="Show exact quantity" checked={showExactStock} onChange={setShowExactStock} />
-                  <Checkbox label="Hide when out of stock" checked={hideOutOfStock} onChange={setHideOutOfStock} />
-                </InlineGrid>
-                <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
-                  <TextField label="In-stock text" value={inStockText} onChange={setInStockText} autoComplete="off" />
-                  <TextField label="Low-stock text" value={lowStockText} onChange={setLowStockText} autoComplete="off" />
-                  <TextField label="Out-of-stock text" value={outOfStockText} onChange={setOutOfStockText} autoComplete="off" />
-                </InlineGrid>
-                <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
-                  <TextField label="In-stock dot color" value={inStockDotColor} onChange={setInStockDotColor} autoComplete="off" />
-                  <TextField label="Low-stock dot color" value={lowStockDotColor} onChange={setLowStockDotColor} autoComplete="off" />
-                  <TextField label="Out-of-stock dot color" value={outStockDotColor} onChange={setOutStockDotColor} autoComplete="off" />
-                </InlineGrid>
-                <Divider />
-                <StockSpecificBox
-                  productScope={stockProductScope}
-                  setProductScope={setStockProductScope}
-                  productModalOpen={stockProductModalOpen}
-                  setProductModalOpen={setStockProductModalOpen}
-                  selectedProductIds={selectedStockProductIds}
-                  setSelectedProductIds={setSelectedStockProductIds}
-                />
-              </BlockStack>
-            </Card>
-
-            <Card>
-              <BlockStack gap="400">
                 <Text as="h2" variant="headingMd">
                   Layout and style
                 </Text>
@@ -287,8 +200,8 @@ export default function ProductInfoBlockDesigner() {
                   <RangeSlider label="Spacing" min={4} max={28} value={spacing} onChange={setSpacing} output />
                 </InlineGrid>
                 <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
-                  <Select label="Layout" options={layoutOptions} value={layout} onChange={setLayout} />
                   <Select label="Alignment" options={alignOptions} value={alignment} onChange={setAlignment} />
+                  <Box />
                   <Box />
                 </InlineGrid>
                 <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
@@ -299,68 +212,52 @@ export default function ProductInfoBlockDesigner() {
             </Card>
           </BlockStack>
 
-          <BlockStack gap="400">
-            <Card>
-              <BlockStack gap="300">
-                <InlineStack align="space-between" blockAlign="center">
-                  <Text as="h2" variant="headingMd">
-                    Preview
-                  </Text>
-                  <Badge tone="attention">Design only</Badge>
-                </InlineStack>
-                <Divider />
-                <div className="product-info-preview-shell">
-                  <div className="product-info-preview-card">
-                    <div
-                      className={`product-info-lines ${layout === "inline" ? "is-inline" : ""}`}
+          <Card>
+            <BlockStack gap="300">
+              <InlineStack align="space-between" blockAlign="center">
+                <Text as="h2" variant="headingMd">
+                  Preview
+                </Text>
+                <Badge tone="attention">Design only</Badge>
+              </InlineStack>
+              <Divider />
+              <div className="product-info-preview-shell">
+                <div className="product-info-preview-card">
+                  {visitorEnabled && (
+                    <span
+                      className="product-info-line"
                       style={{
                         color: textColor,
                         fontSize,
                         fontWeight: textWeight,
-                        gap: spacing,
-                        alignItems: justify,
+                        gap: Math.max(6, Math.round(spacing / 2)),
+                        justifyContent: justify,
                         marginTop: topMargin,
                         marginBottom: bottomMargin,
+                        width: "100%",
                       }}
                     >
-                      {visitorEnabled && (
-                        <span className="product-info-line" style={{ gap: Math.max(6, Math.round(spacing / 2)) }}>
-                          {visitorIcon !== "none" && (
-                            <span
-                              className="product-info-icon"
-                              style={{ color: visitorIconColor, fontSize: iconSize, width: iconSize + 4 }}
-                            >
-                              {iconFor(visitorIcon)}
-                            </span>
-                          )}
-                          <span>{visitorText}</span>
+                      {visitorIcon !== "none" && (
+                        <span
+                          className="product-info-icon"
+                          style={{ color: visitorIconColor, fontSize: iconSize, width: iconSize + 4 }}
+                        >
+                          {iconFor(visitorIcon)}
                         </span>
                       )}
-                      {stockEnabled && (
-                        <span className="product-info-line" style={{ gap: Math.max(6, Math.round(spacing / 2)) }}>
-                          <span
-                            className="product-info-dot"
-                            style={{
-                              width: Math.max(10, Math.round(iconSize * 0.8)),
-                              height: Math.max(10, Math.round(iconSize * 0.8)),
-                              background: stockDot,
-                            }}
-                          />
-                          <span>{stockText}</span>
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                      <span>{visitorText}</span>
+                    </span>
+                  )}
                 </div>
-                <ButtonGroup>
-                  <Button disabled>Reset</Button>
-                  <Button variant="primary" disabled>
-                    Save design
-                  </Button>
-                </ButtonGroup>
-              </BlockStack>
-            </Card>
-          </BlockStack>
+              </div>
+              <ButtonGroup>
+                <Button disabled>Reset</Button>
+                <Button variant="primary" disabled>
+                  Save configuration
+                </Button>
+              </ButtonGroup>
+            </BlockStack>
+          </Card>
         </InlineGrid>
       </div>
     </Page>
