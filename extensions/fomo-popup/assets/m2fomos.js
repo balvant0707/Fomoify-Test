@@ -175,6 +175,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     return Number.isFinite(n) ? n : fb;
   };
   const POPUP_CARD_RADIUS = 6;
+  const POPUP_IMAGE_RADIUS = 5;
   const popupRadius = () => POPUP_CARD_RADIUS;
   const unitToSeconds = (value, unit) => {
     const n = Math.max(0, toNum(value, 0));
@@ -1074,8 +1075,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       : imageOverflow
         ? coverBoxSize
         : containIconSize;
-    const iRad = mode === "mobile" ? Math.round(iSize * 0.17) : 4;
-    img.style.cssText = `width:${iSize}px;height:${iSize}px;object-fit:${isContain ? "contain" : "cover"};border-radius:${isContain ? 0 : isPortrait ? 16 : iRad}px;background:transparent;flex:0 0 ${iSize}px;pointer-events:none;`;
+    img.style.cssText = `width:${iSize}px;height:${iSize}px;object-fit:${isContain ? "contain" : "cover"};object-position:center center;border-radius:${POPUP_IMAGE_RADIUS}px;background:transparent;flex:0 0 ${iSize}px;pointer-events:none;`;
     img.onerror = () => {
       img.src = FLAME_SVG;
     };
@@ -1089,7 +1089,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         top:50%;
         transform:translate(-50%, -50%);
         width:${coverBoxSize}px;height:${coverBoxSize}px;
-        border-radius:${cardRadius}px;
+        border-radius:${POPUP_IMAGE_RADIUS}px;
         overflow:hidden;
         background:#f3f4f6;
         display:grid;
@@ -1100,7 +1100,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       `;
       img.style.width = "100%";
       img.style.height = "100%";
-      img.style.borderRadius = "0";
+      img.style.borderRadius = `${POPUP_IMAGE_RADIUS}px`;
       img.style.objectFit = "cover";
       imgWrap.appendChild(img);
       iconNode = imgWrap;
@@ -1261,14 +1261,12 @@ document.addEventListener("DOMContentLoaded", async function () {
     const pad = mode === "mobile" ? mt.pad : 12;
     const rightPad = 44;
     const iSize = mode === "mobile" ? Math.max(mt.img || 0, 52) : 62;
-    const iRad = Math.round(iSize * 0.18);
     const portraitImageSize = mode === "mobile" ? 60 : 80;
     const inlineImageSize = isPortrait ? portraitImageSize : iSize;
-    const inlineImageRadius = isPortrait ? 14 : iRad;
     const inlineImageWidth =
       isContain && !isPortrait ? Math.round(inlineImageSize * 1.2) : inlineImageSize;
-    const inlineImageOverflow = isContain ? "visible" : "hidden";
-    const inlineImageRadiusResolved = isContain ? 0 : inlineImageRadius;
+    const inlineImageOverflow = "hidden";
+    const inlineImageRadiusResolved = POPUP_IMAGE_RADIUS;
     const imageTextGap = mode === "mobile" ? 10 : 12;
     const leftPad = imageOverflow
       ? pad + Math.round(iSize / 2) + imageTextGap
@@ -1291,7 +1289,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     const card = document.createElement("div");
     card.style.cssText = `
-    display:flex; gap:${isPortrait ? 10 : 12}px; align-items:flex-start; position:relative;
+    display:flex; gap:${isPortrait ? 10 : 12}px; align-items:${isPortrait ? "flex-start" : "center"}; position:relative;
     flex-direction:${isPortrait ? "column" : "row"};
     padding:${pad}px ${rightPad}px ${pad}px ${leftPad}px;
     font-size:${Number(cfg.baseFontSize) || (mode === "mobile" ? mt.fs : 14)}px; line-height:1.35;
@@ -1300,7 +1298,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const img = document.createElement("img");
     img.src = imageSrc;
     img.alt = safe(cfg.productTitle, "Product");
-    img.style.cssText = `width:100%;height:100%;object-fit:${imageFit};object-position:center center;`;
+    img.style.cssText = `width:100%;height:100%;object-fit:${imageFit};object-position:center center;border-radius:${POPUP_IMAGE_RADIUS}px;`;
     img.onerror = () => {
       imgWrap.style.display = "none";
     };
@@ -1313,7 +1311,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         top:50%;
         transform:translate(-50%, -50%);
         width:${iSize}px;height:${iSize}px;
-        border-radius:${iRad}px;
+        border-radius:${POPUP_IMAGE_RADIUS}px;
         overflow:hidden;background:transparent;
         display:${showImage ? "grid" : "none"};
         place-items:center;pointer-events:none;
@@ -1324,7 +1322,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         border-radius:${inlineImageRadiusResolved}px;overflow:${inlineImageOverflow};background:transparent;
         flex:0 0 ${inlineImageWidth}px;display:${showImage ? "grid" : "none"};
         place-items:center;pointer-events:none;
-        align-self:${isPortrait ? "center" : "auto"};
+        align-self:center;
       `;
     }
     if (isContain && !imageOverflow) {
@@ -1604,8 +1602,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       isContain && !isPortrait
         ? Math.round(inlineSize * (isAddToCart || isReview ? 1.2 : 1.12))
         : inlineSize;
-    const inlineWrapRadius = isContain ? 0 : Math.round(inlineSize * 0.22);
-    const inlineWrapOverflow = isContain ? "visible" : "hidden";
+    const inlineWrapRadius = POPUP_IMAGE_RADIUS;
+    const inlineWrapOverflow = "hidden";
 
     const posKey = String(cfg.positionDesktop || cfg.position || "bottom-left").toLowerCase();
     const originX = posKey.includes("right") ? "right" : "left";
@@ -1635,8 +1633,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       overflow:${imageOverflow ? "visible" : "hidden"}; opacity:${effectiveOpacity};
       border-radius:${innerRadius}px;
       background:${bg}; color:${cfg.textColor || "#111"};
-      box-shadow:${innerShadow};
-      border:${innerBorder};
+      box-shadow:${innerShadow};     
       transform:scale(${effectiveSizeScale});
       transform-origin:${transformOrigin};
       max-width:${isPortrait ? (portraitVisitor ? 360 : 320) : isVisitor ? 520 : 460}px;
@@ -1648,9 +1645,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       ? "stretch"
       : isPortrait
         ? "flex-start"
-        : imageOverflow
-          ? "flex-start"
-          : "center";
+        : "center";
     card.style.cssText = `
       display:flex; gap:${gap}px; align-items:${alignItems};
       flex-direction:${isPortrait ? "column" : "row"};
@@ -1668,7 +1663,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         top:${isPortrait ? 28 : "50%"};
         transform:${isPortrait ? "translate(-50%, 0)" : "translate(-50%, -50%)"};
         width:${imgSize}px;height:${imgSize}px;
-        border-radius:${Math.round(imgSize * 0.22)}px;
+        border-radius:${POPUP_IMAGE_RADIUS}px;
         overflow:hidden;background:${isVisitor ? "#ffffff" : "transparent"};
         display:${cfg.showProductImage === false ? "none" : "grid"};
         place-items:center;
@@ -1684,7 +1679,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         background:${portraitVisitor ? "#ffffff" : "transparent"};
         flex:0 0 ${inlineWidth}px;display:${cfg.showProductImage === false ? "none" : "grid"};
         place-items:center;pointer-events:none;
-        align-self:${isPortrait ? "center" : "flex-start"};
+        align-self:center;
         ${portraitVisitor ? "box-shadow:0 10px 22px rgba(0,0,0,0.14);border:1px solid rgba(15,23,42,0.08);margin:2px auto 2px;" : ""}
       `;
     }
@@ -1692,7 +1687,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const img = document.createElement("img");
     img.alt = safe(cfg.productTitle, "Product");
     img.style.cssText = `
-      width:100%;height:100%;object-fit:${imageFit};object-position:center center;
+      width:100%;height:100%;object-fit:${imageFit};object-position:center center;border-radius:${POPUP_IMAGE_RADIUS}px;
     `;
     img.onerror = () => {
       imgWrap.style.display = "none";
