@@ -103,28 +103,28 @@ const INDEX_PAGE_INLINE_CSS = `
 const POPUP_CARD_DATA = [
   {
     key: "recent",
-    title: "Recent Purchases Popup",
+    title: "Recent Purchase Notification",
     desc: "Show real-time customer activity to create social proof and FOMO.",
     path: "/app/notification/recent",
     imageName: "Recent cart.png",
   },
   {
     key: "flash",
-    title: "Flash Sale",
+    title: "Flash Sale Notification",
     desc: "Announce limited-time offers with a sticky top bar and timer.",
     path: "/app/notification/flash",
     imageName: "Flash Sale.png",
   },
   {
     key: "visitor",
-    title: "Visitor Popup",
+    title: "Visitor Notification",
     desc: "Show live visitor activity and product interest notifications.",
     path: "/app/notification/visitor",
     imageName: "Visitor Popup - new.png",
   },
   {
     key: "lowstock",
-    title: "Low Stock Popup",
+    title: "Low Stock Notification",
     desc: "Create urgency when inventory is running low.",
     path: "/app/notification/lowstock",
     imageName: "low stock popup.png",

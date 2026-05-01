@@ -2937,6 +2937,21 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
       return true;
     };
+    const productMatchesCurrent = (prod) => {
+      if (!prod || pt !== "product") return false;
+
+      const prodId = normalizeProductId(prod?.id ?? prod?.product_id ?? prod?.productId);
+      const currentId = normalizeProductId(currentProduct?.id);
+      if (prodId && currentId && prodId === currentId) return true;
+
+      const prodHandle = String(productHandleOf(prod) || "").trim().toLowerCase();
+      const currentHandle = String(ch || productHandleOf(currentProduct) || "").trim().toLowerCase();
+      if (prodHandle && currentHandle && prodHandle === currentHandle) return true;
+
+      const prodTitle = String(prod?.title || prod?.productTitle || "").trim().toLowerCase();
+      const currentTitle = String(currentProduct?.title || "").trim().toLowerCase();
+      return Boolean(prodTitle && currentTitle && prodTitle === currentTitle);
+    };
 
     const productCache = new Map();
     const judgeMeReviewCountCache = new Map();
@@ -3356,12 +3371,16 @@ document.addEventListener("DOMContentLoaded", async function () {
       if (!handle) {
         if (isPd) {
           const waited = await waitForJudgeMeDom(ch);
+          if (judgeMeConnected && productMatchesCurrent(prod)) return true;
           return waited.count > 0 || waited.reviews.length > 0;
         }
         return false;
       }
 
       const count = await fetchJudgeMeCountByHandle(handle);
+      if (count <= 0 && judgeMeConnected && productMatchesCurrent(prod)) {
+        return true;
+      }
       return count > 0;
     };
     const fetchJudgeMeReviewsByHandle = async (handle) => {
@@ -3415,7 +3434,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         const waited = await waitForJudgeMeDom(ch);
         const domReviews = waited.reviews.length ? waited.reviews : judgeMeReviewsFromDom();
         if (!domReviews.length) {
-          if (waited.count <= 0) return null;
+          if (waited.count <= 0 && !(judgeMeConnected && productMatchesCurrent(prod))) {
+            return null;
+          }
           return {
             reviewer_name: "Verified buyer",
             review_title: "Great product",
@@ -3433,7 +3454,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       const reviews = await fetchJudgeMeReviewsByHandle(handle);
       if (!reviews.length) {
         const hasReview = await hasJudgeMeReview(prod);
-        if (!hasReview) return null;
+        if (!hasReview && !(judgeMeConnected && productMatchesCurrent(prod))) return null;
         return {
           reviewer_name: "Verified buyer",
           review_title: "Great product",
@@ -4093,7 +4114,12 @@ document.addEventListener("DOMContentLoaded", async function () {
               if (key && seenKeys.has(key)) continue;
               if (key) seenKeys.add(key);
 
-              if (await hasJudgeMeReview(prod)) reviewedPool.push(prod);
+              if (
+                (judgeMeConnected && productMatchesCurrent(prod)) ||
+                (await hasJudgeMeReview(prod))
+              ) {
+                reviewedPool.push(prod);
+              }
             }
           };
 
