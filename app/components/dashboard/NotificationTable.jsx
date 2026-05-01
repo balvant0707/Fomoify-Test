@@ -285,9 +285,7 @@ export default function NotificationTable({
   };
 
   const editUrlFor = (row) => {
-    const sp = new URLSearchParams();
-    sp.set("editId", String(row.id));
-    return `/app/notification/${row.key}?${sp.toString()}`;
+    return `/app/notification/${row.key}/edit/${row.id}`;
   };
 
   const qLower = (query || "").trim().toLowerCase();
