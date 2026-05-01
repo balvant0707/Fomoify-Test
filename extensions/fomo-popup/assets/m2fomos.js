@@ -958,6 +958,31 @@ document.addEventListener("DOMContentLoaded", async function () {
   function closeBtnStyle(color) {
     return `position:absolute;top:2px;right:4px;border:0;background:transparent;color:${color || "inherit"};font-size:20px;line-height:1;padding:2px 4px;cursor:pointer;opacity:.82;transition:opacity .15s ease;z-index:2;`;
   }
+  function createProgressBar(visibleMs, color) {
+    const barWrap = document.createElement("div");
+    barWrap.className = "fomo-progress-wrap";
+    barWrap.style.cssText = `
+      height:5px;
+      width:100%;
+      background:rgba(15,23,42,0.14);
+      overflow:hidden;
+      line-height:0;
+      pointer-events:none;
+      flex:0 0 5px;
+    `;
+    const bar = document.createElement("div");
+    bar.className = "fomo-progress";
+    bar.style.cssText = `
+      height:100%;
+      width:100%;
+      min-width:1px;
+      background:${color || "#111827"};
+      animation:fomoProgress ${visibleMs}ms linear forwards;
+      transform-origin:left;
+    `;
+    barWrap.appendChild(bar);
+    return barWrap;
+  }
 
   /* ========== FLASH renderer ========== */
   function renderFlash(cfg, mode, onDone) {
@@ -1135,16 +1160,16 @@ document.addEventListener("DOMContentLoaded", async function () {
     card.appendChild(close);
     wrap.appendChild(card);
 
-    const barWrap = document.createElement("div");
-    barWrap.className = "fomo-progress-wrap";
-    barWrap.style.cssText = `height:4px;width:100%;background:transparent`;
-    const bar = document.createElement("div");
-    bar.className = "fomo-progress";
     const progCol =
-      cfg.progressColor || cfg.titleColor || cfg.fontColor || "#22c55e";
-    bar.style.cssText = `height:100%;width:100%;background:${progCol};animation:fomoProgress ${visibleMs}ms linear forwards;transform-origin:left;`;
-    barWrap.appendChild(bar);
-    wrap.appendChild(barWrap);
+      cfg.progressColor ||
+      cfg.titleColor ||
+      cfg.numberColor ||
+      cfg.priceTagAlt ||
+      cfg.starColor ||
+      cfg.fontColor ||
+      cfg.textColor ||
+      "#111827";
+    wrap.appendChild(createProgressBar(visibleMs, progCol));
 
     wrap.addEventListener("click", (e) => {
       if (e.target === close) return;
@@ -1438,13 +1463,16 @@ document.addEventListener("DOMContentLoaded", async function () {
     card.appendChild(close);
     wrap.appendChild(card);
 
-    const barWrap = document.createElement("div");
-    barWrap.style.cssText = `height:4px;width:100%;background:transparent`;
-    const bar = document.createElement("div");
-    bar.style.cssText = `height:100%;width:100%;background:${cfg.progressColor || ACCENT
-      };animation:fomoProgress ${visibleMs}ms linear forwards;transform-origin:left;`;
-    barWrap.appendChild(bar);
-    wrap.appendChild(barWrap);
+    const progressColor =
+      cfg.progressColor ||
+      ACCENT ||
+      cfg.numberColor ||
+      cfg.priceTagAlt ||
+      cfg.starColor ||
+      cfg.fontColor ||
+      cfg.textColor ||
+      "#111827";
+    wrap.appendChild(createProgressBar(visibleMs, progressColor));
 
     wrap.addEventListener("click", (e) => {
       if (e.target === close) return;
@@ -2011,19 +2039,19 @@ document.addEventListener("DOMContentLoaded", async function () {
     card.appendChild(close);
     inner.appendChild(card);
 
-    const barWrap = document.createElement("div");
-    barWrap.style.cssText = `height:4px;width:100%;background:transparent`;
-    const bar = document.createElement("div");
     const progressColor = isAddToCart || isReview
       ? cfg.progressColor ||
         cfg.priceTagAlt ||
         cfg.starColor ||
         cfg.textColor ||
-        "#22c55e"
-      : cfg.progressColor || cfg.textColor || "#22c55e";
-    bar.style.cssText = `height:100%;width:100%;background:${progressColor};animation:fomoProgress ${visibleMs}ms linear forwards;transform-origin:left;`;
-    barWrap.appendChild(bar);
-    inner.appendChild(barWrap);
+        "#111827"
+      : cfg.progressColor ||
+        cfg.numberColor ||
+        cfg.priceTagAlt ||
+        cfg.starColor ||
+        cfg.textColor ||
+        "#111827";
+    inner.appendChild(createProgressBar(visibleMs, progressColor));
     wrap.appendChild(inner);
 
     wrap.addEventListener("click", (e) => {
@@ -4044,6 +4072,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           bgColor: row.bgColor,
           bgAlt: row.bgAlt,
           textColor: row.textColor,
+          numberColor: row.numberColor,
           timestampColor: row.timestampColor,
           priceTagBg: row.priceTagBg,
           priceTagAlt: row.priceTagAlt,

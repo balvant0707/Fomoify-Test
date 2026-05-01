@@ -2152,7 +2152,7 @@ export default function RecentOrdersPopupPage() {
                     </Box>
                     <Box width="50%">
                       <ColorInput
-                        label="Number color"
+                        label="Heading color"
                         value={form.numberColor}
                         onChange={(v) =>
                           setForm((f) => ({ ...f, numberColor: v }))
