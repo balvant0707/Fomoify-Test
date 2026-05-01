@@ -1253,7 +1253,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const showImage = !cfg.hideProductImage;
     const imageOverflow = imageFit === "cover" && !isPortrait && showImage;
     const pad = mode === "mobile" ? mt.pad : 12;
-    const rightPad = 44;
+    const rightPad = 28;
     const iSize = mode === "mobile" ? Math.max(mt.img || 0, 56) : 64;
     const inlineImageSize = iSize;
     const inlineImageWidth = inlineImageSize;
@@ -1270,7 +1270,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const wrap = document.createElement("div");
     wrap.style.cssText = `
     position:fixed; z-index:9999; box-sizing:border-box;
-    width:${mode === "mobile" ? mt.w : ""}; overflow:${imageOverflow ? "visible" : "hidden"}; cursor:pointer;
+    width:${mode === "mobile" ? mt.w : "360px"}; max-width:${mode === "mobile" ? "92vw" : "360px"}; overflow:${imageOverflow ? "visible" : "hidden"}; cursor:pointer;
     border-radius:${cardRadius}px;
     background:${bgRecent}; color:${cfg.fontColor || "#111"};
     box-shadow:0 12px 28px rgba(15,23,42,.14);
@@ -1320,11 +1320,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     imgWrap.appendChild(img);
 
     const body = document.createElement("div");
-    body.style.cssText = `flex:1;min-width:0;pointer-events:none;`;
+    body.style.cssText = `flex:1;min-width:0;max-width:100%;pointer-events:none;overflow-wrap:anywhere;word-break:normal;`;
 
     // Name + granular location
     const line1 = document.createElement("div");
-    line1.style.cssText = `margin:0 0 2px 0;`;
+    line1.style.cssText = `margin:0 0 2px 0;max-width:100%;overflow-wrap:anywhere;word-break:normal;`;
     const fw = safe(cfg.fontWeight, "700");
     const nameText = cfg.hideName ? "" : safe(cfg.name, "Someone");
 
@@ -1380,7 +1380,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       }`;
 
     line2.innerHTML = boughtTxt;
-    line2.style.cssText = `opacity:1;margin:0 0 6px 0;`;
+    line2.style.cssText = `opacity:1;margin:0 0 6px 0;max-width:100%;overflow-wrap:anywhere;word-break:normal;`;
     body.appendChild(line2);
 
     const priceText = safe(cfg.price, "").trim();
@@ -1605,7 +1605,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       box-shadow:${innerShadow};     
       transform:scale(${effectiveSizeScale});
       transform-origin:${transformOrigin};
-      max-width:${isPortrait ? (portraitVisitor ? 360 : 320) : isVisitor ? 520 : 400}px;
+      max-width:${isPortrait ? (portraitVisitor ? 360 : 320) : isVisitor ? 400 : 360}px;
     `;
 
     const card = document.createElement("div");
@@ -1666,30 +1666,6 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     const body = document.createElement("div");
     body.style.cssText = `flex:1;min-width:0;pointer-events:none;display:grid;gap:${portraitVisitor ? 8 : 6}px;${portraitVisitor ? "width:100%;" : ""}`;
-
-    if (isAddToCart) {
-      const badge = document.createElement("div");
-      badge.style.cssText = `
-        display:inline-flex;align-items:center;gap:6px;
-        width:max-content;
-        padding:3px 8px;
-        border-radius:999px;
-        font-size:${Math.max(10, fontSize - 3)}px;
-        font-weight:700;
-        letter-spacing:.2px;
-        color:${cfg.priceColor || "#ffffff"};
-        background:${cfg.priceTagBg || "rgba(15,23,42,0.7)"};
-      `;
-      const dot = document.createElement("span");
-      dot.style.cssText = `
-        width:6px;height:6px;border-radius:50%;
-        background:${cfg.priceTagAlt || cfg.starColor || "#22c55e"};
-        box-shadow:0 0 0 3px rgba(255,255,255,0.18);
-      `;
-      badge.appendChild(dot);
-      badge.appendChild(document.createTextNode("Added to cart"));
-      body.appendChild(badge);
-    }
 
     if (cfg.showRating) {
       const rating = Math.max(
