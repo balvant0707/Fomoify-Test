@@ -1502,7 +1502,7 @@ export default function FlashConfigPage() {
                   <InlineStack gap="400" wrap={false} width="100%" alignItems="center">
                     <Box width="50%">
                       <Select
-                        label={`Flash Sale Icon${form.iconSvg ? " (using Uploaded)" : ""}`}
+                        label={`Flash Sale Icon${form.iconSvg ? "" : ""}`}
                         options={iconOptions}
                         value={form.iconKey}
                         onChange={onField("iconKey")}

@@ -1003,7 +1003,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const mobileLeftPad = imageOverflow
       ? 12 + Math.round(coverBoxSize * 0.45)
       : 14;
-    const desktopLeftPad = imageOverflow ? 44 : 15;
+    const desktopLeftPad = imageOverflow ? 44 : 25;
     const padTop = mode === "mobile" ? (isPortrait ? 18 : mt.pad) : isPortrait ? 24 : 15;
     const padRight = isPortrait ? 24 : 44;
     const padBottom =
