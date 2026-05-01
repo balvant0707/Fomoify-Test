@@ -655,10 +655,13 @@ export default function AppIndex() {
     hasThemeEmbedCheck && embedContextState.appEmbedFound === true;
   const hasFreshPingSignal =
     embedPing?.isFresh === true || embedPing?.isOn === true;
-  const isEmbedStatusLoading = isEmbedContextLoading || isEmbedPingLoading;
+  const hasReliableEmbedStatus = hasThemeEmbedCheck || hasFreshPingSignal;
+  const isEmbedStatusLoading =
+    isEmbedContextLoading || isEmbedPingLoading || !hasReliableEmbedStatus;
   const isEmbedActive =
-    hasFreshPingSignal ||
-    (hasThemeEmbedSignal && Boolean(embedContextState.appEmbedEnabled));
+    hasThemeEmbedCheck
+      ? hasThemeEmbedSignal && Boolean(embedContextState.appEmbedEnabled)
+      : hasFreshPingSignal;
   const embedBadgeText = isEmbedStatusLoading
     ? "App embed: CHECKING"
     : `App embed: ${isEmbedActive ? "ON" : "OFF"}`;

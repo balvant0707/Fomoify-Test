@@ -954,7 +954,7 @@ function PreviewCard({
   const compareFontSize = clampFontSize(textSizeCompare, 10);
   const priceFontSize = clampFontSize(textSizePrice, 10);
   const metaFontSize = Math.max(6, Math.round(contentFontSize * 0.9));
-  const ratingFontSize = Math.max(8, Math.round(contentFontSize * 1.1));
+  const ratingFontSize = Math.max(8, Math.round(contentFontSize * 1.5));
   const badgeFontSize = Math.max(6, Math.round(contentFontSize * 0.9));
   const scale = 0.8 + (size / 100) * 0.4;
   const opacity = 1 - (transparency / 100) * 0.7;
@@ -1155,14 +1155,14 @@ function PreviewCard({
 
       <div style={{ display: "grid", gap: isPortrait ? 8 : 6, minWidth: 0, flex: 1 }}>
         {showRating && (
-          <div style={{ color: starColor, fontSize: `${ratingFontSize * 1.5}px !important;`, letterSpacing: 1 }}>
+          <div style={{ color: starColor, fontSize: `${ratingFontSize }px !important;`, letterSpacing: 1 }}>
             {"★★★★★".slice(0, product?.rating || 4)}
-            <span style={{ color: "#d1d5db" ,fontSize: `${ratingFontSize * 1.5}px !important;`}}>
+            <span style={{ color: "#d1d5db" , fontSize: `${ratingFontSize }px !important;`}}>
               {"★★★★★".slice(0, 5 - (product?.rating || 4))}
             </span>
           </div>
         )}
-        <div style={{ fontSize: contentFontSize, lineHeight: 1.35 }}>
+        <div style={{ fontSize: contentFontSize,fontWeight: 600,lineHeight: 1.35 }}>
           {contentNode}
         </div>
         {showPriceTag && (
@@ -1221,7 +1221,7 @@ export default function AddToCartPopupPage() {
 
   const [design, setDesign] = useState({
     layout: "landscape",
-    size: 25,
+    size: 50,
     transparent: 10,
     template: "gradient",
     imageAppearance: "cover",

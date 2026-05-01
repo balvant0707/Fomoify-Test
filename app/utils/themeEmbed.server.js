@@ -12,6 +12,20 @@ const normalizeShopifyAppUrl = (value) =>
     .replace(/[^a-z0-9/_-]/g, "");
 const normalizeWords = (value) =>
   toLower(value).replace(/[^a-z0-9]+/g, " ").trim();
+const blockSearchText = (blockId, block) =>
+  [
+    blockId,
+    block?.type,
+    block?.name,
+    block?.target,
+    block?.settings?.name,
+    block?.settings?.target,
+    block?.settings?.schemaName,
+    block?.settings?.app_id,
+    block?.settings?.appId,
+  ]
+    .filter(Boolean)
+    .join(" ");
 const toBool = (value) => {
   if (value === true || value === 1) return true;
   const v = toLower(value);
@@ -305,7 +319,8 @@ export async function getThemeEmbedState({
     const matches = entries
       .filter(({ blockId, block }) => {
         const type = toLower(block?.type);
-        if (!type) return false;
+        const rawSearchText = blockSearchText(blockId, block);
+        if (!type && !rawSearchText) return false;
 
         const appUrl = normalizeShopifyAppUrl(type);
         const normalizedType = normalizeToken(type);
@@ -317,27 +332,14 @@ export async function getThemeEmbedState({
           block?.target || block?.settings?.target
         );
         const normalizedSchemaName = normalizeToken(block?.settings?.schemaName);
-        const readableHaystack = normalizeWords(
-          [
-            type,
-            blockId,
-            block?.name,
-            block?.settings?.name,
-            block?.target,
-            block?.settings?.target,
-            block?.settings?.schemaName,
-          ]
-            .filter(Boolean)
-            .join(" ")
-        );
+        const normalizedSearchText = normalizeToken(rawSearchText);
+        const readableHaystack = normalizeWords(rawSearchText);
         const hasAppType =
           type.includes("shopify://apps/") ||
           type.includes("/apps/") ||
           normalizedType.includes("shopifyapps") ||
-          normalizedBlockId.includes("shopifyapps");
-        if (!hasAppType) {
-          return false;
-        }
+          normalizedBlockId.includes("shopifyapps") ||
+          appMarkers.some((marker) => normalizedSearchText.includes(marker));
 
         if (
           appUrl.includes(expectedBlockPath) ||
@@ -350,7 +352,8 @@ export async function getThemeEmbedState({
         const hasHandleMatch = normalizedHandleVariants.some((variant) =>
           haystack.includes(variant) || normalizedSchemaName.includes(variant)
         );
-        if (hasHandleMatch) return true;
+        if (hasHandleMatch && hasAppType) return true;
+
         const hasAppMarker = appMarkers.some((marker) => haystack.includes(marker));
         const hasEmbedHint =
           normalizedType.includes("embed") ||
@@ -358,10 +361,16 @@ export async function getThemeEmbedState({
           normalizedName.includes("embed") ||
           normalizedTarget.includes("embed") ||
           normalizedType.includes("appblock");
+        const isRootBodyEmbed =
+          normalizedTarget === "body" ||
+          normalizeToken(block?.target) === "body" ||
+          normalizeToken(block?.settings?.target) === "body";
+
+        if (hasHandleMatch && (hasEmbedHint || isRootBodyEmbed)) return true;
         if (hasAppMarker && hasEmbedHint) return true;
 
         return (
-          hasEmbedHint &&
+          (hasEmbedHint || isRootBodyEmbed) &&
           /\b(fomoify|fomo|m2fomo)\b/.test(readableHaystack) &&
           /\b(core|app|embed)\b/.test(readableHaystack)
         );
