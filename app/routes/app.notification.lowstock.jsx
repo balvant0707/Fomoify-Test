@@ -914,7 +914,7 @@ function PreviewCard({
             }}
           >
             {"★".repeat(Math.max(0, Math.min(5, product?.rating || 4)))}
-            <span style={{ color: starColor, opacity: 0.28 }}>
+            <span style={{ color: starColor, opacity: 0.28 ,fontSize: ratingFontSize,}}>
               {"★".repeat(Math.max(0, 5 - (product?.rating || 4)))}
             </span>
           </div>
