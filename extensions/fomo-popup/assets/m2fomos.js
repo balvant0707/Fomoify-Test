@@ -1605,7 +1605,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       box-shadow:${innerShadow};     
       transform:scale(${effectiveSizeScale});
       transform-origin:${transformOrigin};
-      max-width:${isPortrait ? (portraitVisitor ? 360 : 320) : isVisitor ? 520 : 460}px;
+      max-width:${isPortrait ? (portraitVisitor ? 360 : 320) : isVisitor ? 520 : 400}px;
     `;
 
     const card = document.createElement("div");

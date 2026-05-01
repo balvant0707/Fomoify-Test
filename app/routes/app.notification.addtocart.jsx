@@ -1155,9 +1155,9 @@ function PreviewCard({
 
       <div style={{ display: "grid", gap: isPortrait ? 8 : 6, minWidth: 0, flex: 1 }}>
         {showRating && (
-          <div style={{ color: starColor, fontSize: `${ratingFontSize }px !important;`, letterSpacing: 1 }}>
+          <div style={{ color: starColor, fontSize: ratingFontSize, letterSpacing: 1 }}>
             {"★★★★★".slice(0, product?.rating || 4)}
-            <span style={{ color: starColor, opacity: 0.28, fontSize: `${ratingFontSize }px !important;`}}>
+            <span style={{ color: starColor, opacity: 0.28, fontSize: ratingFontSize }}>
               {"★★★★★".slice(0, 5 - (product?.rating || 4))}
             </span>
           </div>
