@@ -16,17 +16,20 @@ document.addEventListener("DOMContentLoaded", async function () {
   const directProxyBase = String(ROOT.getAttribute("data-direct-proxy-base") || "")
     .trim()
     .replace(/\/$/, "");
-  const PROXY_BASES = [...(directProxyBase ? [directProxyBase] : []), "/apps/fomo"];
+  const PROXY_BASES = [
+    "/apps/fomo",
+    ...(directProxyBase ? [directProxyBase] : []),
+  ];
   const PROXY_STORE_KEY = "__fomo_proxy_base__";
   const readSavedProxyBase = () => {
     try {
       const v = window.localStorage.getItem(PROXY_STORE_KEY);
-      return PROXY_BASES.includes(v) ? v : null;
+      return v === "/apps/fomo" ? v : null;
     } catch {
       return null;
     }
   };
-  let ACTIVE_PROXY_BASE = directProxyBase || readSavedProxyBase() || PROXY_BASES[0];
+  let ACTIVE_PROXY_BASE = readSavedProxyBase() || PROXY_BASES[0];
   const setActiveProxyBase = (base) => {
     if (!PROXY_BASES.includes(base)) return;
     ACTIVE_PROXY_BASE = base;
@@ -971,7 +974,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     barWrap.style.cssText = `
       height:5px;
       width:100%;
-      background:rgba(15,23,42,0.14);
       overflow:hidden;
       line-height:0;
       pointer-events:none;
@@ -2150,32 +2152,45 @@ document.addEventListener("DOMContentLoaded", async function () {
       t: null,
       idx: 0,
       el: null,
+      runId: 0,
       start(immediate = false) {
-        const seq = this.mode === "mobile" ? this.seqMobile : this.seqDesktop;
-        if (!seq.length) return;
+        this.stop();
+        const runId = ++this.runId;
+        const getSeq = () => this.mode === "mobile" ? this.seqMobile : this.seqDesktop;
+        if (!getSeq().length) return;
 
         const showNext = (delaySec) => {
           this.t = setTimeout(() => {
-            const s = this.mode === "mobile" ? this.seqMobile : this.seqDesktop;
+            if (runId !== this.runId) return;
+            this.t = null;
+            const s = getSeq();
             if (!s.length) return;
             const cfg = s[this.idx % s.length];
-            this.el = this.renderer(cfg, this.mode, () => {
+            const queueNext = () => {
+              if (runId !== this.runId) return;
               const gap = gapSeconds(cfg);
               this.idx = (this.idx + 1) % s.length;
               showNext(gap);
-            });
+            };
+            try {
+              this.el = this.renderer(cfg, this.mode, queueNext);
+            } catch {
+              queueNext();
+            }
           }, Math.max(0, delaySec) * 1000);
         };
 
-        const firstDelay = 0;
+        const firstDelay = immediate ? 0 : Math.max(0, Number(getSeq()[this.idx % getSeq().length]?.firstDelaySeconds || 0));
         showNext(firstDelay);
       },
       stop() {
+        this.runId++;
         if (this.t) clearTimeout(this.t);
         this.t = null;
         try {
           this.el && this.el.remove();
         } catch { }
+        this.el = null;
       },
       resize() {
         const nm = isMobile() ? "mobile" : "desktop";
@@ -2196,31 +2211,44 @@ document.addEventListener("DOMContentLoaded", async function () {
       t: null,
       idx: 0,
       el: null,
+      runId: 0,
       start(immediate = false) {
+        this.stop();
+        const runId = ++this.runId;
         if (!this.seq.length) return;
 
         const showNext = (delaySec) => {
           this.t = setTimeout(() => {
+            if (runId !== this.runId) return;
+            this.t = null;
             if (!this.seq.length) return;
             const item = this.seq[this.idx % this.seq.length]; // {type, cfg}
             const renderer = rendererForType(item.type);
-            this.el = renderer(item.cfg, "mobile", () => {
+            const queueNext = () => {
+              if (runId !== this.runId) return;
               const gap = gapSeconds(item.cfg);
               this.idx = (this.idx + 1) % this.seq.length;
               showNext(gap);
-            });
+            };
+            try {
+              this.el = renderer(item.cfg, "mobile", queueNext);
+            } catch {
+              queueNext();
+            }
           }, Math.max(0, delaySec) * 1000);
         };
 
-        const firstDelay = 0;
+        const firstDelay = immediate ? 0 : Math.max(0, Number(this.seq[this.idx % this.seq.length]?.cfg?.firstDelaySeconds || 0));
         showNext(firstDelay);
       },
       stop() {
+        this.runId++;
         if (this.t) clearTimeout(this.t);
         this.t = null;
         try {
           this.el && this.el.remove();
         } catch { }
+        this.el = null;
       },
     };
   }
