@@ -180,6 +180,13 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (u.startsWith("min")) return Math.round(n * 60);
     return Math.round(n);
   };
+  const displaySecondsFrom = (...values) => {
+    for (const value of values) {
+      const n = Number(value);
+      if (Number.isFinite(n) && n > 0) return n;
+    }
+    return 6;
+  };
   const formatProductName = (name, mode, limit) => {
     const raw = String(name || "").trim();
     if (!raw) return "";
@@ -987,8 +994,11 @@ document.addEventListener("DOMContentLoaded", async function () {
   /* ========== FLASH renderer ========== */
   function renderFlash(cfg, mode, onDone) {
     const mt = mobileTokens(cfg.mobileSize);
-    const visibleSec =
-      Number(cfg.durationSeconds ?? cfg.visibleSeconds ?? 6) || 6;
+    const visibleSec = displaySecondsFrom(
+      cfg.durationSeconds,
+      cfg.visibleSeconds,
+      cfg.duration
+    );
     const visibleMs = Math.max(1, visibleSec) * 1000;
     const { inAnim, outAnim } = getAnimPair(cfg, mode);
     const DUR = getAnimDur(cfg);
@@ -1209,8 +1219,11 @@ document.addEventListener("DOMContentLoaded", async function () {
   /* ========== RECENT renderer (granular hide) ========== */
   function renderRecent(cfg, mode, onDone) {
     const mt = mobileTokens(cfg.mobileSize);
-    const visibleSec =
-      Number(cfg.durationSeconds ?? cfg.visibleSeconds ?? 6) || 6;
+    const visibleSec = displaySecondsFrom(
+      cfg.durationSeconds,
+      cfg.visibleSeconds,
+      cfg.duration
+    );
     const visibleMs = Math.max(1, visibleSec) * 1000;
     const theAnim = getAnimPair(cfg, mode);
     const { inAnim, outAnim } = theAnim;
@@ -1510,8 +1523,11 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   /* ========== GENERIC product popup renderer (visitor/lowstock/addtocart/review) ========== */
   function renderProductPopup(cfg, mode, onDone) {
-    const visibleSec =
-      Number(cfg.durationSeconds ?? cfg.visibleSeconds ?? 6) || 6;
+    const visibleSec = displaySecondsFrom(
+      cfg.durationSeconds,
+      cfg.visibleSeconds,
+      cfg.duration
+    );
     const visibleMs = Math.max(1, visibleSec) * 1000;
     const { inAnim, outAnim } = getAnimPair(cfg, mode);
     const DUR = getAnimDur(cfg);
@@ -2426,7 +2442,11 @@ document.addEventListener("DOMContentLoaded", async function () {
         fontWeight: it.fontWeight,
         baseFontSize: Number(it.fontSize ?? it.rounded ?? 0) || null,
         cornerRadius: Number(it.cornerRadius ?? POPUP_CARD_RADIUS),
-        visibleSeconds: Number(it.durationSeconds ?? it.visibleSeconds ?? 6),
+        visibleSeconds: displaySecondsFrom(
+          it.durationSeconds,
+          it.visibleSeconds,
+          it.duration
+        ),
         alternateSeconds: Number(it.alternateSeconds || 4),
         firstDelaySeconds: Number(it.firstDelaySeconds ?? it.delaySeconds ?? 0),
         progressColor: it.progressColor || it.numberColor || it.titleColor || it.textColor || it.msgColor,
@@ -2472,7 +2492,11 @@ document.addEventListener("DOMContentLoaded", async function () {
             uploadedImage: iconSrc,
             productUrl: safe(it.ctaUrl, "#"),
             mobilePosition: normMB(mbPos, defaultMB),
-            durationSeconds: Number(it.durationSeconds || 0),
+            durationSeconds: displaySecondsFrom(
+              it.durationSeconds,
+              it.visibleSeconds,
+              it.duration
+            ),
             ...COMMON,
           });
         }
@@ -2552,7 +2576,11 @@ document.addEventListener("DOMContentLoaded", async function () {
                 pickSmart(mbPosArr, 0, defaultMB),
                 defaultMB
               ),
-              durationSeconds: Number(it.durationSeconds || 0),
+              durationSeconds: displaySecondsFrom(
+                it.durationSeconds,
+                it.visibleSeconds,
+                it.duration
+              ),
 
               // raw locations JSON so renderer can still use it if needed
               rawLocations: it.locationsJson,
@@ -2589,8 +2617,11 @@ document.addEventListener("DOMContentLoaded", async function () {
               baseFontSize:
                 Number(it.fontSize ?? it.rounded ?? 0) || null,
               cornerRadius: Number(it.cornerRadius ?? POPUP_CARD_RADIUS),
-              visibleSeconds:
-                Number(it.durationSeconds ?? it.visibleSeconds ?? 6),
+              visibleSeconds: displaySecondsFrom(
+                it.durationSeconds,
+                it.visibleSeconds,
+                it.duration
+              ),
               alternateSeconds: Number(it.alternateSeconds || 4),
               firstDelaySeconds: Number(it.firstDelaySeconds ?? it.delaySeconds ?? 0),
             };
@@ -2623,8 +2654,11 @@ document.addEventListener("DOMContentLoaded", async function () {
         fontWeight: it.fontWeight,
         baseFontSize: Number(it.fontSize ?? it.rounded ?? 0) || null,
         cornerRadius: Number(it.cornerRadius ?? POPUP_CARD_RADIUS),
-        visibleSeconds:
-          Number(it.durationSeconds ?? it.visibleSeconds ?? 6),
+        visibleSeconds: displaySecondsFrom(
+          it.durationSeconds,
+          it.visibleSeconds,
+          it.duration
+        ),
         alternateSeconds: Number(it.alternateSeconds || 4),
         firstDelaySeconds: Number(it.firstDelaySeconds ?? it.delaySeconds ?? 0),
       };
@@ -2666,8 +2700,10 @@ document.addEventListener("DOMContentLoaded", async function () {
                 pickSmart(mbPosArr, 0, defaultMB),
                 defaultMB
               ),
-              durationSeconds: Number(
-                it.currentFirstDelaySeconds ?? it.durationSeconds ?? 0
+              durationSeconds: displaySecondsFrom(
+                it.durationSeconds,
+                it.visibleSeconds,
+                it.duration
               ),
 
               // raw locations for fallback
@@ -2736,7 +2772,11 @@ document.addEventListener("DOMContentLoaded", async function () {
               pickSmart(mbPosArr, i, defaultMB),
               defaultMB
             ),
-            durationSeconds: Number(it.durationSeconds || 0),
+            durationSeconds: displaySecondsFrom(
+              it.durationSeconds,
+              it.visibleSeconds,
+              it.duration
+            ),
 
             // raw locations for fallback
             rawLocations: it.locationsJson,
@@ -3626,7 +3666,11 @@ document.addEventListener("DOMContentLoaded", async function () {
             uploadedImage: iconSrc,
             productUrl: safe(it.ctaUrl, "#"),
             mobilePosition: normMB(mbPos, defaultMB),
-            durationSeconds: Number(it.durationSeconds || 0),
+            durationSeconds: displaySecondsFrom(
+              it.durationSeconds,
+              it.visibleSeconds,
+              it.duration
+            ),
 
             positionDesktop: it.position,
             mobileSize: it.mobileSize,
@@ -3693,7 +3737,11 @@ document.addEventListener("DOMContentLoaded", async function () {
           starColor: safe(it.starColor, "#f5a623"),
           rounded: Number(it.rounded ?? POPUP_CARD_RADIUS),
           firstDelaySeconds: Number(it.firstDelaySeconds ?? 0),
-          durationSeconds: Number(it.durationSeconds ?? 6),
+          durationSeconds: displaySecondsFrom(
+            it.durationSeconds,
+            it.visibleSeconds,
+            it.duration
+          ),
           alternateSeconds: Number(it.alternateSeconds ?? 4),
           intervalUnit: safe(it.intervalUnit, "seconds"),
           fontWeight: Number.isFinite(Number(it.fontWeight))
@@ -3853,7 +3901,11 @@ document.addEventListener("DOMContentLoaded", async function () {
                   pickSmart(mbPosArr, 0, defaultMB),
                   defaultMB
                 ),
-                durationSeconds: Number(it.durationSeconds || 0),
+                durationSeconds: displaySecondsFrom(
+                  it.durationSeconds,
+                  it.visibleSeconds,
+                  it.duration
+                ),
 
                 rawLocations: it.locationsJson,
                 ...hideFlags,
@@ -3919,7 +3971,11 @@ document.addEventListener("DOMContentLoaded", async function () {
                 pickSmart(mbPosArr, i, defaultMB),
                 defaultMB
               ),
-              durationSeconds: Number(it.durationSeconds || 0),
+              durationSeconds: displaySecondsFrom(
+                it.durationSeconds,
+                it.visibleSeconds,
+                it.duration
+              ),
 
               rawLocations: it.locationsJson,
               ...hideFlags,
@@ -4090,7 +4146,11 @@ document.addEventListener("DOMContentLoaded", async function () {
           ratingSource: String(row.ratingSource || "judge_me").toLowerCase(),
           showClose: toBool(row.showClose, true),
           directProductPage: toBool(row.directProductPage, true),
-          durationSeconds: toNum(row.duration, 6),
+          durationSeconds: displaySecondsFrom(
+            row.duration,
+            row.durationSeconds,
+            row.visibleSeconds
+          ),
           firstDelaySeconds: toNum(row.delay, 0),
           alternateSeconds: unitToSeconds(row.interval, row.intervalUnit),
           randomize: toBool(row.randomize, false),
