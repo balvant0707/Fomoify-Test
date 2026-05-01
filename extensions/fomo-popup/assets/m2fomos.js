@@ -1322,9 +1322,9 @@ document.addEventListener("DOMContentLoaded", async function () {
     const body = document.createElement("div");
     body.style.cssText = `flex:1;min-width:0;max-width:100%;pointer-events:none;overflow-wrap:anywhere;word-break:normal;`;
 
-    // Name + granular location
-    const line1 = document.createElement("div");
-    line1.style.cssText = `margin:0 0 2px 0;max-width:100%;overflow-wrap:anywhere;word-break:normal;`;
+    // Name, location, and message flow in one block so wrapped text fills the available width.
+    const textFlow = document.createElement("div");
+    textFlow.style.cssText = `margin:0 0 6px 0;max-width:100%;overflow-wrap:anywhere;word-break:normal;`;
     const fw = safe(cfg.fontWeight, "700");
     const nameText = cfg.hideName ? "" : safe(cfg.name, "Someone");
 
@@ -1349,6 +1349,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     }
 
+    let leadingHtml = "";
     if (nameText || locFinal) {
       const nameHtml = nameText
         ? `<span style="font-weight:${fw};color:${ACCENT};">${nameText}</span>`
@@ -1357,12 +1358,10 @@ document.addEventListener("DOMContentLoaded", async function () {
         ? `<span style="font-weight:${fw};color:${ACCENT};">${locFinal}</span>`
         : "";
       const spacer = nameText && locFinal ? " from " : "";
-      line1.innerHTML = `${nameHtml}${spacer}${locHtml}`;
-      body.appendChild(line1);
+      leadingHtml = `${nameHtml}${spacer}${locHtml}`;
     }
 
     // Product line
-    const line2 = document.createElement("div");
     const msgTxt = safe(cfg.message, "recently bought");
 
     // ✅ Use only first 2 words of productTitle
@@ -1379,9 +1378,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         : "this product"
       }`;
 
-    line2.innerHTML = boughtTxt;
-    line2.style.cssText = `opacity:1;margin:0 0 6px 0;max-width:100%;overflow-wrap:anywhere;word-break:normal;`;
-    body.appendChild(line2);
+    textFlow.innerHTML = `${leadingHtml}${leadingHtml ? " " : ""}${boughtTxt}`;
+    body.appendChild(textFlow);
 
     const priceText = safe(cfg.price, "").trim();
     const compareCandidateRaw = safe(
@@ -1391,6 +1389,12 @@ document.addEventListener("DOMContentLoaded", async function () {
     const compareCandidate = alignCompareCurrency(priceText, compareCandidateRaw);
     const compareText = shouldShowComparePrice(priceText, compareCandidate)
       ? compareCandidate
+      : "";
+    const recentTimeText = !cfg.hideTime
+      ? relOrderDaysAgo(cfg.createOrderTime) ||
+        safe(cfg.createOrderTime, "") ||
+        safe(cfg.timeAbsolute, "") ||
+        safe(cfg.timeText, "")
       : "";
     if (priceText || compareText) {
       const priceLine = document.createElement("div");
@@ -1420,18 +1424,23 @@ document.addEventListener("DOMContentLoaded", async function () {
         priceLine.appendChild(priceEl);
       }
 
+      if (recentTimeText) {
+        const timeEl = document.createElement("span");
+        timeEl.textContent = recentTimeText;
+        timeEl.style.cssText = `font-size:${Math.max(
+          10,
+          (Number(cfg.baseFontSize) || 14) - 1
+        )}px;opacity:.7;`;
+        priceLine.appendChild(timeEl);
+      }
+
       body.appendChild(priceLine);
     }
 
     // Time
-    if (!cfg.hideTime) {
+    if (recentTimeText && !priceText && !compareText) {
       const line3 = document.createElement("div");
-      const orderDaysText = relOrderDaysAgo(cfg.createOrderTime);
-      line3.textContent =
-        orderDaysText ||
-        safe(cfg.createOrderTime, "") ||
-        safe(cfg.timeAbsolute, "") ||
-        safe(cfg.timeText, "");
+      line3.textContent = recentTimeText;
       line3.style.cssText = `font-size:${Math.max(
         10,
         (Number(cfg.baseFontSize) || 14) - 1
@@ -1813,6 +1822,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         msg.style.maxWidth = "100%";
         msg.style.wordBreak = "break-word";
       }
+      msg.style.maxWidth = "100%";
+      msg.style.overflowWrap = "anywhere";
+      msg.style.wordBreak = "normal";
       if (isReview) {
         msg.style.fontStyle = "italic";
         msg.style.lineHeight = "1.32";
@@ -1833,9 +1845,10 @@ document.addEventListener("DOMContentLoaded", async function () {
       const compareText = shouldShowComparePrice(priceText, compareCandidate)
         ? compareCandidate
         : "";
+      const timestampText = safe(cfg.timestamp || cfg.timeText || cfg.timeAbsolute, "").trim();
       const shouldRenderPrice =
         (isVisitor || cfg.showPriceTag) && (priceText || compareText);
-      if (!shouldRenderPrice) return;
+      if (!shouldRenderPrice) return false;
 
       const line = document.createElement("div");
       line.style.cssText = `display:flex;gap:8px;align-items:center;flex-wrap:wrap;`;
@@ -1864,7 +1877,14 @@ document.addEventListener("DOMContentLoaded", async function () {
         `;
         line.appendChild(c);
       }
+      if (timestampText) {
+        const ts = document.createElement("span");
+        ts.textContent = timestampText;
+        ts.style.cssText = `font-size:${Math.max(10, fontSize - 2)}px;color:${cfg.timestampColor || "rgba(0,0,0,0.6)"};`;
+        line.appendChild(ts);
+      }
       body.appendChild(line);
+      return Boolean(timestampText);
     };
 
     const appendReviewLine = () => {
@@ -1923,35 +1943,42 @@ document.addEventListener("DOMContentLoaded", async function () {
       body.appendChild(row);
     };
 
+    let timestampInPriceLine = false;
     if (isReview) {
       const renderedMessage = appendMessageLine();
-      appendPriceLine();
+      timestampInPriceLine = appendPriceLine();
       if (!renderedMessage) appendReviewLine();
     } else {
       appendMessageLine();
-      appendPriceLine();
+      timestampInPriceLine = appendPriceLine();
     }
 
     if (isVisitor) {
-      const footer = document.createElement("div");
-      footer.style.cssText = `display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:${Math.max(
-        10,
-        fontSize - 2
-      )}px;color:${cfg.timestampColor || "rgba(0,0,0,0.62)"};margin-top:2px;`;
-      const ts = document.createElement("span");
-      ts.textContent = cfg.timestamp || "Just now";
-      footer.appendChild(ts);
       const brandText = String(cfg.brandText || "").trim();
-      if (brandText) {
-        const brand = document.createElement("span");
-        brand.textContent = brandText;
-        brand.style.cssText = "opacity:.88;font-size:0.95em;white-space:nowrap;";
-        footer.appendChild(brand);
+      if (timestampInPriceLine && !brandText) {
+        // Timestamp already sits beside the price row.
       } else {
-        footer.style.justifyContent = "flex-start";
+        const footer = document.createElement("div");
+        footer.style.cssText = `display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:${Math.max(
+          10,
+          fontSize - 2
+        )}px;color:${cfg.timestampColor || "rgba(0,0,0,0.62)"};margin-top:2px;`;
+        if (!timestampInPriceLine) {
+          const ts = document.createElement("span");
+          ts.textContent = cfg.timestamp || "Just now";
+          footer.appendChild(ts);
+        }
+        if (brandText) {
+          const brand = document.createElement("span");
+          brand.textContent = brandText;
+          brand.style.cssText = "opacity:.88;font-size:0.95em;white-space:nowrap;";
+          footer.appendChild(brand);
+        } else if (!timestampInPriceLine) {
+          footer.style.justifyContent = "flex-start";
+        }
+        body.appendChild(footer);
       }
-      body.appendChild(footer);
-    } else if (cfg.timestamp) {
+    } else if (cfg.timestamp && !timestampInPriceLine) {
       const ts = document.createElement("div");
       ts.textContent = cfg.timestamp;
       ts.style.cssText = `font-size:${Math.max(10, fontSize - 2)}px;color:${cfg.timestampColor || "rgba(0,0,0,0.6)"};`;
