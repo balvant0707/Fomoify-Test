@@ -756,7 +756,6 @@ function PreviewCard({
     color: textColor,
     borderRadius: 10,
     boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
-    border: "1px solid rgba(0,0,0,0.06)",
     padding: pad,
     paddingLeft: imageOverflow ? pad + avatarOffset : pad,
     display: "flex",

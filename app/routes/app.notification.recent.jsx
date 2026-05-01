@@ -1337,13 +1337,12 @@ function Bubble({ form, order, isMobile = false }) {
               : "translate(-50%, -50%)",
             width: avatarSize,
             height: avatarSize,
-            borderRadius: 12,
+            borderRadius: 10,
             overflow: "hidden",
             flexShrink: 0,
             display: "grid",
             placeItems: "center",
             background: "#ffffff",
-            border: "2px solid rgba(255,255,255,0.9)",
             boxShadow: "0 8px 18px rgba(15, 23, 42, 0.12)",
           }}
         >
