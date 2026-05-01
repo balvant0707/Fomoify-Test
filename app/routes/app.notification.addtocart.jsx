@@ -1053,8 +1053,7 @@ function PreviewCard({
         <span
           style={{
             ...contentTextSpanStyle,
-            fontWeight: 600,
-            textDecoration: "underline",
+            fontWeight: 700,
           }}
         >
           {productName}
@@ -1162,7 +1161,7 @@ function PreviewCard({
             </span>
           </div>
         )}
-        <div style={{ fontSize: contentFontSize,fontWeight: 600,lineHeight: 1.35 }}>
+        <div style={{ fontSize: contentFontSize,fontWeight: 600,lineHeight: 1.35,letterSpacing: 0.25, color: textColor, minWidth: 0 }}>
           {contentNode}
         </div>
         {showPriceTag && (
@@ -2302,8 +2301,7 @@ export default function AddToCartPopupPage() {
                               </Box>
                               <Box width="50%">
                                 <Select
-                                  label=" "
-                                  labelHidden
+                                  label="Unit"
                                   options={TIME_UNITS}
                                   value={behavior.intervalUnit}
                                   onChange={(v) =>

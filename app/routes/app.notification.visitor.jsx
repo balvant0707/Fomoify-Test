@@ -880,8 +880,8 @@ function PreviewCard({
           aria-label="Close"
           style={{
             position: "absolute",
-            top: 5,
-            right: 10,
+            top: 0,
+            right: 5,
             border: "none",
             background: "transparent",
             color: textColor,
