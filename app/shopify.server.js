@@ -29,6 +29,44 @@ const sessionConnectionRetryIntervalMs = toPositiveInt(
   1000
 );
 
+const isMissingSessionTableError = (error) => {
+  const message = String(error?.message || "").toLowerCase();
+  const causeMessage = String(error?.cause?.message || "").toLowerCase();
+  return (
+    error?.name === "MissingSessionTableError" ||
+    message.includes("session table does not exist") ||
+    causeMessage.includes("table `session` does not exist") ||
+    causeMessage.includes("table 'session' does not exist")
+  );
+};
+
+const createPrismaSessionStorage = async (prismaClient) => {
+  try {
+    const storage = new PrismaSessionStorage(prismaClient, {
+      connectionRetries: sessionConnectionRetries,
+      connectionRetryIntervalMs: sessionConnectionRetryIntervalMs,
+    });
+    if (await storage.isReady()) {
+      return storage;
+    }
+
+    await ensurePrismaSessionTable(prismaClient);
+    return new PrismaSessionStorage(prismaClient, {
+      connectionRetries: sessionConnectionRetries,
+      connectionRetryIntervalMs: sessionConnectionRetryIntervalMs,
+    });
+  } catch (error) {
+    if (!isMissingSessionTableError(error)) {
+      throw error;
+    }
+
+    await ensurePrismaSessionTable(prismaClient);
+    return new PrismaSessionStorage(prismaClient, {
+      connectionRetries: sessionConnectionRetries,
+      connectionRetryIntervalMs: sessionConnectionRetryIntervalMs,
+    });
+  }
+};
 
 function createSessionStorage(prismaClient) {
   let storagePromise;
@@ -39,10 +77,7 @@ function createSessionStorage(prismaClient) {
         if (shouldAutoPrepareSessionTable) {
           await ensurePrismaSessionTable(prismaClient);
         }
-        return new PrismaSessionStorage(prismaClient, {
-          connectionRetries: sessionConnectionRetries,
-          connectionRetryIntervalMs: sessionConnectionRetryIntervalMs,
-        });
+        return createPrismaSessionStorage(prismaClient);
       })().catch((error) => {
         // Allow retries after transient failures (for example, temporary DB saturation).
         storagePromise = undefined;
