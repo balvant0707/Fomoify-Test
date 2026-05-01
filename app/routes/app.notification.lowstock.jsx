@@ -225,7 +225,7 @@ export async function loader({ request }) {
         id: source.id,
         design: {
           layout: toStr(source.layout, "landscape"),
-          size: toNum(source.size, 60),
+          size: toNum(source.size, 50),
           transparent: toNum(source.transparent, 10),
           template: toStr(source.template, "gradient"),
           imageAppearance: toStr(source.imageAppearance, "cover"),
@@ -905,10 +905,17 @@ function PreviewCard({
 
       <div style={{ display: "grid", gap: 6, minWidth: 0, flex: 1 }}>
         {showRating && (
-          <div style={{ color: starColor, fontSize: ratingFontSize }}>
-            {"*****".slice(0, product?.rating || 4)}
+          <div
+            style={{
+              color: starColor,
+              fontSize: ratingFontSize,
+              letterSpacing: 0,
+              lineHeight: 1,
+            }}
+          >
+            {"★".repeat(Math.max(0, Math.min(5, product?.rating || 4)))}
             <span style={{ color: starColor, opacity: 0.28 }}>
-              {"*****".slice(0, 5 - (product?.rating || 4))}
+              {"★".repeat(Math.max(0, 5 - (product?.rating || 4)))}
             </span>
           </div>
         )}
