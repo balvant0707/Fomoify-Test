@@ -1069,7 +1069,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     img.alt = "Flash";
     img.src = cfg.uploadedImage || cfg.image || FLAME_SVG;
     const iSize = iconBoxSize;
-    img.style.cssText = `width:${iSize}px;height:${iSize}px;object-fit:${isContain ? "contain" : "cover"};object-position:center center;border-radius:${POPUP_IMAGE_RADIUS}px;background:transparent;flex:0 0 ${iSize}px;pointer-events:none;`;
+    img.style.cssText = `width:${iSize}px;height:${iSize}px;object-fit:cover;object-position:center center;border-radius:${POPUP_IMAGE_RADIUS}px;background:transparent;flex:0 0 ${iSize}px;pointer-events:none;`;
     img.onerror = () => {
       img.src = FLAME_SVG;
     };
@@ -1290,7 +1290,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const img = document.createElement("img");
     img.src = imageSrc;
     img.alt = safe(cfg.productTitle, "Product");
-    img.style.cssText = `width:100%;height:100%;object-fit:${imageFit};object-position:center center;border-radius:${POPUP_IMAGE_RADIUS}px;`;
+    img.style.cssText = `width:100%;height:100%;object-fit:cover;object-position:center center;border-radius:${POPUP_IMAGE_RADIUS}px;`;
     img.onerror = () => {
       imgWrap.style.display = "none";
     };
@@ -1665,7 +1665,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const img = document.createElement("img");
     img.alt = safe(cfg.productTitle, "Product");
     img.style.cssText = `
-      width:100%;height:100%;object-fit:${imageFit};object-position:center center;border-radius:${POPUP_IMAGE_RADIUS}px;
+      width:100%;height:100%;object-fit:cover;object-position:center center;border-radius:${POPUP_IMAGE_RADIUS}px;
     `;
     img.onerror = () => {
       imgWrap.style.display = "none";
