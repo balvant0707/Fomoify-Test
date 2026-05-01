@@ -1706,9 +1706,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         font-size:${Math.max(14, Math.round(fontSize + 2))}px;
         line-height:1.2;
         letter-spacing:.15px;
-        white-space:nowrap;
-        overflow:hidden;
-        text-overflow:ellipsis;
+        white-space:normal;
+        overflow-wrap:anywhere;
+        word-break:normal;
       `;
       body.appendChild(reviewTitle);
     }
@@ -1744,14 +1744,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         while ((m = rx.exec(tpl))) {
           hasToken = true;
           const key = String(m[1] || "").trim().toLowerCase();
-          let before = tpl.slice(last, m.index);
-          if (isVisitor && key === "product_name" && before) {
-            before = before.replace(/\s+$/, "");
-          }
+          const before = tpl.slice(last, m.index);
           if (before) msg.appendChild(document.createTextNode(before));
-          if (isVisitor && key === "product_name") {
-            msg.appendChild(document.createElement("br"));
-          }
           const rawVal = normalized[key];
           const text =
             rawVal === undefined || rawVal === null || rawVal === ""
@@ -1793,9 +1787,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         const parts = templ.split(/(__FOMO_PROD__|__FOMO_COUNT__)/);
         parts.forEach((part) => {
           if (part === "__FOMO_PROD__") {
-            if (isVisitor) {
-              msg.appendChild(document.createElement("br"));
-            }
             const span = document.createElement("span");
             span.textContent = productName;
             if (cfg.productHighlightStyle === "upper") {
@@ -1918,13 +1909,13 @@ document.addEventListener("DOMContentLoaded", async function () {
         display:flex;
         align-items:baseline;
         gap:6px;
-        flex-wrap:nowrap;
-        overflow:hidden;
+        flex-wrap:wrap;
+        overflow:visible;
       `;
 
       const nameSpan = document.createElement("span");
       nameSpan.textContent = reviewerName || "Someone";
-      nameSpan.style.cssText = "font-weight:700;white-space:nowrap;";
+      nameSpan.style.cssText = "font-weight:700;";
       row.appendChild(nameSpan);
 
       if (reviewText) {
@@ -1932,10 +1923,10 @@ document.addEventListener("DOMContentLoaded", async function () {
         reviewSpan.textContent = `- "${reviewText}"`;
         reviewSpan.style.cssText = `
           font-style:italic;
-          white-space:nowrap;
-          overflow:hidden;
-          text-overflow:ellipsis;
-          display:block;
+          white-space:normal;
+          overflow-wrap:anywhere;
+          word-break:normal;
+          display:inline;
         `;
         row.appendChild(reviewSpan);
       }
