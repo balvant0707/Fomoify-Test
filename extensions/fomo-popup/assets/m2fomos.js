@@ -905,7 +905,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       @keyframes fSlideOutToBottom  { to{opacity:0; transform:translateY(110%)} }
 
       /* Progress bar */
-      @keyframes fomoProgress { from{width:100%} to{width:0%} }
+      @keyframes fomoProgress { from{transform:scaleX(1)} to{transform:scaleX(0)} }
     `;
     document.head.appendChild(st);
   }
@@ -980,12 +980,14 @@ document.addEventListener("DOMContentLoaded", async function () {
     const bar = document.createElement("div");
     bar.className = "fomo-progress";
     bar.style.cssText = `
+      display:block;
       height:100%;
       width:100%;
-      min-width:1px;
       background:${color || "#111827"};
       animation:fomoProgress ${visibleMs}ms linear forwards;
       transform-origin:left;
+      transform:scaleX(1);
+      will-change:transform;
     `;
     barWrap.appendChild(bar);
     return barWrap;
