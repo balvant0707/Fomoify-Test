@@ -902,6 +902,8 @@ function NotificationPreview({ form, isMobile = false }) {
             className="flash-sale-popup__timer"
             style={{
               color: form.starColor || form.priceTagAlt,
+              background: form.priceTagAlt,
+              borderColor: form.priceTagAlt,
               fontSize: Math.max(11, sized - 2),
             }}
           >

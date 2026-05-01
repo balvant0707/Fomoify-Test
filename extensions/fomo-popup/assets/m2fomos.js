@@ -1004,15 +1004,15 @@ document.addEventListener("DOMContentLoaded", async function () {
       ? 12 + Math.round(coverBoxSize * 0.45)
       : 14;
     const desktopLeftPad = imageOverflow ? 44 : 25;
-    const padTop = mode === "mobile" ? (isPortrait ? 18 : mt.pad) : isPortrait ? 24 : 15;
-    const padRight = isPortrait ? 24 : 44;
+    const padTop = mode === "mobile" ? (isPortrait ? 22 : mt.pad + 4) : isPortrait ? 28 : 20;
+    const padRight = isPortrait ? 28 : 52;
     const padBottom =
-      mode === "mobile" ? (isPortrait ? 18 : mt.pad) : isPortrait ? 24 : 15;
+      mode === "mobile" ? (isPortrait ? 22 : mt.pad + 4) : isPortrait ? 28 : 20;
     const padLeft = isPortrait
-      ? 24
+      ? 28
       : mode === "mobile"
-        ? mobileLeftPad
-        : desktopLeftPad;
+        ? mobileLeftPad + 4
+        : desktopLeftPad + 6;
     const cardDirection = isPortrait ? "column" : "row";
     const cardGap = isPortrait ? 10 : 12;
     card.style.cssText = `
@@ -1091,6 +1091,13 @@ document.addEventListener("DOMContentLoaded", async function () {
     const loc = document.createElement("span");
     loc.className = "fomo-location";
     loc.textContent = safe(cfg.location, "");
+    loc.style.cssText = `
+      color:${cfg.priceColor || cfg.fontColor || cfg.textColor || "inherit"};
+      background:${cfg.priceTagBg || "transparent"};
+      border-radius:${POPUP_CARD_RADIUS}px;
+      padding:${cfg.priceTagBg ? "2px 8px" : "0"};
+      font-weight:${safe(cfg.fontWeight, "700")};
+    `;
     locLine.appendChild(loc);
 
     const tmtVal = safe(cfg.timeText, "");
@@ -1098,6 +1105,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       const sep = document.createElement("span");
       sep.textContent = "—";
       sep.style.opacity = ".6";
+      sep.style.color = cfg.fontColor || cfg.textColor || "inherit";
       sep.setAttribute("aria-hidden", "true");
       const tmt = document.createElement("span");
       tmt.className = "fomo-time";
@@ -1105,7 +1113,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       tmt.style.cssText = `font-size:${Math.max(
         10,
         (Number(cfg.baseFontSize) || 14) - 1
-      )}px; opacity:.8;`;
+      )}px;color:${cfg.starColor || cfg.priceTagAlt || cfg.fontColor || cfg.textColor || "inherit"};background:${cfg.priceTagAlt || "rgba(255,255,255,0.24)"};border:1px solid ${cfg.priceTagAlt || "rgba(255,255,255,0.36)"};border-radius:999px;padding:2px 8px;font-weight:700;`;
       locLine.appendChild(sep);
       locLine.appendChild(tmt);
     }
@@ -1713,7 +1721,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       filled.style.color = cfg.starColor || "#f5a623";
       const empty = document.createElement("span");
       empty.textContent = "★".repeat(Math.max(0, 5 - rating));
-      empty.style.color = "rgba(156,163,175,0.95)";
+      empty.style.color = cfg.starColor || "#f5a623";
+      empty.style.opacity = "0.28";
       rate.appendChild(filled);
       rate.appendChild(empty);
       body.appendChild(rate);
@@ -2392,11 +2401,17 @@ document.addEventListener("DOMContentLoaded", async function () {
         visibleSeconds: Number(it.durationSeconds ?? it.visibleSeconds ?? 6),
         alternateSeconds: Number(it.alternateSeconds || 4),
         firstDelaySeconds: Number(it.firstDelaySeconds ?? it.delaySeconds ?? 0),
-        progressColor: it.progressColor,
+        progressColor: it.progressColor || it.numberColor || it.titleColor || it.textColor || it.msgColor,
         bgColor: it.bgColor,
-        fontColor: it.msgColor,
-        titleColor: it.titleColor,
-        accentColor: it.titleColor,
+        bgAlt: it.bgAlt,
+        fontColor: it.textColor || it.msgColor,
+        textColor: it.textColor || it.msgColor,
+        titleColor: it.numberColor || it.titleColor,
+        accentColor: it.numberColor || it.titleColor,
+        priceTagBg: it.priceTagBg,
+        priceTagAlt: it.priceTagAlt,
+        priceColor: it.priceColor,
+        starColor: it.starColor,
       };
 
       /* ---------- FLASH ---------- */
@@ -2525,11 +2540,17 @@ document.addEventListener("DOMContentLoaded", async function () {
 
               // styling
               bgColor: it.bgColor || "#ffffff",
-              fontColor: it.msgColor || "#111",
-              titleColor: it.titleColor || "#6C63FF",
-              accentColor: it.titleColor || "#6C63FF",
+              bgAlt: it.bgAlt || it.bgColor || "#ffffff",
+              fontColor: it.textColor || it.msgColor || "#111",
+              textColor: it.textColor || it.msgColor || "#111",
+              titleColor: it.numberColor || it.titleColor || "#6C63FF",
+              accentColor: it.numberColor || it.titleColor || "#6C63FF",
+              priceTagBg: it.priceTagBg,
+              priceTagAlt: it.priceTagAlt,
+              priceColor: it.priceColor,
+              starColor: it.starColor,
               progressColor:
-                it.progressColor || it.titleColor || "#6C63FF",
+                it.progressColor || it.numberColor || it.titleColor || "#6C63FF",
               positionDesktop: it.positionDesktop || it.position,
               mobileSize: it.mobileSize,
               animation: it.animation,
@@ -2555,10 +2576,16 @@ document.addEventListener("DOMContentLoaded", async function () {
       /* ---------- NON-ORDERS (manual + optional current) ---------- */
       const COMMON_RECENT = {
         bgColor: it.bgColor || "#ffffff",
-        fontColor: it.msgColor || "#111",
-        titleColor: it.titleColor || "#6C63FF",
-        accentColor: it.titleColor || "#6C63FF",
-        progressColor: it.progressColor || it.titleColor || "#6C63FF",
+        bgAlt: it.bgAlt || it.bgColor || "#ffffff",
+        fontColor: it.textColor || it.msgColor || "#111",
+        textColor: it.textColor || it.msgColor || "#111",
+        titleColor: it.numberColor || it.titleColor || "#6C63FF",
+        accentColor: it.numberColor || it.titleColor || "#6C63FF",
+        priceTagBg: it.priceTagBg,
+        priceTagAlt: it.priceTagAlt,
+        priceColor: it.priceColor,
+        starColor: it.starColor,
+        progressColor: it.progressColor || it.numberColor || it.titleColor || "#6C63FF",
         positionDesktop: it.positionDesktop || it.position,
         mobileSize: it.mobileSize,
         animation: it.animation,
@@ -3584,6 +3611,10 @@ document.addEventListener("DOMContentLoaded", async function () {
             bgAlt: it.bgAlt,
             fontColor: it.textColor,
             titleColor: it.numberColor,
+            priceTagBg: it.priceTagBg,
+            priceTagAlt: it.priceTagAlt,
+            priceColor: it.priceColor,
+            starColor: it.starColor,
             progressColor: it.numberColor || it.textColor,
             imageAppearance: it.imageAppearance,
             cornerRadius: Number(it.rounded ?? POPUP_CARD_RADIUS),

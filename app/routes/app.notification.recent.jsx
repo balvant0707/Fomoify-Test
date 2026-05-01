@@ -1432,7 +1432,7 @@ function Bubble({ form, order, isMobile = false }) {
           )}
           <br />
           <span style={{
-                color: form.numberColor,
+                color: form.textColor,
                 fontSize: Math.round(sized * 0.92),
                 lineHeight: 1.35,
               }}>
@@ -1491,7 +1491,7 @@ function Bubble({ form, order, isMobile = false }) {
                 style={{
                   opacity: 0.85,
                   fontSize: sized * 0.9,
-                  color: form.numberColor,
+                  color: form.textColor,
                 }}
               >
                 <small>

@@ -1004,7 +1004,7 @@ function PreviewCard({
             }}
           >
             {"★".repeat(Math.max(0, Math.min(5, product?.rating || 4)))}
-            <span style={{ color: "#9ca3af" }}>
+            <span style={{ color: starColor, opacity: 0.28 }}>
               {"★".repeat(Math.max(0, 5 - (product?.rating || 4)))}
             </span>
           </div>
@@ -1019,6 +1019,7 @@ function PreviewCard({
               fontWeight: 600,
               textDecoration: "underline",
               lineHeight: 1.4,
+              color: textColor,
             }}
           >
             {safeName}

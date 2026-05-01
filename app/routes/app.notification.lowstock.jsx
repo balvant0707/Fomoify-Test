@@ -806,7 +806,7 @@ function PreviewCard({
         </span>
       );
     }
-    return <span style={{ color: numberColor, fontWeight: 500,fontSize: Math.max(6, contentFontSize - 1), lineHeight: 1.35,letterSpacing : "-0.02em"}} key={`text-${idx}`}>{part}</span>;
+    return <span style={{ color: textColor, fontWeight: 500,fontSize: Math.max(6, contentFontSize - 1), lineHeight: 1.35,letterSpacing : "-0.02em"}} key={`text-${idx}`}>{part}</span>;
   });
 
   return (
@@ -866,7 +866,7 @@ function PreviewCard({
                 decoding="async"
               />
             ) : (
-              <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+              <span style={{ fontSize: 12, color: textColor }}>IMG</span>
             )}
           </div>
         ) : (
@@ -898,7 +898,7 @@ function PreviewCard({
                 decoding="async"
               />
             ) : (
-              <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+              <span style={{ fontSize: 12, color: textColor }}>IMG</span>
             )}
           </div>
         ))}
@@ -907,12 +907,12 @@ function PreviewCard({
         {showRating && (
           <div style={{ color: starColor, fontSize: ratingFontSize }}>
             {"*****".slice(0, product?.rating || 4)}
-            <span style={{ color: "#d1d5db" }}>
+            <span style={{ color: starColor, opacity: 0.28 }}>
               {"*****".slice(0, 5 - (product?.rating || 4))}
             </span>
           </div>
         )}
-        <div style={{ fontSize: contentFontSize, lineHeight: 1.35, fontWeight: 500, letterSpacing : "-0.02em" }}>
+        <div style={{ fontSize: contentFontSize, lineHeight: 1.35, fontWeight: 500, letterSpacing : "-0.02em", color: textColor }}>
           {contentNode}
         </div>
         {showPriceTag && (

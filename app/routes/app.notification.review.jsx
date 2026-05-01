@@ -665,7 +665,7 @@ function PreviewCard({
     tokenValues
   );
   const contentNode = (
-    <span style={{ fontSize: textSizeContent, lineHeight: 1.35 }}>
+    <span style={{ fontSize: textSizeContent, lineHeight: 1.35, color: textColor }}>
       {resolvedContent}
     </span>
   );
@@ -742,7 +742,7 @@ function PreviewCard({
                 decoding="async"
               />
             ) : (
-              <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+              <span style={{ fontSize: 12, color: textColor }}>IMG</span>
             )}
           </div>
         ) : (
@@ -773,7 +773,7 @@ function PreviewCard({
                 decoding="async"
               />
             ) : (
-              <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+              <span style={{ fontSize: 12, color: textColor }}>IMG</span>
             )}
           </div>
         ))}
@@ -781,12 +781,12 @@ function PreviewCard({
         {showRating && (
           <div style={{ color: starColor, fontSize: 20, letterSpacing: 1 }}>
             {"★★★★★".slice(0, product?.rating || 4)}
-            <span style={{ color: "#d1d5db" }}>
+            <span style={{ color: starColor, opacity: 0.28 }}>
               {"☆☆☆☆☆".slice(0, 5 - (product?.rating || 4))}
             </span>
           </div>
         )}
-        <div style={{ fontSize: textSizeContent, lineHeight: 1.35 }}>
+        <div style={{ fontSize: textSizeContent, lineHeight: 1.35, color: textColor }}>
           {contentNode}
         </div>
         {showPriceTag && (
@@ -983,7 +983,7 @@ function StyledPreviewCard({
                 decoding="async"
               />
             ) : (
-              <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+              <span style={{ fontSize: 12, color: textColor }}>IMG</span>
             )}
           </div>
         ) : (
@@ -1014,7 +1014,7 @@ function StyledPreviewCard({
                 decoding="async"
               />
             ) : (
-              <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+              <span style={{ fontSize: 12, color: textColor }}>IMG</span>
             )}
           </div>
         ))}
@@ -1022,7 +1022,7 @@ function StyledPreviewCard({
         {showRating && (
           <div style={{ color: starColor, fontSize: ratingFontSize, letterSpacing: 1 }}>
             {filledStars}
-            <span style={{ color: "#d1d5db" }}>{emptyStars}</span>
+            <span style={{ color: starColor, opacity: 0.28 }}>{emptyStars}</span>
           </div>
         )}
         {isReviewContent && (
@@ -1033,9 +1033,10 @@ function StyledPreviewCard({
               lineHeight: 1.05,
               letterSpacing: 0.1,
               textTransform: "uppercase",
+              color: textColor,
             }}
           >
-            <span style={{ fontSize: contentFontSize, lineHeight: 1.05 }}>
+            <span style={{ fontSize: contentFontSize, lineHeight: 1.05, color: textColor }}>
               {safeProductName}
             </span>
           </div>
@@ -1070,9 +1071,10 @@ function StyledPreviewCard({
             fontSize: contentFontSize,
             lineHeight: 1.35,
             fontStyle: isReviewContent ? "italic" : "normal",
+            color: textColor,
           }}
         >
-          <span style={{ fontSize: contentFontSize, lineHeight: 1.35 }}>
+          <span style={{ fontSize: contentFontSize, lineHeight: 1.35, color: textColor }}>
             {resolvedContent}
           </span>
         </div>

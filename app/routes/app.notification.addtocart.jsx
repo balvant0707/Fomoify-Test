@@ -1042,6 +1042,7 @@ function PreviewCard({
   const contentTextSpanStyle = {
     fontSize: contentFontSize,
     lineHeight: 1.35,
+    color: textColor,
   };
   const contentNode =
     productIndex >= 0 ? (
@@ -1053,6 +1054,7 @@ function PreviewCard({
           style={{
             ...contentTextSpanStyle,
             fontWeight: 700,
+            color: textColor,
           }}
         >
           {productName}
@@ -1117,7 +1119,7 @@ function PreviewCard({
               decoding="async"
             />
           ) : (
-            <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+            <span style={{ fontSize: 12, color: textColor }}>IMG</span>
           )}
         </div>
       )}
@@ -1146,7 +1148,7 @@ function PreviewCard({
               decoding="async"
             />
           ) : (
-            <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+            <span style={{ fontSize: 12, color: textColor }}>IMG</span>
           )}
         </div>
       )}
@@ -1155,7 +1157,7 @@ function PreviewCard({
         {showRating && (
           <div style={{ color: starColor, fontSize: `${ratingFontSize }px !important;`, letterSpacing: 1 }}>
             {"★★★★★".slice(0, product?.rating || 4)}
-            <span style={{ color: "#d1d5db" , fontSize: `${ratingFontSize }px !important;`}}>
+            <span style={{ color: starColor, opacity: 0.28, fontSize: `${ratingFontSize }px !important;`}}>
               {"★★★★★".slice(0, 5 - (product?.rating || 4))}
             </span>
           </div>
