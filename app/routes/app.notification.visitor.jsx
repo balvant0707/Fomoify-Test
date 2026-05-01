@@ -721,7 +721,7 @@ function PreviewCard({
   const compareFontSize = clampFontSize(textSizeCompare, 10);
   const priceFontSize = clampFontSize(textSizePrice, 10);
   const metaFontSize = Math.max(6, Math.round(contentFontSize * 0.9));
-  const ratingFontSize = Math.max(8, Math.round(contentFontSize * 1.1));
+  const ratingFontSize = Math.max(8, Math.round(contentFontSize * 1.5));
   const scale = 0.8 + (size / 100) * 0.4;
   const opacity = 1 - (transparency / 100) * 0.7;
   const background =

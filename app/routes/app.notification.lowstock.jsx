@@ -729,7 +729,7 @@ function PreviewCard({
   const contentFontSize = clampFontSize(textSizeContent, 14);
   const compareFontSize = clampFontSize(textSizeCompare, 12);
   const priceFontSize = clampFontSize(textSizePrice, 12);
-  const ratingFontSize = Math.max(8, Math.round(contentFontSize * 1.2));
+  const ratingFontSize = Math.max(8, Math.round(contentFontSize * 1.5));
   const scale = 0.8 + (size / 100) * 0.4;
   const opacity = 1 - (transparency / 100) * 0.7;
   const background =

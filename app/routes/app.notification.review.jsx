@@ -634,6 +634,8 @@ function PreviewCard({
     imageMode.includes("contain") ||
     imageMode.includes("fit");
   const imageFit = isContainMode ? "contain" : "cover";
+  const reviewContentFontSize = Math.max(6, Number(textSizeContent) || 12);
+  const ratingFontSize = Math.max(8, Math.round(reviewContentFontSize * 1.5));
   const portraitImageSize = 60;
   const avatarSize = isContainMode ? portraitImageSize : 56;
   const avatarOffset = Math.round(avatarSize * 0.45);
@@ -779,7 +781,7 @@ function PreviewCard({
         ))}
       <div style={{ display: "grid", gap: 6, minWidth: 0, flex: 1 }}>
         {showRating && (
-          <div style={{ color: starColor, fontSize: 20, letterSpacing: 1 }}>
+          <div style={{ color: starColor, fontSize: ratingFontSize, letterSpacing: 1 }}>
             {"★★★★★".slice(0, product?.rating || 4)}
             <span style={{ color: starColor, opacity: 0.28 }}>
               {"☆☆☆☆☆".slice(0, 5 - (product?.rating || 4))}
@@ -864,7 +866,7 @@ function StyledPreviewCard({
   const compareFontSize = clampFontSize(textSizeCompare, 10);
   const priceFontSize = clampFontSize(textSizePrice, 10);
   const metaFontSize = Math.max(6, Math.round(contentFontSize * 0.9));
-  const ratingFontSize = Math.max(8, Math.round(contentFontSize * 1.25));
+  const ratingFontSize = Math.max(8, Math.round(contentFontSize * 1.5));
   const background =
     template === "gradient"
       ? `linear-gradient(135deg, ${bgColor} 0%, ${bgAlt} 100%)`

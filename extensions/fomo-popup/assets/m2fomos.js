@@ -1698,8 +1698,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       );
       const rate = document.createElement("div");
       rate.style.cssText = `display:inline-flex;align-items:center;gap:1px;font-size:${Math.max(
-        portraitVisitor ? 16 : 10,
-        portraitVisitor ? fontSize + 2 : fontSize - 2
+        8,
+        Math.round(fontSize * 1.5)
       )}px;letter-spacing:1px;line-height:1;`;
       const filled = document.createElement("span");
       filled.textContent = "★".repeat(Math.max(0, Math.min(5, rating)));
