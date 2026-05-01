@@ -1424,27 +1424,17 @@ document.addEventListener("DOMContentLoaded", async function () {
         priceLine.appendChild(priceEl);
       }
 
-      if (recentTimeText) {
-        const timeEl = document.createElement("span");
-        timeEl.textContent = recentTimeText;
-        timeEl.style.cssText = `font-size:${Math.max(
-          10,
-          (Number(cfg.baseFontSize) || 14) - 1
-        )}px;opacity:.7;`;
-        priceLine.appendChild(timeEl);
-      }
-
       body.appendChild(priceLine);
     }
 
     // Time
-    if (recentTimeText && !priceText && !compareText) {
+    if (recentTimeText) {
       const line3 = document.createElement("div");
       line3.textContent = recentTimeText;
       line3.style.cssText = `font-size:${Math.max(
         10,
         (Number(cfg.baseFontSize) || 14) - 1
-      )}px;opacity:.7;`;
+      )}px;opacity:.7;margin-top:${priceText || compareText ? "-2px" : "0"};`;
       body.appendChild(line3);
     }
 
@@ -1827,6 +1817,9 @@ document.addEventListener("DOMContentLoaded", async function () {
       return true;
     };
 
+    const getTimestampText = () =>
+      safe(cfg.timestamp || cfg.timeText || cfg.timeAbsolute, "").trim();
+
     const appendPriceLine = () => {
       const priceText = safe(cfg.price, "").trim();
       const compareCandidate = alignCompareCurrency(
@@ -1836,7 +1829,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       const compareText = shouldShowComparePrice(priceText, compareCandidate)
         ? compareCandidate
         : "";
-      const timestampText = safe(cfg.timestamp || cfg.timeText || cfg.timeAbsolute, "").trim();
       const shouldRenderPrice =
         (isVisitor || cfg.showPriceTag) && (priceText || compareText);
       if (!shouldRenderPrice) return false;
@@ -1868,14 +1860,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         `;
         line.appendChild(c);
       }
-      if (timestampText) {
-        const ts = document.createElement("span");
-        ts.textContent = timestampText;
-        ts.style.cssText = `font-size:${Math.max(10, fontSize - 2)}px;color:${cfg.timestampColor || "rgba(0,0,0,0.6)"};`;
-        line.appendChild(ts);
-      }
       body.appendChild(line);
-      return Boolean(timestampText);
+      return true;
     };
 
     const appendReviewLine = () => {
@@ -1934,29 +1920,28 @@ document.addEventListener("DOMContentLoaded", async function () {
       body.appendChild(row);
     };
 
-    let timestampInPriceLine = false;
+    let priceLineRendered = false;
     if (isReview) {
       const renderedMessage = appendMessageLine();
-      timestampInPriceLine = appendPriceLine();
+      priceLineRendered = appendPriceLine();
       if (!renderedMessage) appendReviewLine();
     } else {
       appendMessageLine();
-      timestampInPriceLine = appendPriceLine();
+      priceLineRendered = appendPriceLine();
     }
 
+    const timestampText = getTimestampText();
     if (isVisitor) {
       const brandText = String(cfg.brandText || "").trim();
-      if (timestampInPriceLine && !brandText) {
-        // Timestamp already sits beside the price row.
-      } else {
+      if (timestampText || brandText) {
         const footer = document.createElement("div");
         footer.style.cssText = `display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:${Math.max(
           10,
           fontSize - 2
-        )}px;color:${cfg.timestampColor || "rgba(0,0,0,0.62)"};margin-top:2px;`;
-        if (!timestampInPriceLine) {
+        )}px;color:${cfg.timestampColor || "rgba(0,0,0,0.62)"};margin-top:${priceLineRendered ? "2px" : "2px"};`;
+        if (timestampText) {
           const ts = document.createElement("span");
-          ts.textContent = cfg.timestamp || "Just now";
+          ts.textContent = timestampText;
           footer.appendChild(ts);
         }
         if (brandText) {
@@ -1964,15 +1949,15 @@ document.addEventListener("DOMContentLoaded", async function () {
           brand.textContent = brandText;
           brand.style.cssText = "opacity:.88;font-size:0.95em;white-space:nowrap;";
           footer.appendChild(brand);
-        } else if (!timestampInPriceLine) {
+        } else {
           footer.style.justifyContent = "flex-start";
         }
         body.appendChild(footer);
       }
-    } else if (cfg.timestamp && !timestampInPriceLine) {
+    } else if (timestampText) {
       const ts = document.createElement("div");
-      ts.textContent = cfg.timestamp;
-      ts.style.cssText = `font-size:${Math.max(10, fontSize - 2)}px;color:${cfg.timestampColor || "rgba(0,0,0,0.6)"};`;
+      ts.textContent = timestampText;
+      ts.style.cssText = `font-size:${Math.max(10, fontSize - 2)}px;color:${cfg.timestampColor || "rgba(0,0,0,0.6)"};margin-top:${priceLineRendered ? "2px" : "0"};`;
       body.appendChild(ts);
     }
 

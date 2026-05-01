@@ -600,6 +600,45 @@ function resolveTemplate(value, map) {
     .replace(/\{(\w+)\}/g, (match, key) => map[key] ?? match);
 }
 
+function RatingStars({ rating = 4, color = "#FFCF0D", size = 18 }) {
+  const normalizedRating = Math.max(
+    0,
+    Math.min(5, Math.round(Number(rating) || 0))
+  );
+  const starSize = Math.max(8, Number(size) || 18);
+
+  return (
+    <span
+      aria-label={`${normalizedRating} out of 5 stars`}
+      role="img"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 2,
+        color,
+        fontSize: starSize,
+        lineHeight: 1,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {Array.from({ length: 5 }, (_, index) => (
+        <span
+          key={index}
+          style={{
+            color,
+            display: "inline-block",
+            fontSize: starSize,
+            lineHeight: 1,
+            opacity: index < normalizedRating ? 1 : 0.28,
+          }}
+        >
+          {"\u2605"}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function PreviewCard({
   bgColor,
   bgAlt,
@@ -781,11 +820,12 @@ function PreviewCard({
         ))}
       <div style={{ display: "grid", gap: 6, minWidth: 0, flex: 1 }}>
         {showRating && (
-          <div style={{ color: starColor, fontSize: ratingFontSize, letterSpacing: 1 }}>
-            {"★★★★★".slice(0, product?.rating || 4)}
-            <span style={{ color: starColor, opacity: 0.28, fontSize: ratingFontSize }}>
-              {"☆☆☆☆☆".slice(0, 5 - (product?.rating || 4))}
-            </span>
+          <div>
+            <RatingStars
+              rating={product?.rating || 4}
+              color={starColor}
+              size={ratingFontSize}
+            />
           </div>
         )}
         <div style={{ fontSize: textSizeContent, lineHeight: 1.35, color: textColor }}>
@@ -909,10 +949,6 @@ function StyledPreviewCard({
     tokenValues
   );
 
-  const rating = Math.max(0, Math.min(5, Number(product?.rating || 4)));
-  const filledStars = "\u2605".repeat(rating);
-  const emptyStars = "\u2605".repeat(5 - rating);
-
   return (
     <div
       style={{
@@ -1021,9 +1057,12 @@ function StyledPreviewCard({
         ))}
       <div style={{ display: "grid", gap: 6, minWidth: 0, flex: 1 }}>
         {showRating && (
-          <div style={{ color: starColor, fontSize: ratingFontSize, letterSpacing: 1 }}>
-            {filledStars}
-            <span style={{ color: starColor, opacity: 0.28 }}>{emptyStars}</span>
+          <div>
+            <RatingStars
+              rating={product?.rating || 4}
+              color={starColor}
+              size={ratingFontSize}
+            />
           </div>
         )}
         {isReviewContent && (
