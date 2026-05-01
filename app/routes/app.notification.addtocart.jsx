@@ -983,7 +983,6 @@ function PreviewCard({
     color: textColor,
     borderRadius: 10,
     boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
-    border: "1px solid rgba(0,0,0,0.06)",
     padding: isPortrait ? 18 : 16,
     paddingLeft: useFloatingImage ? 16 + avatarOffset : 16,
     display: "flex",
