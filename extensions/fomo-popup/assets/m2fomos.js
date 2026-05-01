@@ -942,18 +942,20 @@ document.addEventListener("DOMContentLoaded", async function () {
   function posDesktop(el, cfg) {
     el.style.top = el.style.right = el.style.bottom = el.style.left = "";
     const p = (cfg.positionDesktop || cfg.position || "bottom-left").toLowerCase();
+    const edgeOffset = "20px";
+    const leftEdgeOffset = "40px";
     if (p === "bottom-right") {
-      el.style.bottom = "20px";
-      el.style.right = "20px";
+      el.style.bottom = edgeOffset;
+      el.style.right = edgeOffset;
     } else if (p === "top-left") {
-      el.style.top = "20px";
-      el.style.left = "20px";
+      el.style.top = edgeOffset;
+      el.style.left = leftEdgeOffset;
     } else if (p === "top-right") {
-      el.style.top = "20px";
-      el.style.right = "20px";
+      el.style.top = edgeOffset;
+      el.style.right = edgeOffset;
     } else {
-      el.style.bottom = "20px";
-      el.style.left = "20px";
+      el.style.bottom = edgeOffset;
+      el.style.left = leftEdgeOffset;
     }
   }
   function posMobile(el, cfg) {
@@ -1745,7 +1747,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           span.textContent = text;
           span.style.cssText =
             key === "product_name"
-              ? "font-weight:700;text-decoration:underline;"
+              ? "font-weight:700;"
               : "font-weight:700;";
           msg.appendChild(span);
           last = m.index + m[0].length;
@@ -1782,7 +1784,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             if (cfg.productHighlightStyle === "upper") {
               span.style.cssText = "font-weight:700;text-transform:uppercase;";
             } else {
-              span.style.cssText = "font-weight:600;text-decoration:underline;";
+              span.style.cssText = "font-weight:600;";
             }
             msg.appendChild(span);
             return;
