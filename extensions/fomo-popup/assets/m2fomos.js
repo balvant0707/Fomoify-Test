@@ -171,6 +171,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     const n = Number(v);
     return Number.isFinite(n) ? n : fb;
   };
+  const POPUP_CARD_RADIUS = 6;
+  const popupRadius = () => POPUP_CARD_RADIUS;
   const unitToSeconds = (value, unit) => {
     const n = Math.max(0, toNum(value, 0));
     const u = String(unit || "seconds").toLowerCase();
@@ -977,6 +979,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       String(cfg.template || "solid").toLowerCase() === "gradient"
         ? `linear-gradient(135deg, ${cfg.bgColor || "#111"} 0%, ${cfg.bgAlt || cfg.bgColor || "#111"} 100%)`
         : cfg.bgColor || "#111";
+    const cardRadius = popupRadius(cfg);
 
     const wrap = document.createElement("div");
     wrap.className = "fomo-flash";
@@ -984,9 +987,9 @@ document.addEventListener("DOMContentLoaded", async function () {
     wrap.style.cssText = `
       position:fixed; z-index:9999; box-sizing:border-box;
       width:${wrapWidth}; overflow:${imageOverflow ? "visible" : "hidden"}; cursor:pointer;
-      border-radius:8px;
+      border-radius:${cardRadius}px;
       background:${bgFlash}; color:${cfg.fontColor || "#fff"};
-      box-shadow:0 10px 30px rgba(0,0,0,.12);
+      box-shadow:0 12px 28px rgba(15,23,42,.14);
       font-family:${cfg.fontFamily};
       animation:${inAnim} ${DUR.in}ms ease-out both;
     `;
@@ -1047,7 +1050,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         top:50%;
         transform:translate(-50%, -50%);
         width:${coverBoxSize}px;height:${coverBoxSize}px;
-        border-radius:8px;
+        border-radius:${cardRadius}px;
         overflow:hidden;
         background:#f3f4f6;
         display:grid;
@@ -1184,6 +1187,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       String(cfg.template || "solid").toLowerCase() === "gradient"
         ? `linear-gradient(135deg, ${cfg.bgColor || "#ffffff"} 0%, ${cfg.bgAlt || cfg.bgColor || "#ffffff"} 100%)`
         : cfg.bgColor || "#ffffff";
+    const cardRadius = popupRadius(cfg);
 
     // Product title helper (legacy 2-word fallback)
     function shortProductTitle(title, wordCount = 2) {
@@ -1227,9 +1231,9 @@ document.addEventListener("DOMContentLoaded", async function () {
     wrap.style.cssText = `
     position:fixed; z-index:9999; box-sizing:border-box;
     width:${mode === "mobile" ? mt.w : ""}; overflow:${imageOverflow ? "visible" : "hidden"}; cursor:pointer;
-    border-radius:8px;
+    border-radius:${cardRadius}px;
     background:${bgRecent}; color:${cfg.fontColor || "#111"};
-    box-shadow:0 10px 30px rgba(0,0,0,.12);
+    box-shadow:0 12px 28px rgba(15,23,42,.14);
     font-family:${cfg.fontFamily };
     animation:${inAnim} ${DUR.in}ms ease-out both;
   `;
@@ -1551,7 +1555,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const originX = posKey.includes("right") ? "right" : "left";
     const originY = posKey.includes("top") ? "top" : "bottom";
     const transformOrigin = `${originY} ${originX}`;
-    const innerRadius = isAddToCart || isReview ? 14 : 8;
+    const innerRadius = popupRadius(cfg);
     const innerBorder = isAddToCart || isReview
       ? "1px solid rgba(15,23,42,0.12)"
       : "1px solid rgba(0,0,0,0.06)";
@@ -1875,7 +1879,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             10,
             Math.round((Number(cfg.textSizePrice) || fontSize - 2) * effectiveSizeScale)
           )}px;
-          padding:2px 8px;border-radius:8px;font-weight:${isReview ? 700 : 600};
+          padding:2px 8px;border-radius:${POPUP_CARD_RADIUS}px;font-weight:${isReview ? 700 : 600};
         `;
         line.appendChild(p);
       }
@@ -2295,8 +2299,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const tableVisitor = Array.isArray(tables.visitor) ? tables.visitor : [];
     const tableLowStock = Array.isArray(tables.lowstock) ? tables.lowstock : [];
     const tableAddToCart = Array.isArray(tables.addtocart) ? tables.addtocart : [];
-    // Frontend requirement: disable review popup/form rendering on storefront.
-    const tableReview = [];
+    const tableReview = Array.isArray(tables.review) ? tables.review : [];
     const useFlashLegacy = tableFlash.length === 0;
     // Recent popup must always come from recentpopupconfig (tables.recent).
     const useRecentLegacy = false;
@@ -2385,7 +2388,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         fontFamily: it.fontFamily,
         fontWeight: it.fontWeight,
         baseFontSize: Number(it.fontSize ?? it.rounded ?? 0) || null,
-        cornerRadius: Number(it.cornerRadius ?? 16),
+        cornerRadius: Number(it.cornerRadius ?? POPUP_CARD_RADIUS),
         visibleSeconds: Number(it.durationSeconds ?? it.visibleSeconds ?? 6),
         alternateSeconds: Number(it.alternateSeconds || 4),
         firstDelaySeconds: Number(it.firstDelaySeconds ?? it.delaySeconds ?? 0),
@@ -2536,7 +2539,7 @@ document.addEventListener("DOMContentLoaded", async function () {
               fontWeight: it.fontWeight,
               baseFontSize:
                 Number(it.fontSize ?? it.rounded ?? 0) || null,
-              cornerRadius: Number(it.cornerRadius ?? 16),
+              cornerRadius: Number(it.cornerRadius ?? POPUP_CARD_RADIUS),
               visibleSeconds:
                 Number(it.durationSeconds ?? it.visibleSeconds ?? 6),
               alternateSeconds: Number(it.alternateSeconds || 4),
@@ -2564,7 +2567,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         fontFamily: it.fontFamily,
         fontWeight: it.fontWeight,
         baseFontSize: Number(it.fontSize ?? it.rounded ?? 0) || null,
-        cornerRadius: Number(it.cornerRadius ?? 16),
+        cornerRadius: Number(it.cornerRadius ?? POPUP_CARD_RADIUS),
         visibleSeconds:
           Number(it.durationSeconds ?? it.visibleSeconds ?? 6),
         alternateSeconds: Number(it.alternateSeconds || 4),
@@ -3583,7 +3586,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             titleColor: it.numberColor,
             progressColor: it.numberColor || it.textColor,
             imageAppearance: it.imageAppearance,
-            cornerRadius: Number(it.rounded ?? 16),
+            cornerRadius: Number(it.rounded ?? POPUP_CARD_RADIUS),
             firstDelaySeconds: Number(it.firstDelaySeconds ?? 0),
             alternateSeconds: Number(it.alternateSeconds || 0),
           });
@@ -3629,7 +3632,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           priceTagAlt: safe(it.priceTagAlt, "#666"),
           priceColor: safe(it.priceColor, "#fff"),
           starColor: safe(it.starColor, "#f5a623"),
-          rounded: Number(it.rounded ?? 16),
+          rounded: Number(it.rounded ?? POPUP_CARD_RADIUS),
           firstDelaySeconds: Number(it.firstDelaySeconds ?? 0),
           durationSeconds: Number(it.durationSeconds ?? 6),
           alternateSeconds: Number(it.alternateSeconds ?? 4),
@@ -4031,6 +4034,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           firstDelaySeconds: toNum(row.delay, 0),
           alternateSeconds: unitToSeconds(row.interval, row.intervalUnit),
           randomize: toBool(row.randomize, false),
+          cornerRadius: POPUP_CARD_RADIUS,
           imageStyle,
           productHighlightStyle: highlightStyle,
           stockCountColor: row.numberColor,
