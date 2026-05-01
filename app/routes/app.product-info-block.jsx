@@ -17,6 +17,8 @@ import {
   TextField,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
+import StockSpecificBox from "../components/productInfo/StockSpecificBox";
+import VisitorSpecificBox from "../components/productInfo/VisitorSpecificBox";
 
 export const loader = async ({ request }) => {
   await authenticate.admin(request);
@@ -131,6 +133,16 @@ export default function ProductInfoBlockDesigner() {
   const [inStockDotColor, setInStockDotColor] = useState("#42D66B");
   const [lowStockDotColor, setLowStockDotColor] = useState("#F59E0B");
   const [outStockDotColor, setOutStockDotColor] = useState("#EF4444");
+  const [visitorProductScope, setVisitorProductScope] = useState("all");
+  const [visitorProductModalOpen, setVisitorProductModalOpen] = useState(false);
+  const [selectedVisitorProductIds, setSelectedVisitorProductIds] = useState([
+    "bedside-table",
+  ]);
+  const [stockProductScope, setStockProductScope] = useState("all");
+  const [stockProductModalOpen, setStockProductModalOpen] = useState(false);
+  const [selectedStockProductIds, setSelectedStockProductIds] = useState([
+    "bedside-table",
+  ]);
 
   const [textColor, setTextColor] = useState("#3F3F46");
   const [fontSize, setFontSize] = useState(20);
@@ -206,6 +218,15 @@ export default function ProductInfoBlockDesigner() {
                   <TextField label="Refresh every seconds" value={visitorRefresh} onChange={setVisitorRefresh} type="number" autoComplete="off" />
                   <Select label="Count behavior" options={behaviorOptions} value={visitorBehavior} onChange={setVisitorBehavior} />
                 </InlineGrid>
+                <Divider />
+                <VisitorSpecificBox
+                  productScope={visitorProductScope}
+                  setProductScope={setVisitorProductScope}
+                  productModalOpen={visitorProductModalOpen}
+                  setProductModalOpen={setVisitorProductModalOpen}
+                  selectedProductIds={selectedVisitorProductIds}
+                  setSelectedProductIds={setSelectedVisitorProductIds}
+                />
               </BlockStack>
             </Card>
 
@@ -237,6 +258,15 @@ export default function ProductInfoBlockDesigner() {
                   <TextField label="Low-stock dot color" value={lowStockDotColor} onChange={setLowStockDotColor} autoComplete="off" />
                   <TextField label="Out-of-stock dot color" value={outStockDotColor} onChange={setOutStockDotColor} autoComplete="off" />
                 </InlineGrid>
+                <Divider />
+                <StockSpecificBox
+                  productScope={stockProductScope}
+                  setProductScope={setStockProductScope}
+                  productModalOpen={stockProductModalOpen}
+                  setProductModalOpen={setStockProductModalOpen}
+                  selectedProductIds={selectedStockProductIds}
+                  setSelectedProductIds={setSelectedStockProductIds}
+                />
               </BlockStack>
             </Card>
 
