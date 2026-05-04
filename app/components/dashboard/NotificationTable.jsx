@@ -298,9 +298,11 @@ export default function NotificationTable({
     if (!["visitor-block", "stock-block"].includes(row.key)) return "";
     const apiKey = filters?.apiKey || "";
     if (!apiKey) return "";
+    const blockHandle =
+      row.key === "stock-block" ? "fomo-stock-block" : "fomo-popup-block";
     const params = new URLSearchParams({
       template: "product",
-      addAppBlockId: `${apiKey}/fomo-popup-block`,
+      addAppBlockId: `${apiKey}/${blockHandle}`,
       target: "mainSection",
     });
     if (filters?.shopDomain) {

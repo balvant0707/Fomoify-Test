@@ -6,7 +6,7 @@
 <div
   class="fomoify-product-info-block"
   data-fomoify-product-info-block
-  data-fomoify-block-type="visitor"
+  data-fomoify-block-type="stock"
   data-shop-domain="{{ shop.permanent_domain }}"
   data-product-id="{{ product.id }}"
   data-product-handle="{{ product.handle }}"
@@ -23,7 +23,7 @@
   const shop = String(root.dataset.shopDomain || window.Shopify?.shop || "").trim().toLowerCase();
   const productId = String(root.dataset.productId || "").trim();
   const productHandle = String(root.dataset.productHandle || "").trim().toLowerCase();
-  const blockType = String(root.dataset.fomoifyBlockType || "visitor").toLowerCase();
+  const inventory = Number(root.dataset.productInventory || 0);
   const proxyBase = "/apps/fomo";
 
   const escapeHtml = (value) =>
@@ -86,12 +86,12 @@
     return window.matchMedia?.("(max-width: 749px)")?.matches ? mobileSize : desktopSize;
   };
 
-  const lineStyle = (record, iconOrDotSize) => [
+  const lineStyle = (record, dotSize) => [
     `display:flex`,
     `justify-content:${alignmentToJustify(record.alignment)}`,
     `margin-top:${Math.max(0, toNumber(record.topMargin, 0))}px`,
     `margin-bottom:${Math.max(0, toNumber(record.bottomMargin, 0))}px`,
-    `--fomoify-product-info-size:${Math.max(8, iconOrDotSize)}px`,
+    `--fomoify-product-info-size:${Math.max(8, dotSize)}px`,
   ].join(";");
 
   const textStyle = (record) => [
@@ -104,41 +104,38 @@
     `line-height:1.35`,
   ].join(";");
 
-  const iconFor = (key) => {
-    const value = String(key || "").toLowerCase();
-    if (value === "none") return "";
-    if (value.includes("heart")) return "&hearts;";
-    if (value.includes("star")) return "&#9733;";
-    if (value.includes("person")) return "&#128100;";
-    if (value.includes("location")) return "&#8982;";
-    return "&#9673;";
-  };
-
-  const renderVisitor = (record) => {
+  const renderStock = (record) => {
     if (!record || !toBool(record.enabled, true) || !productMatches(record)) return "";
-    const min = Math.max(0, toNumber(record.visitorMin, 12));
-    const max = Math.max(min, toNumber(record.visitorMax, 42));
-    const count =
-      String(record.behavior || "").toLowerCase() === "random"
-        ? Math.round(min + Math.random() * (max - min))
-        : Math.round((min + max) / 2);
-    const text = String(record.template || "{count} people are viewing this product").replace("{count}", count);
-    const icon = iconFor(record.iconKey);
-    const iconSize = Math.max(10, toNumber(record.iconSize, 18));
+    if (inventory <= 0 && toBool(record.hideOutOfStock, false)) return "";
+    const showQuantity = toBool(record.showProductQuantity, true);
+    const fallbackQuantity = Math.max(0, toNumber(record.productQuantity, 0));
+    const count = Number.isFinite(inventory) ? inventory : fallbackQuantity;
+    const isOut = count <= 0;
+    const text = isOut
+      ? String(record.outOfStockText || "Out of stock")
+      : showQuantity
+        ? String(record.quantityText || "Stock: {count} available").replace("{count}", count)
+        : String(record.inStockText || "In stock");
+    const dotColor = isOut
+      ? record.outStockDotColor || "#EF4444"
+      : showQuantity
+        ? record.lowStockDotColor || "#F59E0B"
+        : record.inStockDotColor || "#42D66B";
+    const dotSize = Math.max(8, toNumber(record.dotSize, 16));
     const customClass = escapeHtml(record.customClass || "");
     return `
-      <div class="fomoify-product-info-row ${customClass}" style="${lineStyle(record, iconSize)}">
+      <div class="fomoify-product-info-row ${customClass}" style="${lineStyle(record, dotSize)}">
         <span style="${textStyle(record)}">
-          ${icon ? `<span aria-hidden="true" style="color:${escapeHtml(record.iconColor || "#6B4B7A")};font-size:var(--fomoify-product-info-size);width:var(--fomoify-product-info-size);height:var(--fomoify-product-info-size);display:inline-grid;place-items:center;">${icon}</span>` : ""}
+          <span aria-hidden="true" style="width:var(--fomoify-product-info-size);height:var(--fomoify-product-info-size);display:inline-block;border-radius:999px;background:${escapeHtml(dotColor)};box-shadow:inset 0 0 0 2px rgba(255,255,255,.72);"></span>
           <span>${escapeHtml(text)}</span>
         </span>
       </div>
     `;
   };
 
-  const fetchRecord = async (table) => {
+  const fetchRecord = async () => {
     const url = new URL(`${proxyBase}/popup`, window.location.origin);
-    url.searchParams.set("table", table);
+    url.searchParams.set("table", "stock-block");
     if (shop) url.searchParams.set("shop", shop);
     const response = await fetch(`${url.pathname}${url.search}`, {
       credentials: "same-origin",
@@ -149,9 +146,9 @@
     return Array.isArray(payload?.records) ? payload.records[0] : null;
   };
 
-  fetchRecord(blockType === "stock" ? "stock-block" : "visitor-block")
+  fetchRecord()
     .then((record) => {
-      const html = renderVisitor(record);
+      const html = renderStock(record);
       root.innerHTML = html;
       root.hidden = !html;
     })
@@ -163,7 +160,7 @@
 
 {% schema %}
 {
-  "name": "Fomoify Visitor",
+  "name": "Fomoify Stock",
   "target": "section"
 }
 {% endschema %}
