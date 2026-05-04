@@ -9,12 +9,18 @@ import {
   Divider,
   InlineGrid,
   InlineStack,
+  Icon,
   Page,
   RangeSlider,
   Select,
   Text,
   TextField,
 } from "@shopify/polaris";
+import {
+  ContentIcon as PolarisContentIcon,
+  DesktopIcon,
+  LayoutColumns2Icon,
+} from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import VisitorSpecificBox from "../components/productInfo/VisitorSpecificBox";
 
@@ -60,6 +66,12 @@ const styles = `
   border-color: #2f855a;
 }
 .product-info-nav-icon {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+}
+.product-info-nav-icon .Polaris-Icon {
   width: 20px;
   height: 20px;
 }
@@ -158,36 +170,10 @@ const behaviorOptions = [
   { label: "Real-time later", value: "realtime" },
 ];
 
-function ContentIcon() {
-  return (
-    <svg className="product-info-nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4 7h16M4 12h11M4 17h7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function DesignIcon() {
-  return (
-    <svg className="product-info-nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 4v16M4 12h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="12" cy="12" r="7" stroke="currentColor" strokeWidth="2" />
-    </svg>
-  );
-}
-
-function DisplayIcon() {
-  return (
-    <svg className="product-info-nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="4" y="5" width="16" height="11" rx="2" stroke="currentColor" strokeWidth="2" />
-      <path d="M9 20h6M12 16v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 const editorSections = [
-  { id: "content", label: "Content", Icon: ContentIcon },
-  { id: "layout", label: "Design", Icon: DesignIcon },
-  { id: "display", label: "Display", Icon: DisplayIcon },
+  { id: "layout", label: "Layout", icon: LayoutColumns2Icon },
+  { id: "content", label: "Content", icon: PolarisContentIcon },
+  { id: "display", label: "Display", icon: DesktopIcon },
 ];
 
 const iconFor = (icon) => {
@@ -242,7 +228,7 @@ function NumberField({ label, value, onChange, min, max }) {
 }
 
 export default function VisitorBlockConfiguration() {
-  const [activeSection, setActiveSection] = useState("content");
+  const [activeSection, setActiveSection] = useState("layout");
   const [visitorEnabled, setVisitorEnabled] = useState(true);
   const [visitorMin, setVisitorMin] = useState("12");
   const [visitorMax, setVisitorMax] = useState("42");
@@ -290,14 +276,16 @@ export default function VisitorBlockConfiguration() {
       <style>{styles}</style>
       <div className="product-info-designer">
         <div className="product-info-sidebar" aria-label="Visitor block sections">
-          {editorSections.map(({ id, label, Icon }) => (
+          {editorSections.map(({ id, label, icon }) => (
             <button
               key={id}
               type="button"
               className={`product-info-nav-btn ${activeSection === id ? "is-active" : ""}`}
               onClick={() => setActiveSection(id)}
             >
-              <Icon />
+              <span className="product-info-nav-icon">
+                <Icon source={icon} />
+              </span>
               {label}
             </button>
           ))}
