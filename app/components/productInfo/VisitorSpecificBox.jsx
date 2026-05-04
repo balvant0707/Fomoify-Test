@@ -41,22 +41,37 @@ export default function VisitorSpecificBox({
   const productFetcher = useFetcher();
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [hasLoadedProducts, setHasLoadedProducts] = useState(false);
   const [productCache, setProductCache] = useState({});
   const products = useMemo(
-    () => (productFetcher.data?.items || []).map(normalizeProduct),
+    () => {
+      const items = productFetcher.data?.items || [];
+      if (!Array.isArray(items)) return [];
+      return items.map(normalizeProduct);
+    },
     [productFetcher.data]
   );
   const isLoading = productFetcher.state !== "idle";
   const hasNextPage = Boolean(productFetcher.data?.hasNextPage);
+  const productError = productFetcher.data?.error || "";
+
+  const loadProducts = (nextQuery = query, nextPage = page) => {
+    const params = new URLSearchParams();
+    if (nextQuery) params.set("q", nextQuery);
+    params.set("page", String(nextPage));
+    productFetcher.load(`/app/products-picker?${params.toString()}`);
+  };
+
+  useEffect(() => {
+    if (hasLoadedProducts) return;
+    loadProducts("", 1);
+    setHasLoadedProducts(true);
+  }, [hasLoadedProducts, productFetcher]);
 
   useEffect(() => {
     if (!productModalOpen) return;
-    const params = new URLSearchParams({
-      q: query,
-      page: String(page),
-    });
-    productFetcher.load(`/app/products-picker?${params.toString()}`);
-  }, [productModalOpen, query, page]);
+    loadProducts(query, page);
+  }, [productModalOpen, query, page, productFetcher]);
 
   useEffect(() => {
     if (!products.length) return;
@@ -95,15 +110,19 @@ export default function VisitorSpecificBox({
           value={productScope}
           onChange={setProductScope}
         />
-        {productScope === "specific" && (
-          <BlockStack gap="300">
-            <InlineStack align="space-between" blockAlign="center">
-              <Text as="p" tone="subdued">
-                Select specific products where visitor count should show.
-              </Text>
-              <Button onClick={() => setProductModalOpen(true)}>Select products</Button>
-            </InlineStack>
-            {selectedProducts.length ? (
+        <BlockStack gap="300">
+          <InlineStack align="space-between" blockAlign="center">
+            <Text as="p" tone="subdued">
+              {productScope === "specific"
+                ? "Select specific products where visitor count should show."
+                : "All store products are included."}
+            </Text>
+            <Button onClick={() => setProductModalOpen(true)}>
+              {productScope === "specific" ? "Select products" : "View products"}
+            </Button>
+          </InlineStack>
+          {productScope === "specific" &&
+            (selectedProducts.length ? (
               <InlineStack gap="200" wrap>
                 {selectedProducts.map((product) => (
                   <Badge key={product.id}>{product.title}</Badge>
@@ -113,9 +132,8 @@ export default function VisitorSpecificBox({
               <Text as="p" tone="critical">
                 No products selected.
               </Text>
-            )}
-          </BlockStack>
-        )}
+            ))}
+        </BlockStack>
       </BlockStack>
 
       <Modal
@@ -132,6 +150,7 @@ export default function VisitorSpecificBox({
             onAction: () => setProductModalOpen(false),
           },
         ]}
+        large
       >
         <Modal.Section>
           <BlockStack gap="300">
@@ -190,8 +209,8 @@ export default function VisitorSpecificBox({
               ))}
             </IndexTable>
             {!products.length && !isLoading && (
-              <Text as="p" tone="subdued">
-                No products found.
+              <Text as="p" tone={productError ? "critical" : "subdued"}>
+                {productError || "No products found."}
               </Text>
             )}
             <InlineStack align="space-between" blockAlign="center">
