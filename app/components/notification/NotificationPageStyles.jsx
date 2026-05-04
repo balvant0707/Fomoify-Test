@@ -28,10 +28,21 @@ const NOTIFICATION_PAGE_STYLES = `
 .notification-page .Polaris-Button {
   min-height: 30px;
 }
-.notification-page input:focus,
+.notification-page .Polaris-Connected,
+.notification-page .Polaris-Connected__Item,
+.notification-page .Polaris-TextField {
+  min-width: 0;
+  width: 100%;
+}
+.notification-page input:not([type="color"]),
+.notification-page textarea,
+.notification-page select,
+.notification-page input:not([type="color"]):focus,
 .notification-page textarea:focus,
 .notification-page select:focus {
-  width: unset !important;
+  max-width: 100%;
+  width: 100% !important;
+  box-sizing: border-box;
 }
 .notification-page .Polaris-Card {
   border-radius: 8px;
