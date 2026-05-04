@@ -708,21 +708,6 @@ export default function VisitorBlockConfiguration() {
                               <span style={{  fontSize: `${fontSize}px`, }}>{visitorText}</span>
                             </span>
                           </div>
-                          <div style={{ marginTop: 12, display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
-                            <span style={{ fontSize: 11, color: "#9ca3af" }}>
-                              Midpoint of {visitorMin}–{visitorMax}; storefront shows random in range
-                            </span>
-                            {hideOnMobile && (
-                              <span style={{ fontSize: 11, color: "#6b7280", background: "#f3f4f6", borderRadius: 4, padding: "2px 7px" }}>
-                                Hidden on mobile
-                              </span>
-                            )}
-                            {countInterval > 0 && (
-                              <span style={{ fontSize: 11, color: "#6b7280", background: "#f3f4f6", borderRadius: 4, padding: "2px 7px" }}>
-                                Updates every {countInterval}s
-                              </span>
-                            )}
-                          </div>
                         </>
                       ) : (
                         <div style={{ textAlign: "center", color: "#9ca3af", fontSize: 13, padding: "24px 0" }}>

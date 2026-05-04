@@ -675,18 +675,6 @@ export default function StockBlockConfiguration() {
                           <span style={{ fontSize: `${fontSize}px` }}>{stockText}</span>
                         </span>
                       </div>
-                      <div style={{ marginTop: 12, display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
-                        {hideOnMobile && (
-                          <span style={{ fontSize: 11, color: "#6b7280", background: "#f3f4f6", borderRadius: 4, padding: "2px 7px" }}>
-                            Hidden on mobile
-                          </span>
-                        )}
-                        {dotAnimationStyle && dotAnimationStyle !== "none" && (
-                          <span style={{ fontSize: 11, color: "#6b7280", background: "#f3f4f6", borderRadius: 4, padding: "2px 7px" }}>
-                            {dotAnimationStyle === "ping" ? "Dot: ping animation" : "Dot: beat animation"}
-                          </span>
-                        )}
-                      </div>
                     </>
                   )}
                 </div>
