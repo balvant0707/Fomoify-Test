@@ -88,11 +88,6 @@ const styles = `
   min-height: 320px;
   display: grid;
   place-items: center;
-  background:
-    linear-gradient(135deg, #f8fafc 0%, #eef7f1 100%);
-  border: 1px solid #e3e3e3;
-  border-radius: 8px;
-  padding: 24px;
 }
 .product-info-preview-card {
   width: min(100%, 420px);
@@ -339,10 +334,7 @@ export default function StockBlockConfiguration() {
                 <InlineStack align="space-between" blockAlign="center">
                   <BlockStack gap="100">
                     <Text as="h2" variant="headingMd">
-                      Stock status
-                    </Text>
-                    <Text as="p" tone="subdued">
-                      Controls the stock availability line shown on product pages.
+                      Content
                     </Text>
                   </BlockStack>
                   <Checkbox label="Show" checked={stockEnabled} onChange={setStockEnabled} />
@@ -365,12 +357,9 @@ export default function StockBlockConfiguration() {
             <Card>
               <BlockStack gap="400">
                 <Text as="h2" variant="headingMd">
-                  Layout and style
+                  Layout
                 </Text>
                 <BlockStack gap="300">
-                  <Text as="h3" variant="headingSm">
-                    Color picker
-                  </Text>
                   <div className="product-info-color-grid">
                     <ColorField label="Text color" value={textColor} onChange={setTextColor} fallback="#3F3F46" />
                     <ColorField label="In-stock dot color" value={inStockDotColor} onChange={setInStockDotColor} fallback="#42D66B" />
@@ -474,12 +463,6 @@ export default function StockBlockConfiguration() {
                   )}
                 </div>
               </div>
-              <ButtonGroup>
-                <Button disabled>Reset</Button>
-                <Button variant="primary" disabled>
-                  Save configuration
-                </Button>
-              </ButtonGroup>
             </BlockStack>
           </Card>
         </InlineGrid>
