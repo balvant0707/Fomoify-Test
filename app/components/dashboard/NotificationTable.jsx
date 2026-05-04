@@ -301,7 +301,7 @@ export default function NotificationTable({
     const params = new URLSearchParams({
       template: "product",
       addAppBlockId: `${apiKey}/fomo-popup-block`,
-      target: "section",
+      target: "mainSection",
     });
     if (filters?.shopDomain) {
       return `https://${filters.shopDomain}/admin/themes/current/editor?${params.toString()}`;

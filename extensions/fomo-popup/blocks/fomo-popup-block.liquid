@@ -6,7 +6,6 @@
 <div
   class="fomoify-product-info-block"
   data-fomoify-product-info-block
-  data-block-mode="{{ block.settings.block_mode | default: 'both' }}"
   data-shop-domain="{{ shop.permanent_domain }}"
   data-product-id="{{ product.id }}"
   data-product-handle="{{ product.handle }}"
@@ -24,7 +23,6 @@
   const productId = String(root.dataset.productId || "").trim();
   const productHandle = String(root.dataset.productHandle || "").trim().toLowerCase();
   const inventory = Number(root.dataset.productInventory || 0);
-  const mode = String(root.dataset.blockMode || "both").toLowerCase();
   const proxyBase = "/apps/fomo";
 
   const escapeHtml = (value) =>
@@ -180,8 +178,8 @@
   };
 
   Promise.all([
-    mode === "visitor" || mode === "both" ? fetchRecord("visitor-block") : null,
-    mode === "stock" || mode === "both" ? fetchRecord("stock-block") : null,
+    fetchRecord("visitor-block"),
+    fetchRecord("stock-block"),
   ])
     .then(([visitorRecord, stockRecord]) => {
       const html = [renderVisitor(visitorRecord), renderStock(stockRecord)]
@@ -199,19 +197,6 @@
 {% schema %}
 {
   "name": "Fomoify Product Info",
-  "target": "section",
-  "settings": [
-    {
-      "type": "select",
-      "id": "block_mode",
-      "label": "Block content",
-      "default": "both",
-      "options": [
-        { "value": "both", "label": "Visitor and stock" },
-        { "value": "visitor", "label": "Visitor only" },
-        { "value": "stock", "label": "Stock only" }
-      ]
-    }
-  ]
+  "target": "section"
 }
 {% endschema %}
