@@ -17,9 +17,6 @@ const toPositiveInt = (value, fallback) => {
   return Math.floor(n);
 };
 
-const shouldAutoPrepareSessionTable =
-  process.env.PRISMA_AUTO_PREPARE_SESSION_TABLE === "1" ||
-  process.env.NODE_ENV !== "production";
 const sessionConnectionRetries = toPositiveInt(
   process.env.SHOPIFY_SESSION_CONNECTION_RETRIES,
   1
@@ -29,43 +26,15 @@ const sessionConnectionRetryIntervalMs = toPositiveInt(
   1000
 );
 
-const isMissingSessionTableError = (error) => {
-  const message = String(error?.message || "").toLowerCase();
-  const causeMessage = String(error?.cause?.message || "").toLowerCase();
-  return (
-    error?.name === "MissingSessionTableError" ||
-    message.includes("session table does not exist") ||
-    causeMessage.includes("table `session` does not exist") ||
-    causeMessage.includes("table 'session' does not exist")
-  );
-};
-
+// Always ensure the session table exists before creating PrismaSessionStorage.
+// The storage constructor starts a background readiness timer that throws an
+// unhandled rejection if the table is missing, so we must create the table first.
 const createPrismaSessionStorage = async (prismaClient) => {
-  try {
-    const storage = new PrismaSessionStorage(prismaClient, {
-      connectionRetries: sessionConnectionRetries,
-      connectionRetryIntervalMs: sessionConnectionRetryIntervalMs,
-    });
-    if (await storage.isReady()) {
-      return storage;
-    }
-
-    await ensurePrismaSessionTable(prismaClient);
-    return new PrismaSessionStorage(prismaClient, {
-      connectionRetries: sessionConnectionRetries,
-      connectionRetryIntervalMs: sessionConnectionRetryIntervalMs,
-    });
-  } catch (error) {
-    if (!isMissingSessionTableError(error)) {
-      throw error;
-    }
-
-    await ensurePrismaSessionTable(prismaClient);
-    return new PrismaSessionStorage(prismaClient, {
-      connectionRetries: sessionConnectionRetries,
-      connectionRetryIntervalMs: sessionConnectionRetryIntervalMs,
-    });
-  }
+  await ensurePrismaSessionTable(prismaClient);
+  return new PrismaSessionStorage(prismaClient, {
+    connectionRetries: sessionConnectionRetries,
+    connectionRetryIntervalMs: sessionConnectionRetryIntervalMs,
+  });
 };
 
 function createSessionStorage(prismaClient) {
@@ -73,13 +42,7 @@ function createSessionStorage(prismaClient) {
 
   const getStorage = async () => {
     if (!storagePromise) {
-      storagePromise = (async () => {
-        if (shouldAutoPrepareSessionTable) {
-          await ensurePrismaSessionTable(prismaClient);
-        }
-        return createPrismaSessionStorage(prismaClient);
-      })().catch((error) => {
-        // Allow retries after transient failures (for example, temporary DB saturation).
+      storagePromise = createPrismaSessionStorage(prismaClient).catch((error) => {
         storagePromise = undefined;
         throw error;
       });

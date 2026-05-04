@@ -1,9 +1,6 @@
 import { useMemo, useState } from "react";
 import {
-  Badge,
   BlockStack,
-  Button,
-  ButtonGroup,
   Card,
   Checkbox,
   Divider,
@@ -11,12 +8,11 @@ import {
   InlineGrid,
   InlineStack,
   Page,
-  RangeSlider,
   Select,
   Text,
   TextField,
 } from "@shopify/polaris";
-import { MagicIcon, PersonIcon, ViewIcon } from "@shopify/polaris-icons";
+import * as PolarisIcons from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import VisitorSpecificBox from "../components/productInfo/VisitorSpecificBox";
 import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
@@ -171,11 +167,24 @@ const styles = `
 }
 `;
 
+const humanizeIconName = (name) =>
+  name
+    .replace(/Icon$/, "")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
+const polarisIconOptions = Object.keys(PolarisIcons)
+  .filter((name) => name.endsWith("Icon") && typeof PolarisIcons[name] === "function")
+  .sort((a, b) => humanizeIconName(a).localeCompare(humanizeIconName(b)))
+  .map((name) => ({
+    label: humanizeIconName(name),
+    value: name,
+    source: PolarisIcons[name],
+  }));
+
 const iconOptions = [
-  { label: "Eye", value: "eye", source: ViewIcon },
-  { label: "Fire", value: "fire", source: MagicIcon },
-  { label: "User", value: "user", source: PersonIcon },
   { label: "None", value: "none" },
+  ...polarisIconOptions,
 ];
 
 const alignOptions = [
@@ -260,27 +269,25 @@ const editorSections = [
   { id: "display", label: "Display", Icon: DisplayIcon },
 ];
 
-const iconSourceFor = (icon) =>
-  iconOptions.find((option) => option.value === icon)?.source || ViewIcon;
+const legacyIconAliases = {
+  eye: "ViewIcon",
+  fire: "MagicIcon",
+  user: "PersonIcon",
+};
+
+const iconSourceFor = (icon) => {
+  const iconKey = legacyIconAliases[icon] || icon;
+  return PolarisIcons[iconKey] || PolarisIcons.ViewIcon;
+};
 
 function VisitorIconField({ value, onChange }) {
   return (
-    <div className="product-info-icon-picker">
-      <span className="product-info-icon-picker-label">Visitor icon</span>
-      <div className="product-info-icon-picker-buttons">
-        {iconOptions.map((option) => (
-          <Button
-            key={option.value}
-            size="slim"
-            pressed={value === option.value}
-            icon={option.source}
-            onClick={() => onChange(option.value)}
-          >
-            {option.label}
-          </Button>
-        ))}
-      </div>
-    </div>
+    <Select
+      label="Visitor icon"
+      options={iconOptions}
+      value={legacyIconAliases[value] || value}
+      onChange={onChange}
+    />
   );
 }
 
@@ -336,7 +343,7 @@ export default function VisitorBlockConfiguration() {
   const [visitorTemplate, setVisitorTemplate] = useState(
     "{count} people are viewing this product"
   );
-  const [visitorIcon, setVisitorIcon] = useState("eye");
+  const [visitorIcon, setVisitorIcon] = useState("ViewIcon");
   const [visitorIconColor, setVisitorIconColor] = useState("#6B4B7A");
   const [visitorRefresh, setVisitorRefresh] = useState("20");
   const [visitorBehavior, setVisitorBehavior] = useState("fixed");
@@ -437,22 +444,10 @@ export default function VisitorBlockConfiguration() {
                   <TextField label="Custom CSS class" value={customClass} onChange={setCustomClass} autoComplete="off" />
                 </InlineGrid>
                 <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
-                  <BlockStack gap="200">
-                    <RangeSlider label="Font size" min={12} max={32} value={fontSize} onChange={setFontSize} output />
-                    <NumberField label="Font size input" value={fontSize} onChange={setFontSize} min={12} max={32} />
-                  </BlockStack>
-                  <BlockStack gap="200">
-                    <RangeSlider label="Mobile font size" min={10} max={24} value={mobileFontSize} onChange={setMobileFontSize} output />
-                    <NumberField label="Mobile font size input" value={mobileFontSize} onChange={setMobileFontSize} min={10} max={24} />
-                  </BlockStack>
-                  <BlockStack gap="200">
-                    <RangeSlider label="Icon size" min={10} max={30} value={iconSize} onChange={setIconSize} output />
-                    <NumberField label="Icon size input" value={iconSize} onChange={setIconSize} min={10} max={30} />
-                  </BlockStack>
-                  <BlockStack gap="200">
-                    <RangeSlider label="Field spacing" min={4} max={28} value={spacing} onChange={setSpacing} output />
-                    <NumberField label="Field spacing input" value={spacing} onChange={setSpacing} min={4} max={28} />
-                  </BlockStack>
+                  <NumberField label="Font size (px)" value={fontSize} onChange={setFontSize} min={12} max={32} />
+                  <NumberField label="Mobile font size (px)" value={mobileFontSize} onChange={setMobileFontSize} min={10} max={24} />
+                  <NumberField label="Icon size (px)" value={iconSize} onChange={setIconSize} min={10} max={30} />
+                  <NumberField label="Field spacing (px)" value={spacing} onChange={setSpacing} min={4} max={28} />
                 </InlineGrid>
               </BlockStack>
             </Card>
@@ -478,14 +473,8 @@ export default function VisitorBlockConfiguration() {
                     setSelectedProductIds={setSelectedVisitorProductIds}
                   />
                   <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
-                    <BlockStack gap="200">
-                      <RangeSlider label="Top margin" min={0} max={60} value={topMargin} onChange={setTopMargin} output />
-                      <NumberField label="Top margin input" value={topMargin} onChange={setTopMargin} min={0} max={60} />
-                    </BlockStack>
-                    <BlockStack gap="200">
-                      <RangeSlider label="Bottom margin" min={0} max={60} value={bottomMargin} onChange={setBottomMargin} output />
-                      <NumberField label="Bottom margin input" value={bottomMargin} onChange={setBottomMargin} min={0} max={60} />
-                    </BlockStack>
+                    <NumberField label="Top margin (px)" value={topMargin} onChange={setTopMargin} min={0} max={60} />
+                    <NumberField label="Bottom margin (px)" value={bottomMargin} onChange={setBottomMargin} min={0} max={60} />
                   </InlineGrid>
                 </BlockStack>
               </Card>
@@ -502,34 +491,43 @@ export default function VisitorBlockConfiguration() {
               <Divider />
               <div className="product-info-preview-shell">
                 <div className="product-info-preview-card">
-                  {visitorEnabled && (
-                    <span
-                      className="product-info-line"
+                  {visitorEnabled ? (
+                    <div
                       style={{
-                        color: textColor,
-                        "--product-info-font-size": `${fontSize}px`,
-                        "--product-info-mobile-font-size": `${mobileFontSize}px`,
-                        fontWeight: textWeight,
-                        gap: Math.max(6, Math.round(spacing / 2)),
+                        display: "flex",
                         justifyContent: justify,
                         marginTop: topMargin,
                         marginBottom: bottomMargin,
-                        width: "100%",
                       }}
                     >
-                      {visitorIcon !== "none" && (
-                        <span
-                          className="product-info-icon"
-                          style={{
-                            color: visitorIconColor,
-                            "--product-info-icon-size": `${iconSize}px`,
-                          }}
-                        >
-                          <Icon source={iconSourceFor(visitorIcon)} tone="inherit" />
-                        </span>
-                      )}
-                      <span>{visitorText}</span>
-                    </span>
+                      <span
+                        className="product-info-line"
+                        style={{
+                          color: textColor,
+                          "--product-info-font-size": `${fontSize}px`,
+                          "--product-info-mobile-font-size": `${mobileFontSize}px`,
+                          fontWeight: textWeight,
+                          gap: Math.max(6, Math.round(spacing / 2)),
+                        }}
+                      >
+                        {visitorIcon !== "none" && (
+                          <span
+                            className="product-info-icon"
+                            style={{
+                              color: visitorIconColor,
+                              "--product-info-icon-size": `${iconSize}px`,
+                            }}
+                          >
+                            <Icon source={iconSourceFor(visitorIcon)} tone="inherit" />
+                          </span>
+                        )}
+                        <span>{visitorText}</span>
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: "center", color: "#9ca3af", fontSize: 13, padding: "24px 0" }}>
+                      Visitor announcement is disabled
+                    </div>
                   )}
                 </div>
               </div>
