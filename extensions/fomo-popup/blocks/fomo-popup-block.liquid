@@ -190,8 +190,10 @@
     const min = Math.max(0, toNumber(record.visitorMin, 12));
     const max = Math.max(min, toNumber(record.visitorMax, 42));
 
+    const behavior = String(record.behavior || "fixed").toLowerCase();
+    // "fixed" = one random on page load; "rotating" = random + auto-updates; else = midpoint
     const computeCount = () =>
-      String(record.behavior || "").toLowerCase() === "random"
+      behavior === "fixed" || behavior === "rotating"
         ? Math.round(min + Math.random() * (max - min))
         : Math.round((min + max) / 2);
 
@@ -241,7 +243,9 @@
       </div>
     `;
 
-    return { html, countInterval, buildText, min, max, behavior: record.behavior };
+    const refreshSeconds = Math.max(0, toNumber(record.refreshSeconds, 0));
+    const updateInterval = countInterval > 0 ? countInterval : (refreshSeconds > 0 ? refreshSeconds : 0);
+    return { html, updateInterval, buildText, min, max, behavior };
   };
 
   const fetchRecord = async (table) => {
@@ -267,17 +271,16 @@
       root.innerHTML = result.html;
       root.hidden = false;
 
-      if (result.countInterval > 0) {
+      // "rotating" behavior auto-updates the count on an interval
+      if (result.behavior === "rotating" && result.updateInterval > 0) {
         const textEl = root.querySelector("#fomoify-visitor-text");
         if (textEl) {
           setInterval(() => {
-            const isRandom = String(record?.behavior || "").toLowerCase() === "random";
-            if (!isRandom) return;
-            const min = Math.max(0, Number(record?.visitorMin || 12));
-            const max = Math.max(min, Number(record?.visitorMax || 42));
-            const newCount = Math.round(min + Math.random() * (max - min));
+            const newCount = Math.round(
+              result.min + Math.random() * (result.max - result.min)
+            );
             textEl.textContent = result.buildText(newCount);
-          }, result.countInterval * 1000);
+          }, result.updateInterval * 1000);
         }
       }
     })

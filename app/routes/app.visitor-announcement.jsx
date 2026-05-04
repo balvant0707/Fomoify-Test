@@ -705,7 +705,7 @@ export default function VisitorBlockConfiguration() {
                                   <Icon source={iconSourceFor(visitorIcon)} tone="inherit" />
                                 </span>
                               )}
-                              <span>{visitorText}</span>
+                              <span style={{  fontSize: `${fontSize}px`, }}>{visitorText}</span>
                             </span>
                           </div>
                           <div style={{ marginTop: 12, display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>

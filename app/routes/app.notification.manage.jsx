@@ -157,7 +157,7 @@ const deriveShowType = (row, key) => {
   if (row.showCollection || row.showCollectionList) pages.push("Collection");
   if (row.showCart) pages.push("Cart");
 
-  if (pages.length === 0) return "All pages";
+  if (pages.length === 0 || pages.length >= 4) return "All Pages";
   return pages.join(", ");
 };
 
