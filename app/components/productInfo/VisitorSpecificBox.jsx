@@ -168,8 +168,7 @@ export default function VisitorSpecificBox({
                 headings={[
                   { title: "" },
                   { title: "Product" },
-                  { title: "Status" },
-                  { title: "Inventory" },
+                  { title: "Status" }
                 ]}
               >
                 {products.map((product, index) => (
@@ -189,7 +188,7 @@ export default function VisitorSpecificBox({
                           alt={product.title}
                           size="small"
                         />
-                        <Text as="span" fontWeight="semibold">
+                        <Text as="span" style="fontWeight: semibold,fontSize: 12px !important">
                           {product.title}
                         </Text>
                       </InlineStack>
@@ -198,9 +197,6 @@ export default function VisitorSpecificBox({
                       <Badge tone={isActiveProduct(product.status) ? "success" : "attention"}>
                         {product.status}
                       </Badge>
-                    </IndexTable.Cell>
-                    <IndexTable.Cell>
-                      <Text as="span">{product.inventory}</Text>
                     </IndexTable.Cell>
                   </IndexTable.Row>
                 ))}

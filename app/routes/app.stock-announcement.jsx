@@ -10,7 +10,6 @@ import {
   InlineGrid,
   InlineStack,
   Page,
-  RangeSlider,
   Select,
   Text,
   TextField,
@@ -378,22 +377,10 @@ export default function StockBlockConfiguration() {
                   <TextField label="Custom CSS class" value={customClass} onChange={setCustomClass} autoComplete="off" />
                 </InlineGrid>
                 <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
-                  <BlockStack gap="200">
-                    <RangeSlider label="Font size" min={12} max={32} value={fontSize} onChange={setFontSize} output />
-                    <NumberField label="Font size input" value={fontSize} onChange={setFontSize} min={12} max={32} />
-                  </BlockStack>
-                  <BlockStack gap="200">
-                    <RangeSlider label="Mobile font size" min={10} max={24} value={mobileFontSize} onChange={setMobileFontSize} output />
-                    <NumberField label="Mobile font size input" value={mobileFontSize} onChange={setMobileFontSize} min={10} max={24} />
-                  </BlockStack>
-                  <BlockStack gap="200">
-                    <RangeSlider label="Icon size" min={8} max={30} value={dotSize} onChange={setDotSize} output />
-                    <NumberField label="Icon size input" value={dotSize} onChange={setDotSize} min={8} max={30} />
-                  </BlockStack>
-                  <BlockStack gap="200">
-                    <RangeSlider label="Field spacing" min={4} max={28} value={spacing} onChange={setSpacing} output />
-                    <NumberField label="Field spacing input" value={spacing} onChange={setSpacing} min={4} max={28} />
-                  </BlockStack>
+                  <NumberField label="Font size (px)" value={fontSize} onChange={setFontSize} min={12} max={32} />
+                  <NumberField label="Mobile font size (px)" value={mobileFontSize} onChange={setMobileFontSize} min={10} max={24} />
+                  <NumberField label="Icon size (px)" value={dotSize} onChange={setDotSize} min={8} max={30} />
+                  <NumberField label="Field spacing (px)" value={spacing} onChange={setSpacing} min={4} max={28} />
                 </InlineGrid>
               </BlockStack>
             </Card>
@@ -416,14 +403,8 @@ export default function StockBlockConfiguration() {
                     setSelectedProductIds={setSelectedStockProductIds}
                   />
                   <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
-                    <BlockStack gap="200">
-                      <RangeSlider label="Top margin" min={0} max={60} value={topMargin} onChange={setTopMargin} output />
-                      <NumberField label="Top margin input" value={topMargin} onChange={setTopMargin} min={0} max={60} />
-                    </BlockStack>
-                    <BlockStack gap="200">
-                      <RangeSlider label="Bottom margin" min={0} max={60} value={bottomMargin} onChange={setBottomMargin} output />
-                      <NumberField label="Bottom margin input" value={bottomMargin} onChange={setBottomMargin} min={0} max={60} />
-                    </BlockStack>
+                    <NumberField label="Top margin (px)" value={topMargin} onChange={setTopMargin} min={0} max={60} />
+                    <NumberField label="Bottom margin (px)" value={bottomMargin} onChange={setBottomMargin} min={0} max={60} />
                   </InlineGrid>
                 </BlockStack>
               </Card>

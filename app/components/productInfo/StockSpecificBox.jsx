@@ -169,7 +169,6 @@ export default function StockSpecificBox({
                   { title: "" },
                   { title: "Product" },
                   { title: "Status" },
-                  { title: "Inventory" },
                 ]}
               >
                 {products.map((product, index) => (
@@ -198,9 +197,6 @@ export default function StockSpecificBox({
                       <Badge tone={isActiveProduct(product.status) ? "success" : "attention"}>
                         {product.status}
                       </Badge>
-                    </IndexTable.Cell>
-                    <IndexTable.Cell>
-                      <Text as="span">{product.inventory}</Text>
                     </IndexTable.Cell>
                   </IndexTable.Row>
                 ))}
