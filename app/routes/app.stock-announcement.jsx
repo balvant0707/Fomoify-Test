@@ -154,6 +154,10 @@ const styles = `
   align-items: center;
   min-width: 0;
 }
+.notification-page .product-info-preview-card .product-info-line,
+.notification-page .product-info-preview-card .product-info-line span {
+  font-size: inherit !important;
+}
 .product-info-dot {
   display: inline-block;
   border-radius: 999px;
@@ -582,7 +586,7 @@ export default function StockBlockConfiguration() {
                         className="product-info-line"
                         style={{
                           color: textColor,
-                          fontSize: fontSize,
+                          fontSize: `${fontSize}px`,
                           fontWeight: textWeight,
                           gap: Math.max(6, Math.round(spacing / 2)),
                         }}

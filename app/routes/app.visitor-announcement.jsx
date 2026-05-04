@@ -173,6 +173,10 @@ const styles = `
   align-items: center;
   min-width: 0;
 }
+.notification-page .product-info-preview-card .product-info-line,
+.notification-page .product-info-preview-card .product-info-line span {
+  font-size: inherit !important;
+}
 .product-info-icon {
   display: inline-grid;
   place-items: center;
