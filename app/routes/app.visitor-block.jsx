@@ -42,7 +42,7 @@ const styles = `
   border: 1px solid #e5e7eb;
   background: #ffffff;
   border-radius: 6px;
-  padding: 12px 8px;
+  padding: 5px 10px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
   display: flex;
   flex-direction: column;
@@ -92,7 +92,6 @@ const styles = `
 .product-info-preview-card {
   width: min(100%, 420px);
   background: #ffffff;
-  border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 18px 20px;
   box-shadow: 0 14px 36px rgba(15, 23, 42, 0.12);

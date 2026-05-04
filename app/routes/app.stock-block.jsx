@@ -42,7 +42,7 @@ const styles = `
   border: 1px solid #e5e7eb;
   background: #ffffff;
   border-radius: 6px;
-  padding: 12px 8px;
+  padding: 5px 10px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
   display: flex;
   flex-direction: column;
@@ -92,7 +92,6 @@ const styles = `
 .product-info-preview-card {
   width: min(100%, 420px);
   background: #ffffff;
-  border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 18px 20px;
   box-shadow: 0 14px 36px rgba(15, 23, 42, 0.12);
@@ -113,6 +112,12 @@ const styles = `
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+.product-info-two-field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: center;
 }
 .product-info-color-swatch {
   width: 34px;
@@ -139,6 +144,9 @@ const styles = `
     min-width: 96px;
   }
   .product-info-color-grid {
+    grid-template-columns: 1fr;
+  }
+  .product-info-two-field-row {
     grid-template-columns: 1fr;
   }
   .product-info-line {
@@ -270,11 +278,11 @@ function NumberField({ label, value, onChange, min, max }) {
 export default function StockBlockConfiguration() {
   const [activeSection, setActiveSection] = useState("layout");
   const [stockEnabled, setStockEnabled] = useState(true);
-  const [lowStockThreshold, setLowStockThreshold] = useState("5");
-  const [showExactStock, setShowExactStock] = useState(false);
+  const [productQuantity, setProductQuantity] = useState("5");
+  const [showProductQuantity, setShowProductQuantity] = useState(true);
   const [hideOutOfStock, setHideOutOfStock] = useState(false);
   const [inStockText, setInStockText] = useState("In stock");
-  const [lowStockText, setLowStockText] = useState("Only {count} left");
+  const [quantityText, setQuantityText] = useState("Stock: {count} available");
   const [outOfStockText, setOutOfStockText] = useState("Out of stock");
   const [inStockDotColor, setInStockDotColor] = useState("#42D66B");
   const [lowStockDotColor, setLowStockDotColor] = useState("#F59E0B");
@@ -294,18 +302,17 @@ export default function StockBlockConfiguration() {
   const [bottomMargin, setBottomMargin] = useState(0);
   const [customClass, setCustomClass] = useState("");
 
-  const previewStockCount = Math.max(1, Number(lowStockThreshold) || 5);
-  const stockText = showExactStock
-    ? lowStockText.replace("{count}", previewStockCount)
+  const previewStockCount = Math.max(0, Number(productQuantity) || 0);
+  const stockText = showProductQuantity
+    ? quantityText.replace("{count}", previewStockCount)
     : inStockText;
-  const stockDot = showExactStock ? lowStockDotColor : inStockDotColor;
+  const stockDot = showProductQuantity ? lowStockDotColor : inStockDotColor;
   const justify =
     alignment === "center" ? "center" : alignment === "right" ? "flex-end" : "flex-start";
 
   return (
     <Page
-      title="Stock Block"
-      subtitle="Configuration for stock status inside product information."
+      title="Stock Announcement"
       backAction={{ content: "Back", url: "/app" }}
       primaryAction={{ content: "Save configuration", disabled: true }}
     >
@@ -339,14 +346,13 @@ export default function StockBlockConfiguration() {
                   </BlockStack>
                   <Checkbox label="Show" checked={stockEnabled} onChange={setStockEnabled} />
                 </InlineStack>
-                <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
-                  <TextField label="Low stock threshold" value={lowStockThreshold} onChange={setLowStockThreshold} type="number" autoComplete="off" />
-                  <Checkbox label="Show exact quantity" checked={showExactStock} onChange={setShowExactStock} />
+                <div className="product-info-two-field-row">
+                  <Checkbox label="Show product quantity" checked={showProductQuantity} onChange={setShowProductQuantity} />
                   <Checkbox label="Hide when out of stock" checked={hideOutOfStock} onChange={setHideOutOfStock} />
-                </InlineGrid>
+                </div>
                 <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
                   <TextField label="In-stock text" value={inStockText} onChange={setInStockText} autoComplete="off" />
-                  <TextField label="Low-stock text" value={lowStockText} onChange={setLowStockText} autoComplete="off" />
+                  <TextField label="Quantity text" value={quantityText} onChange={setQuantityText} autoComplete="off" />
                   <TextField label="Out-of-stock text" value={outOfStockText} onChange={setOutOfStockText} autoComplete="off" />
                 </InlineGrid>
               </BlockStack>
@@ -363,7 +369,7 @@ export default function StockBlockConfiguration() {
                   <div className="product-info-color-grid">
                     <ColorField label="Text color" value={textColor} onChange={setTextColor} fallback="#3F3F46" />
                     <ColorField label="In-stock dot color" value={inStockDotColor} onChange={setInStockDotColor} fallback="#42D66B" />
-                    <ColorField label="Low-stock dot color" value={lowStockDotColor} onChange={setLowStockDotColor} fallback="#F59E0B" />
+                    <ColorField label="Quantity dot color" value={lowStockDotColor} onChange={setLowStockDotColor} fallback="#F59E0B" />
                     <ColorField label="Out-of-stock dot color" value={outStockDotColor} onChange={setOutStockDotColor} fallback="#EF4444" />
                   </div>
                 </BlockStack>
