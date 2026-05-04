@@ -28,6 +28,11 @@ const NOTIFICATION_PAGE_STYLES = `
 .notification-page .Polaris-Button {
   min-height: 30px;
 }
+.notification-page input:focus,
+.notification-page textarea:focus,
+.notification-page select:focus {
+  width: unset !important;
+}
 .notification-page .Polaris-Card {
   border-radius: 8px;
 }
