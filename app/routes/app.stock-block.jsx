@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   Badge,
   BlockStack,
-  Box,
   Button,
   ButtonGroup,
   Card,
@@ -26,8 +25,43 @@ export const loader = async ({ request }) => {
 
 const styles = `
 .product-info-designer {
-  display: grid;
-  gap: 16px;
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+.product-info-sidebar {
+  width: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.product-info-nav-btn {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 4px;
+  padding: 5px 10px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+}
+.product-info-nav-btn:hover {
+  border-color: #cbd5e1;
+}
+.product-info-nav-btn.is-active {
+  background: #2f855a;
+  color: #ffffff;
+  border-color: #2f855a;
+}
+.product-info-main {
+  flex: 1;
+  min-width: 0;
 }
 .product-info-preview-shell {
   min-height: 320px;
@@ -56,6 +90,39 @@ const styles = `
   box-shadow: inset 0 0 0 2px rgba(255,255,255,.72);
   flex: 0 0 auto;
 }
+.product-info-color-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.product-info-color-swatch {
+  width: 34px;
+  height: 31px;
+  margin: 0 -12px -5px 0;
+  border: 0;
+  border-left: 1px solid #c9cccf;
+  border-radius: 0 8px 8px 0;
+  overflow: hidden;
+  cursor: pointer;
+  background: transparent;
+  padding: 0;
+}
+@media (max-width: 768px) {
+  .product-info-designer {
+    flex-direction: column;
+  }
+  .product-info-sidebar {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  .product-info-nav-btn {
+    min-width: 92px;
+  }
+  .product-info-color-grid {
+    grid-template-columns: 1fr;
+  }
+}
 `;
 
 const alignOptions = [
@@ -71,7 +138,38 @@ const weightOptions = [
   { label: "Bold", value: "700" },
 ];
 
+const editorSections = [
+  { id: "content", label: "Content" },
+  { id: "layout", label: "Design" },
+  { id: "display", label: "Display" },
+];
+
+function ColorField({ label, value, onChange, fallback = "#000000" }) {
+  const safeValue = /^#[0-9a-f]{6}$/i.test(String(value || ""))
+    ? value
+    : fallback;
+
+  return (
+    <TextField
+      label={label}
+      value={value}
+      onChange={(next) => onChange(String(next || "").toUpperCase())}
+      autoComplete="off"
+      suffix={
+        <input
+          className="product-info-color-swatch"
+          type="color"
+          value={safeValue}
+          aria-label={`${label} color`}
+          onChange={(event) => onChange(event.target.value.toUpperCase())}
+        />
+      }
+    />
+  );
+}
+
 export default function StockBlockConfiguration() {
+  const [activeSection, setActiveSection] = useState("content");
   const [stockEnabled, setStockEnabled] = useState(true);
   const [lowStockThreshold, setLowStockThreshold] = useState("5");
   const [showExactStock, setShowExactStock] = useState(false);
@@ -116,8 +214,22 @@ export default function StockBlockConfiguration() {
     >
       <style>{styles}</style>
       <div className="product-info-designer">
+        <div className="product-info-sidebar" aria-label="Stock block sections">
+          {editorSections.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              className={`product-info-nav-btn ${activeSection === id ? "is-active" : ""}`}
+              onClick={() => setActiveSection(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="product-info-main">
         <InlineGrid columns={{ xs: 1, md: "1fr 420px" }} gap="400">
           <BlockStack gap="400">
+            {activeSection === "content" && (
             <Card>
               <BlockStack gap="400">
                 <InlineStack align="space-between" blockAlign="center">
@@ -141,11 +253,6 @@ export default function StockBlockConfiguration() {
                   <TextField label="Low-stock text" value={lowStockText} onChange={setLowStockText} autoComplete="off" />
                   <TextField label="Out-of-stock text" value={outOfStockText} onChange={setOutOfStockText} autoComplete="off" />
                 </InlineGrid>
-                <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
-                  <TextField label="In-stock dot color" value={inStockDotColor} onChange={setInStockDotColor} autoComplete="off" />
-                  <TextField label="Low-stock dot color" value={lowStockDotColor} onChange={setLowStockDotColor} autoComplete="off" />
-                  <TextField label="Out-of-stock dot color" value={outStockDotColor} onChange={setOutStockDotColor} autoComplete="off" />
-                </InlineGrid>
                 <Divider />
                 <StockSpecificBox
                   productScope={stockProductScope}
@@ -157,14 +264,26 @@ export default function StockBlockConfiguration() {
                 />
               </BlockStack>
             </Card>
+            )}
 
+            {activeSection === "layout" && (
             <Card>
               <BlockStack gap="400">
                 <Text as="h2" variant="headingMd">
                   Layout and style
                 </Text>
-                <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
-                  <TextField label="Text color" value={textColor} onChange={setTextColor} autoComplete="off" />
+                <BlockStack gap="300">
+                  <Text as="h3" variant="headingSm">
+                    Color picker
+                  </Text>
+                  <div className="product-info-color-grid">
+                    <ColorField label="Text color" value={textColor} onChange={setTextColor} fallback="#3F3F46" />
+                    <ColorField label="In-stock dot color" value={inStockDotColor} onChange={setInStockDotColor} fallback="#42D66B" />
+                    <ColorField label="Low-stock dot color" value={lowStockDotColor} onChange={setLowStockDotColor} fallback="#F59E0B" />
+                    <ColorField label="Out-of-stock dot color" value={outStockDotColor} onChange={setOutStockDotColor} fallback="#EF4444" />
+                  </div>
+                </BlockStack>
+                <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
                   <Select label="Text weight" options={weightOptions} value={textWeight} onChange={setTextWeight} />
                   <TextField label="Custom CSS class" value={customClass} onChange={setCustomClass} autoComplete="off" />
                 </InlineGrid>
@@ -174,17 +293,24 @@ export default function StockBlockConfiguration() {
                   <RangeSlider label="Dot size" min={8} max={30} value={dotSize} onChange={setDotSize} output />
                   <RangeSlider label="Spacing" min={4} max={28} value={spacing} onChange={setSpacing} output />
                 </InlineGrid>
-                <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
-                  <Select label="Alignment" options={alignOptions} value={alignment} onChange={setAlignment} />
-                  <Box />
-                  <Box />
-                </InlineGrid>
-                <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
-                  <RangeSlider label="Top margin" min={0} max={60} value={topMargin} onChange={setTopMargin} output />
-                  <RangeSlider label="Bottom margin" min={0} max={60} value={bottomMargin} onChange={setBottomMargin} output />
-                </InlineGrid>
               </BlockStack>
             </Card>
+            )}
+
+            {activeSection === "display" && (
+              <Card>
+                <BlockStack gap="400">
+                  <Text as="h2" variant="headingMd">
+                    Display
+                  </Text>
+                  <Select label="Alignment" options={alignOptions} value={alignment} onChange={setAlignment} />
+                  <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
+                    <RangeSlider label="Top margin" min={0} max={60} value={topMargin} onChange={setTopMargin} output />
+                    <RangeSlider label="Bottom margin" min={0} max={60} value={bottomMargin} onChange={setBottomMargin} output />
+                  </InlineGrid>
+                </BlockStack>
+              </Card>
+            )}
           </BlockStack>
 
           <Card>
@@ -234,8 +360,8 @@ export default function StockBlockConfiguration() {
             </BlockStack>
           </Card>
         </InlineGrid>
+        </div>
       </div>
     </Page>
   );
 }
-
