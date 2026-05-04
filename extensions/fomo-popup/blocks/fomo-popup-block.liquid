@@ -1,7 +1,217 @@
+{%- liquid
+  assign current_variant = product.selected_or_first_available_variant
+  assign inventory_quantity = current_variant.inventory_quantity | default: 0
+-%}
+
+<div
+  class="fomoify-product-info-block"
+  data-fomoify-product-info-block
+  data-block-mode="{{ block.settings.block_mode | default: 'both' }}"
+  data-shop-domain="{{ shop.permanent_domain }}"
+  data-product-id="{{ product.id }}"
+  data-product-handle="{{ product.handle }}"
+  data-product-inventory="{{ inventory_quantity }}"
+>
+</div>
+
+<script>
+(() => {
+  const root = document.currentScript.previousElementSibling;
+  if (!root || root.dataset.fomoifyLoaded === "1") return;
+  root.dataset.fomoifyLoaded = "1";
+
+  const shop = String(root.dataset.shopDomain || window.Shopify?.shop || "").trim().toLowerCase();
+  const productId = String(root.dataset.productId || "").trim();
+  const productHandle = String(root.dataset.productHandle || "").trim().toLowerCase();
+  const inventory = Number(root.dataset.productInventory || 0);
+  const mode = String(root.dataset.blockMode || "both").toLowerCase();
+  const proxyBase = "/apps/fomo";
+
+  const escapeHtml = (value) =>
+    String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+
+  const toBool = (value, fallback = false) => {
+    if (value === true || value === false) return value;
+    if (value === undefined || value === null || value === "") return fallback;
+    return ["1", "true", "yes", "on"].includes(String(value).toLowerCase());
+  };
+
+  const toNumber = (value, fallback = 0) => {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
+  };
+
+  const parseList = (value) => {
+    if (Array.isArray(value)) return value.map(String);
+    if (!value) return [];
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.map(String) : [];
+    } catch {
+      return String(value)
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+  };
+
+  const productMatches = (record) => {
+    const scope = String(record?.productScope || "all").toLowerCase();
+    if (scope !== "specific") return true;
+    const selected = parseList(record?.selectedProductsJson);
+    if (!selected.length) return false;
+    return selected.some((item) => {
+      const normalized = String(item).toLowerCase();
+      return (
+        normalized === productHandle ||
+        normalized.endsWith(`/${productId}`) ||
+        normalized === productId
+      );
+    });
+  };
+
+  const alignmentToJustify = (alignment) => {
+    if (alignment === "center") return "center";
+    if (alignment === "right") return "flex-end";
+    return "flex-start";
+  };
+
+  const responsiveFontSize = (desktop, mobile) => {
+    const desktopSize = toNumber(desktop, 16);
+    const mobileSize = toNumber(mobile, desktopSize);
+    return window.matchMedia?.("(max-width: 749px)")?.matches ? mobileSize : desktopSize;
+  };
+
+  const lineStyle = (record, iconOrDotSize) => [
+    `display:flex`,
+    `justify-content:${alignmentToJustify(record.alignment)}`,
+    `margin-top:${Math.max(0, toNumber(record.topMargin, 0))}px`,
+    `margin-bottom:${Math.max(0, toNumber(record.bottomMargin, 0))}px`,
+    `--fomoify-product-info-size:${Math.max(8, iconOrDotSize)}px`,
+  ].join(";");
+
+  const textStyle = (record) => [
+    `display:inline-flex`,
+    `align-items:center`,
+    `gap:${Math.max(4, Math.round(toNumber(record.spacing, 12) / 2))}px`,
+    `color:${escapeHtml(record.textColor || "#3F3F46")}`,
+    `font-size:${responsiveFontSize(record.fontSize, record.mobileFontSize)}px`,
+    `font-weight:${escapeHtml(record.textWeight || "500")}`,
+    `line-height:1.35`,
+  ].join(";");
+
+  const iconFor = (key) => {
+    const value = String(key || "").toLowerCase();
+    if (value === "none") return "";
+    if (value.includes("heart")) return "&hearts;";
+    if (value.includes("star")) return "&#9733;";
+    if (value.includes("person")) return "&#128100;";
+    if (value.includes("location")) return "&#8982;";
+    return "&#9673;";
+  };
+
+  const renderVisitor = (record) => {
+    if (!record || !toBool(record.enabled, true) || !productMatches(record)) return "";
+    const min = Math.max(0, toNumber(record.visitorMin, 12));
+    const max = Math.max(min, toNumber(record.visitorMax, 42));
+    const count =
+      String(record.behavior || "").toLowerCase() === "random"
+        ? Math.round(min + Math.random() * (max - min))
+        : Math.round((min + max) / 2);
+    const text = String(record.template || "{count} people are viewing this product").replace("{count}", count);
+    const icon = iconFor(record.iconKey);
+    const iconSize = Math.max(10, toNumber(record.iconSize, 18));
+    const customClass = escapeHtml(record.customClass || "");
+    return `
+      <div class="fomoify-product-info-row ${customClass}" style="${lineStyle(record, iconSize)}">
+        <span style="${textStyle(record)}">
+          ${icon ? `<span aria-hidden="true" style="color:${escapeHtml(record.iconColor || "#6B4B7A")};font-size:var(--fomoify-product-info-size);width:var(--fomoify-product-info-size);height:var(--fomoify-product-info-size);display:inline-grid;place-items:center;">${icon}</span>` : ""}
+          <span>${escapeHtml(text)}</span>
+        </span>
+      </div>
+    `;
+  };
+
+  const renderStock = (record) => {
+    if (!record || !toBool(record.enabled, true) || !productMatches(record)) return "";
+    if (inventory <= 0 && toBool(record.hideOutOfStock, false)) return "";
+    const showQuantity = toBool(record.showProductQuantity, true);
+    const fallbackQuantity = Math.max(0, toNumber(record.productQuantity, 0));
+    const count = Number.isFinite(inventory) ? inventory : fallbackQuantity;
+    const isOut = count <= 0;
+    const text = isOut
+      ? String(record.outOfStockText || "Out of stock")
+      : showQuantity
+        ? String(record.quantityText || "Stock: {count} available").replace("{count}", count)
+        : String(record.inStockText || "In stock");
+    const dotColor = isOut
+      ? record.outStockDotColor || "#EF4444"
+      : showQuantity
+        ? record.lowStockDotColor || "#F59E0B"
+        : record.inStockDotColor || "#42D66B";
+    const dotSize = Math.max(8, toNumber(record.dotSize, 16));
+    const customClass = escapeHtml(record.customClass || "");
+    return `
+      <div class="fomoify-product-info-row ${customClass}" style="${lineStyle(record, dotSize)}">
+        <span style="${textStyle(record)}">
+          <span aria-hidden="true" style="width:var(--fomoify-product-info-size);height:var(--fomoify-product-info-size);display:inline-block;border-radius:999px;background:${escapeHtml(dotColor)};box-shadow:inset 0 0 0 2px rgba(255,255,255,.72);"></span>
+          <span>${escapeHtml(text)}</span>
+        </span>
+      </div>
+    `;
+  };
+
+  const fetchRecord = async (table) => {
+    const url = new URL(`${proxyBase}/popup`, window.location.origin);
+    url.searchParams.set("table", table);
+    if (shop) url.searchParams.set("shop", shop);
+    const response = await fetch(`${url.pathname}${url.search}`, {
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+    const payload = await response.json().catch(() => null);
+    return Array.isArray(payload?.records) ? payload.records[0] : null;
+  };
+
+  Promise.all([
+    mode === "visitor" || mode === "both" ? fetchRecord("visitor-block") : null,
+    mode === "stock" || mode === "both" ? fetchRecord("stock-block") : null,
+  ])
+    .then(([visitorRecord, stockRecord]) => {
+      const html = [renderVisitor(visitorRecord), renderStock(stockRecord)]
+        .filter(Boolean)
+        .join("");
+      root.innerHTML = html;
+      root.hidden = !html;
+    })
+    .catch(() => {
+      root.hidden = true;
+    });
+})();
+</script>
 
 {% schema %}
 {
-  "name": "Fomoify Popup Block",
+  "name": "Fomoify Product Info",
   "target": "section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "block_mode",
+      "label": "Block content",
+      "default": "both",
+      "options": [
+        { "value": "both", "label": "Visitor and stock" },
+        { "value": "visitor", "label": "Visitor only" },
+        { "value": "stock", "label": "Stock only" }
+      ]
+    }
+  ]
 }
 {% endschema %}

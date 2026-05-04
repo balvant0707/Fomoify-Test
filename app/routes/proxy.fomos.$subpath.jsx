@@ -70,6 +70,10 @@ const tableModel = (key) => {
       return prisma.recentpopupconfig || prisma.recentPopupConfig || null;
     case "flash":
       return prisma.flashpopupconfig || prisma.flashPopupConfig || null;
+    case "visitor-block":
+      return prisma.visitorannouncementconfig || prisma.visitorAnnouncementConfig || null;
+    case "stock-block":
+      return prisma.stockannouncementconfig || prisma.stockAnnouncementConfig || null;
     default:
       return null;
   }
@@ -347,6 +351,54 @@ const TABLE_SELECTS = {
     messageTitlesJson: true,
     locationsJson: true,
     namesJson: true,
+    selectedProductsJson: true,
+  },
+  "visitor-block": {
+    id: true,
+    enabled: true,
+    visitorMin: true,
+    visitorMax: true,
+    template: true,
+    iconKey: true,
+    iconColor: true,
+    refreshSeconds: true,
+    behavior: true,
+    textColor: true,
+    fontSize: true,
+    mobileFontSize: true,
+    iconSize: true,
+    spacing: true,
+    textWeight: true,
+    customClass: true,
+    alignment: true,
+    topMargin: true,
+    bottomMargin: true,
+    productScope: true,
+    selectedProductsJson: true,
+  },
+  "stock-block": {
+    id: true,
+    enabled: true,
+    productQuantity: true,
+    showProductQuantity: true,
+    hideOutOfStock: true,
+    inStockText: true,
+    quantityText: true,
+    outOfStockText: true,
+    inStockDotColor: true,
+    lowStockDotColor: true,
+    outStockDotColor: true,
+    textColor: true,
+    fontSize: true,
+    mobileFontSize: true,
+    dotSize: true,
+    spacing: true,
+    textWeight: true,
+    customClass: true,
+    alignment: true,
+    topMargin: true,
+    bottomMargin: true,
+    productScope: true,
     selectedProductsJson: true,
   },
 };
@@ -1131,7 +1183,16 @@ export const loader = async ({ request, params }) => {
             }
           })();
 
-          const keys = ["visitor", "lowstock", "addtocart", "review", "recent", "flash"];
+          const keys = [
+            "visitor",
+            "lowstock",
+            "addtocart",
+            "review",
+            "recent",
+            "flash",
+            "visitor-block",
+            "stock-block",
+          ];
           const fetchTable = async (key) => {
             const model = tableModel(key);
             if (!model) return [];
