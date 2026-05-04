@@ -1304,7 +1304,7 @@ export default function LowStockPopupPage() {
       >
         <NotificationPageStyles />
         <style>{LOW_STOCK_STYLES}</style>
-        <div className="lowstock-shell notification-page">
+        <div className="lowstock-shell">
           <div className="lowstock-sidebar">
             {NAV_ITEMS.map(({ id, label, Icon }) => (
               <button
@@ -1321,7 +1321,7 @@ export default function LowStockPopupPage() {
 
           <div className="lowstock-main">
             <div className="lowstock-columns">
-              <div className="lowstock-form">
+              <div className="lowstock-form notification-page">
                 <BlockStack gap="400">
                   {activeSection === "layout" && (
                     <>

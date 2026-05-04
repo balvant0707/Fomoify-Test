@@ -1420,7 +1420,7 @@ export default function VisitorPopupPage() {
       >
         <NotificationPageStyles />
         <style>{VISITOR_STYLES}</style>
-        <div className="visitor-shell notification-page">
+        <div className="visitor-shell">
           <div className="visitor-sidebar">
             {NAV_ITEMS.map(({ id, label, Icon }) => (
               <button
@@ -1436,7 +1436,7 @@ export default function VisitorPopupPage() {
           </div>
           <div className="visitor-main">
             <div className="visitor-columns">
-              <div className="visitor-form">
+              <div className="visitor-form notification-page">
                 <BlockStack gap="400">
                   {activeSection === "layout" && (
                     <>

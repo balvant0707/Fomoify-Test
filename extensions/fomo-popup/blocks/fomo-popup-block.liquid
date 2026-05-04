@@ -107,11 +107,35 @@
   const iconFor = (key) => {
     const value = String(key || "").toLowerCase();
     if (value === "none") return "";
-    if (value.includes("heart")) return "&hearts;";
-    if (value.includes("star")) return "&#9733;";
-    if (value.includes("person")) return "&#128100;";
-    if (value.includes("location")) return "&#8982;";
-    return "&#9673;";
+    const attrs = `viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"`;
+    if (value === "personfilledicon") {
+      return `<svg ${attrs} fill="currentColor" stroke="none"><path d="M10 10.25a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M3.5 17.25c.65-3.25 3-5.25 6.5-5.25s5.85 2 6.5 5.25"/></svg>`;
+    }
+    if (value.includes("person")) {
+      return `<svg ${attrs}><circle cx="10" cy="6.5" r="3.25"/><path d="M3.75 17c.75-3.25 3-5.1 6.25-5.1s5.5 1.85 6.25 5.1"/></svg>`;
+    }
+    if (value.includes("magic")) {
+      return `<svg ${attrs}><path d="M4.5 15.5 15.5 4.5"/><path d="m12.8 4.2 3 3"/><path d="M5 4.5V2.75"/><path d="M5 8.25V6.5"/><path d="M2.75 5.5H4.5"/><path d="M6.5 5.5h1.75"/><path d="M15 13.5v-1.75"/><path d="M15 17.25V15.5"/><path d="M12.75 14.5h1.75"/><path d="M16.5 14.5h1.75"/></svg>`;
+    }
+    if (value.includes("heart")) {
+      return `<svg ${attrs}><path d="M10 17s-6-3.65-6-8.2A3.35 3.35 0 0 1 10 6.75a3.35 3.35 0 0 1 6 2.05C16 13.35 10 17 10 17Z"/></svg>`;
+    }
+    if (value.includes("location")) {
+      return `<svg ${attrs}><path d="M15.5 8.5c0 4.4-5.5 8.75-5.5 8.75S4.5 12.9 4.5 8.5a5.5 5.5 0 1 1 11 0Z"/><circle cx="10" cy="8.5" r="1.75"/></svg>`;
+    }
+    if (value.includes("star")) {
+      return `<svg ${attrs} fill="currentColor" stroke="none"><path d="m10 2.6 2.15 4.35 4.8.7-3.48 3.4.82 4.78L10 13.58l-4.29 2.25.82-4.78-3.48-3.4 4.8-.7L10 2.6Z"/></svg>`;
+    }
+    if (value.includes("alert")) {
+      return `<svg ${attrs}><circle cx="10" cy="10" r="7.25"/><path d="M10 5.75v5"/><path d="M10 14.25h.01"/></svg>`;
+    }
+    if (value.includes("eyecheck")) {
+      return `<svg ${attrs}><path d="M2.5 10s2.8-5 7.5-5 7.5 5 7.5 5-2.8 5-7.5 5-7.5-5-7.5-5Z"/><circle cx="10" cy="10" r="2.25"/><path d="m12.75 14.75 1.5 1.5 3-3"/></svg>`;
+    }
+    if (value.includes("social")) {
+      return `<svg ${attrs}><path d="M4 14.5V5.75A1.75 1.75 0 0 1 5.75 4h8.5A1.75 1.75 0 0 1 16 5.75v5.5A1.75 1.75 0 0 1 14.25 13H7l-3 2.5Z"/><path d="M7 7.5h6"/><path d="M7 10h4"/></svg>`;
+    }
+    return `<svg ${attrs}><path d="M2.5 10s2.8-5 7.5-5 7.5 5 7.5 5-2.8 5-7.5 5-7.5-5-7.5-5Z"/><circle cx="10" cy="10" r="2.25"/></svg>`;
   };
 
   const renderVisitor = (record) => {
@@ -127,9 +151,23 @@
     const iconSize = Math.max(10, toNumber(record.iconSize, 18));
     const customClass = escapeHtml(record.customClass || "");
     return `
+      <style>
+        @keyframes fomoifyVisitorZoom {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.08); }
+        }
+        .fomoify-visitor-zoom {
+          animation: fomoifyVisitorZoom 1.8s ease-in-out infinite;
+          transform-origin: center;
+          will-change: transform;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .fomoify-visitor-zoom { animation: none; }
+        }
+      </style>
       <div class="fomoify-product-info-row ${customClass}" style="${lineStyle(record, iconSize)}">
-        <span style="${textStyle(record)}">
-          ${icon ? `<span aria-hidden="true" style="color:${escapeHtml(record.iconColor || "#6B4B7A")};font-size:var(--fomoify-product-info-size);width:var(--fomoify-product-info-size);height:var(--fomoify-product-info-size);display:inline-grid;place-items:center;">${icon}</span>` : ""}
+        <span class="fomoify-visitor-zoom" style="${textStyle(record)}">
+          ${icon ? `<span aria-hidden="true" style="color:${escapeHtml(record.iconColor || "#6B4B7A")};width:var(--fomoify-product-info-size);height:var(--fomoify-product-info-size);display:inline-grid;place-items:center;flex:0 0 auto;">${icon}</span>` : ""}
           <span>${escapeHtml(text)}</span>
         </span>
       </div>
