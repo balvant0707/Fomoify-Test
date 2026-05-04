@@ -99,7 +99,6 @@ const styles = `
   display: inline-flex;
   align-items: center;
   min-width: 0;
-  font-size: var(--product-info-font-size);
 }
 .product-info-dot {
   display: inline-block;
@@ -147,9 +146,6 @@ const styles = `
   }
   .product-info-two-field-row {
     grid-template-columns: 1fr;
-  }
-  .product-info-line {
-    font-size: var(--product-info-mobile-font-size);
   }
 }
 `;
@@ -423,31 +419,39 @@ export default function StockBlockConfiguration() {
               <Divider />
               <div className="product-info-preview-shell">
                 <div className="product-info-preview-card">
-                  {stockEnabled && (
-                    <span
-                      className="product-info-line"
+                  {stockEnabled ? (
+                    <div
                       style={{
-                        color: textColor,
-                        "--product-info-font-size": `${fontSize}px`,
-                        "--product-info-mobile-font-size": `${mobileFontSize}px`,
-                        fontWeight: textWeight,
-                        gap: Math.max(6, Math.round(spacing / 2)),
+                        display: "flex",
                         justifyContent: justify,
                         marginTop: topMargin,
                         marginBottom: bottomMargin,
-                        width: "100%",
                       }}
                     >
                       <span
-                        className="product-info-dot"
+                        className="product-info-line"
                         style={{
-                          width: dotSize,
-                          height: dotSize,
-                          background: stockDot,
+                          color: textColor,
+                          fontSize: fontSize,
+                          fontWeight: textWeight,
+                          gap: Math.max(6, Math.round(spacing / 2)),
                         }}
-                      />
-                      <span>{stockText}</span>
-                    </span>
+                      >
+                        <span
+                          className="product-info-dot"
+                          style={{
+                            width: dotSize,
+                            height: dotSize,
+                            background: stockDot,
+                          }}
+                        />
+                        <span>{stockText}</span>
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: "center", color: "#9ca3af", fontSize: 13, padding: "24px 0" }}>
+                      Stock announcement is disabled
+                    </div>
                   )}
                 </div>
               </div>

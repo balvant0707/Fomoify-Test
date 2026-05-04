@@ -625,7 +625,7 @@ export default function VisitorBlockConfiguration() {
                             {visitorIcon !== "none" && (
                               <span
                                 className="product-info-icon"
-                                style={{ color: visitorIconColor, "--product-info-icon-size": `${iconSize}px` }}
+                                style={{ color: visitorIconColor, width: iconSize, height: iconSize }}
                               >
                                 <Icon source={iconSourceFor(visitorIcon)} tone="inherit" />
                               </span>
