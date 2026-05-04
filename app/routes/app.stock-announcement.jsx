@@ -93,7 +93,7 @@ const styles = `
   background: #ffffff;
   border-radius: 8px;
   padding: 18px 20px;
-  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.12);
+  box-shadow: 0px 0px 4px rgba(15, 23, 42, 0.12);
 }
 .product-info-line {
   display: inline-flex;

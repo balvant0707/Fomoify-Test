@@ -96,11 +96,6 @@ export default function VisitorSpecificBox({
   return (
     <>
       <BlockStack gap="300">
-        <InlineStack align="space-between" blockAlign="center">
-          <Badge tone={productScope === "all" ? "success" : "info"}>
-            {productScope === "all" ? "All products" : `${selectedProducts.length} selected`}
-          </Badge>
-        </InlineStack>
         <Select
           label="Show visitor count on"
           options={productScopeOptions}
