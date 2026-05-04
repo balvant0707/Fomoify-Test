@@ -96,11 +96,6 @@ export default function StockSpecificBox({
   return (
     <>
       <BlockStack gap="300">
-        <InlineStack align="space-between" blockAlign="center">
-          <Badge tone={productScope === "all" ? "success" : "info"}>
-            {productScope === "all" ? "All products" : `${selectedProducts.length} selected`}
-          </Badge>
-        </InlineStack>
         <Select
           label="Show stock status on"
           options={productScopeOptions}
@@ -109,11 +104,6 @@ export default function StockSpecificBox({
         />
         <BlockStack gap="300">
           <InlineStack align="space-between" blockAlign="center">
-            <Text as="p" tone="subdued">
-              {productScope === "specific"
-                ? "Select specific products where stock status should show."
-                : "All store products are included."}
-            </Text>
             <Button onClick={() => setProductModalOpen(true)}>
               {productScope === "specific" ? "Select products" : "View products"}
             </Button>

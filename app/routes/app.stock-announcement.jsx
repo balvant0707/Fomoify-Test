@@ -343,14 +343,16 @@ export default function StockBlockConfiguration() {
                       Content
                     </Text>
                   </BlockStack>
-                  <Checkbox label="Show" checked={stockEnabled} onChange={setStockEnabled} />
                 </InlineStack>
-                <div className="product-info-two-field-row">
+                 <div className="product-info-two-field-row">
+                  <Checkbox label="Show" checked={stockEnabled} onChange={setStockEnabled} />
                   <Checkbox label="Show product quantity" checked={showProductQuantity} onChange={setShowProductQuantity} />
-                  <Checkbox label="Hide when out of stock" checked={hideOutOfStock} onChange={setHideOutOfStock} />
                 </div>
-                <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
+                <div className="product-info-two-field-row">
+                  <Checkbox label="Hide when out of stock" checked={hideOutOfStock} onChange={setHideOutOfStock} />
                   <TextField label="In-stock text" value={inStockText} onChange={setInStockText} autoComplete="off" />
+                </div>
+                <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
                   <TextField label="Quantity text" value={quantityText} onChange={setQuantityText} autoComplete="off" />
                   <TextField label="Out-of-stock text" value={outOfStockText} onChange={setOutOfStockText} autoComplete="off" />
                 </InlineGrid>

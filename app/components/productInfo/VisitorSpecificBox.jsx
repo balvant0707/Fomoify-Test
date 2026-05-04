@@ -109,11 +109,6 @@ export default function VisitorSpecificBox({
         />
         <BlockStack gap="300">
           <InlineStack align="space-between" blockAlign="center">
-            <Text as="p" tone="subdued">
-              {productScope === "specific"
-                ? "Select specific products where visitor count should show."
-                : "All store products are included."}
-            </Text>
             <Button onClick={() => setProductModalOpen(true)}>
               {productScope === "specific" ? "Select products" : "View products"}
             </Button>
