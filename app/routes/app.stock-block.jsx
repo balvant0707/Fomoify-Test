@@ -59,6 +59,10 @@ const styles = `
   color: #ffffff;
   border-color: #2f855a;
 }
+.product-info-nav-icon {
+  width: 20px;
+  height: 20px;
+}
 .product-info-main {
   flex: 1;
   min-width: 0;
@@ -83,6 +87,7 @@ const styles = `
   display: inline-flex;
   align-items: center;
   min-width: 0;
+  font-size: var(--product-info-font-size);
 }
 .product-info-dot {
   display: inline-block;
@@ -122,6 +127,9 @@ const styles = `
   .product-info-color-grid {
     grid-template-columns: 1fr;
   }
+  .product-info-line {
+    font-size: var(--product-info-mobile-font-size);
+  }
 }
 `;
 
@@ -138,10 +146,36 @@ const weightOptions = [
   { label: "Bold", value: "700" },
 ];
 
+function ContentIcon() {
+  return (
+    <svg className="product-info-nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 7h16M4 12h11M4 17h7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function DesignIcon() {
+  return (
+    <svg className="product-info-nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 4v16M4 12h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="7" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function DisplayIcon() {
+  return (
+    <svg className="product-info-nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="4" y="5" width="16" height="11" rx="2" stroke="currentColor" strokeWidth="2" />
+      <path d="M9 20h6M12 16v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 const editorSections = [
-  { id: "content", label: "Content" },
-  { id: "layout", label: "Design" },
-  { id: "display", label: "Display" },
+  { id: "content", label: "Content", Icon: ContentIcon },
+  { id: "layout", label: "Design", Icon: DesignIcon },
+  { id: "display", label: "Display", Icon: DisplayIcon },
 ];
 
 function ColorField({ label, value, onChange, fallback = "#000000" }) {
@@ -164,6 +198,26 @@ function ColorField({ label, value, onChange, fallback = "#000000" }) {
           onChange={(event) => onChange(event.target.value.toUpperCase())}
         />
       }
+    />
+  );
+}
+
+function boundedNumber(value, min, max, fallback) {
+  const next = Number(value);
+  if (!Number.isFinite(next)) return fallback;
+  return Math.min(max, Math.max(min, next));
+}
+
+function NumberField({ label, value, onChange, min, max }) {
+  return (
+    <TextField
+      label={label}
+      value={String(value)}
+      type="number"
+      min={min}
+      max={max}
+      onChange={(next) => onChange(boundedNumber(next, min, max, value))}
+      autoComplete="off"
     />
   );
 }
@@ -215,13 +269,14 @@ export default function StockBlockConfiguration() {
       <style>{styles}</style>
       <div className="product-info-designer">
         <div className="product-info-sidebar" aria-label="Stock block sections">
-          {editorSections.map(({ id, label }) => (
+          {editorSections.map(({ id, label, Icon }) => (
             <button
               key={id}
               type="button"
               className={`product-info-nav-btn ${activeSection === id ? "is-active" : ""}`}
               onClick={() => setActiveSection(id)}
             >
+              <Icon />
               {label}
             </button>
           ))}
@@ -288,10 +343,22 @@ export default function StockBlockConfiguration() {
                   <TextField label="Custom CSS class" value={customClass} onChange={setCustomClass} autoComplete="off" />
                 </InlineGrid>
                 <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
-                  <RangeSlider label="Font size" min={12} max={32} value={fontSize} onChange={setFontSize} output />
-                  <RangeSlider label="Mobile font size" min={10} max={24} value={mobileFontSize} onChange={setMobileFontSize} output />
-                  <RangeSlider label="Dot size" min={8} max={30} value={dotSize} onChange={setDotSize} output />
-                  <RangeSlider label="Spacing" min={4} max={28} value={spacing} onChange={setSpacing} output />
+                  <BlockStack gap="200">
+                    <RangeSlider label="Font size" min={12} max={32} value={fontSize} onChange={setFontSize} output />
+                    <NumberField label="Font size input" value={fontSize} onChange={setFontSize} min={12} max={32} />
+                  </BlockStack>
+                  <BlockStack gap="200">
+                    <RangeSlider label="Mobile font size" min={10} max={24} value={mobileFontSize} onChange={setMobileFontSize} output />
+                    <NumberField label="Mobile font size input" value={mobileFontSize} onChange={setMobileFontSize} min={10} max={24} />
+                  </BlockStack>
+                  <BlockStack gap="200">
+                    <RangeSlider label="Icon size" min={8} max={30} value={dotSize} onChange={setDotSize} output />
+                    <NumberField label="Icon size input" value={dotSize} onChange={setDotSize} min={8} max={30} />
+                  </BlockStack>
+                  <BlockStack gap="200">
+                    <RangeSlider label="Field spacing" min={4} max={28} value={spacing} onChange={setSpacing} output />
+                    <NumberField label="Field spacing input" value={spacing} onChange={setSpacing} min={4} max={28} />
+                  </BlockStack>
                 </InlineGrid>
               </BlockStack>
             </Card>
@@ -305,8 +372,14 @@ export default function StockBlockConfiguration() {
                   </Text>
                   <Select label="Alignment" options={alignOptions} value={alignment} onChange={setAlignment} />
                   <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
-                    <RangeSlider label="Top margin" min={0} max={60} value={topMargin} onChange={setTopMargin} output />
-                    <RangeSlider label="Bottom margin" min={0} max={60} value={bottomMargin} onChange={setBottomMargin} output />
+                    <BlockStack gap="200">
+                      <RangeSlider label="Top margin" min={0} max={60} value={topMargin} onChange={setTopMargin} output />
+                      <NumberField label="Top margin input" value={topMargin} onChange={setTopMargin} min={0} max={60} />
+                    </BlockStack>
+                    <BlockStack gap="200">
+                      <RangeSlider label="Bottom margin" min={0} max={60} value={bottomMargin} onChange={setBottomMargin} output />
+                      <NumberField label="Bottom margin input" value={bottomMargin} onChange={setBottomMargin} min={0} max={60} />
+                    </BlockStack>
                   </InlineGrid>
                 </BlockStack>
               </Card>
@@ -329,7 +402,8 @@ export default function StockBlockConfiguration() {
                       className="product-info-line"
                       style={{
                         color: textColor,
-                        fontSize,
+                        "--product-info-font-size": `${fontSize}px`,
+                        "--product-info-mobile-font-size": `${mobileFontSize}px`,
                         fontWeight: textWeight,
                         gap: Math.max(6, Math.round(spacing / 2)),
                         justifyContent: justify,
