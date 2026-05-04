@@ -446,6 +446,13 @@ model visitorannouncementconfig {
   refreshSeconds       Int?
   behavior             String?
 
+  animationStyle       String?
+  animationSpeed       String?
+  countInterval        Int?
+  prefixText           String?
+  suffixText           String?
+  hideOnMobile         Boolean?
+
   textColor            String?
   fontSize             Int?
   mobileFontSize       Int?
@@ -479,6 +486,12 @@ model stockannouncementconfig {
   inStockDotColor      String?
   lowStockDotColor     String?
   outStockDotColor     String?
+
+  lowStockThreshold    Int?
+  dotAnimationStyle    String?
+  dotIcon              String?
+  highlightBg          String?
+  hideOnMobile         Boolean?
 
   textColor            String?
   fontSize             Int?

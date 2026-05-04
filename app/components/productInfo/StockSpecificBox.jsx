@@ -103,11 +103,13 @@ export default function StockSpecificBox({
           onChange={setProductScope}
         />
         <BlockStack gap="300">
-          <InlineStack align="space-between" blockAlign="center">
-            <Button onClick={() => setProductModalOpen(true)}>
-              {productScope === "specific" ? "Select products" : "View products"}
-            </Button>
-          </InlineStack>
+          {productScope === "specific" && (
+            <InlineStack align="space-between" blockAlign="center">
+              <Button onClick={() => setProductModalOpen(true)}>
+                Select products
+              </Button>
+            </InlineStack>
+          )}
           {productScope === "specific" &&
             (selectedProducts.length ? (
               <InlineStack gap="200" wrap>

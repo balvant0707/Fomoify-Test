@@ -138,40 +138,110 @@
     return `<svg ${attrs}><path d="M2.5 10s2.8-5 7.5-5 7.5 5 7.5 5-2.8 5-7.5 5-7.5-5-7.5-5Z"/><circle cx="10" cy="10" r="2.25"/></svg>`;
   };
 
+  const animationDuration = (speed) => {
+    if (speed === "fast") return "0.25s";
+    if (speed === "slow") return "0.8s";
+    return "0.45s";
+  };
+
+  const rowAnimationCSS = (style, speed) => {
+    const dur = animationDuration(speed);
+    if (!style || style === "none") return "";
+    if (style === "fade") {
+      return `
+        @keyframes fomoifyVisitorFade {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        .fomoify-visitor-row { animation: fomoifyVisitorFade ${dur} ease-out both; }
+      `;
+    }
+    if (style === "bounce") {
+      return `
+        @keyframes fomoifyVisitorBounce {
+          0%   { opacity: 0; transform: translateY(-14px); }
+          60%  { opacity: 1; transform: translateY(4px); }
+          80%  { transform: translateY(-3px); }
+          100% { transform: translateY(0); }
+        }
+        .fomoify-visitor-row { animation: fomoifyVisitorBounce ${dur} ease-out both; }
+      `;
+    }
+    if (style === "zoom") {
+      return `
+        @keyframes fomoifyVisitorZoom {
+          from { opacity: 0; transform: scale(0.8); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+        .fomoify-visitor-row { animation: fomoifyVisitorZoom ${dur} ease-out both; }
+      `;
+    }
+    return `
+      @keyframes fomoifyVisitorIn {
+        from { opacity: 0; transform: translateX(-10px); }
+        to   { opacity: 1; transform: translateX(0); }
+      }
+      .fomoify-visitor-row { animation: fomoifyVisitorIn ${dur} ease-out both; }
+    `;
+  };
+
   const renderVisitor = (record) => {
     if (!record || !toBool(record.enabled, true) || !productMatches(record)) return "";
     const min = Math.max(0, toNumber(record.visitorMin, 12));
     const max = Math.max(min, toNumber(record.visitorMax, 42));
-    const count =
+
+    const computeCount = () =>
       String(record.behavior || "").toLowerCase() === "random"
         ? Math.round(min + Math.random() * (max - min))
         : Math.round((min + max) / 2);
-    const text = String(record.template || "{count} people are viewing this product").replace("{count}", count);
+
+    let count = computeCount();
+
+    const buildText = (n) => {
+      const prefix = record.prefixText ? String(record.prefixText) + " " : "";
+      const suffix = record.suffixText ? " " + String(record.suffixText) : "";
+      const body = String(record.template || "{count} people are viewing this product").replace("{count}", n);
+      return prefix + body + suffix;
+    };
+
     const icon = iconFor(record.iconKey);
     const iconSize = Math.max(10, toNumber(record.iconSize, 18));
     const customClass = escapeHtml(record.customClass || "");
-    return `
+    const hideOnMobile = toBool(record.hideOnMobile, false);
+    const animStyle = String(record.animationStyle || "slide").toLowerCase();
+    const animSpeed = String(record.animationSpeed || "normal").toLowerCase();
+    const countInterval = Math.max(0, toNumber(record.countInterval, 0));
+
+    const rowAnim = rowAnimationCSS(animStyle, animSpeed);
+
+    const html = `
       <style>
-        @keyframes fomoifyVisitorZoom {
+        ${rowAnim}
+        @keyframes fomoifyIconBeat {
           0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.08); }
+          35%      { transform: scale(1.3); }
+          65%      { transform: scale(0.88); }
         }
-        .fomoify-visitor-zoom {
-          animation: fomoifyVisitorZoom 1.8s ease-in-out infinite;
+        .fomoify-visitor-icon {
+          animation: fomoifyIconBeat 2.4s ease-in-out 0.6s infinite;
           transform-origin: center;
           will-change: transform;
         }
+        ${hideOnMobile ? "@media (max-width: 749px) { .fomoify-visitor-row-wrap { display: none !important; } }" : ""}
         @media (prefers-reduced-motion: reduce) {
-          .fomoify-visitor-zoom { animation: none; }
+          .fomoify-visitor-row  { animation: none; }
+          .fomoify-visitor-icon { animation: none; }
         }
       </style>
-      <div class="fomoify-product-info-row ${customClass}" style="${lineStyle(record, iconSize)}">
-        <span class="fomoify-visitor-zoom" style="${textStyle(record)}">
-          ${icon ? `<span aria-hidden="true" style="color:${escapeHtml(record.iconColor || "#6B4B7A")};width:var(--fomoify-product-info-size);height:var(--fomoify-product-info-size);display:inline-grid;place-items:center;flex:0 0 auto;">${icon}</span>` : ""}
-          <span>${escapeHtml(text)}</span>
+      <div class="fomoify-visitor-row-wrap" style="${lineStyle(record, iconSize)}">
+        <span id="fomoify-visitor-row" class="fomoify-visitor-row ${customClass}" style="${textStyle(record)}">
+          ${icon ? `<span aria-hidden="true" class="fomoify-visitor-icon" style="color:${escapeHtml(record.iconColor || "#6B4B7A")};width:var(--fomoify-product-info-size);height:var(--fomoify-product-info-size);display:inline-grid;place-items:center;flex:0 0 auto;">${icon}</span>` : ""}
+          <span id="fomoify-visitor-text">${escapeHtml(buildText(count))}</span>
         </span>
       </div>
     `;
+
+    return { html, countInterval, buildText, min, max, behavior: record.behavior };
   };
 
   const fetchRecord = async (table) => {
@@ -189,9 +259,27 @@
 
   fetchRecord(blockType === "stock" ? "stock-block" : "visitor-block")
     .then((record) => {
-      const html = renderVisitor(record);
-      root.innerHTML = html;
-      root.hidden = !html;
+      const result = renderVisitor(record);
+      if (!result || !result.html) {
+        root.hidden = true;
+        return;
+      }
+      root.innerHTML = result.html;
+      root.hidden = false;
+
+      if (result.countInterval > 0) {
+        const textEl = root.querySelector("#fomoify-visitor-text");
+        if (textEl) {
+          setInterval(() => {
+            const isRandom = String(record?.behavior || "").toLowerCase() === "random";
+            if (!isRandom) return;
+            const min = Math.max(0, Number(record?.visitorMin || 12));
+            const max = Math.max(min, Number(record?.visitorMax || 42));
+            const newCount = Math.round(min + Math.random() * (max - min));
+            textEl.textContent = result.buildText(newCount);
+          }, result.countInterval * 1000);
+        }
+      }
     })
     .catch(() => {
       root.hidden = true;

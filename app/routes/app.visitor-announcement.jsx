@@ -272,6 +272,20 @@ const behaviorOptions = [
   { label: "Real-time later", value: "realtime" },
 ];
 
+const animationStyleOptions = [
+  { label: "Slide in", value: "slide" },
+  { label: "Fade in", value: "fade" },
+  { label: "Bounce in", value: "bounce" },
+  { label: "Zoom in", value: "zoom" },
+  { label: "None", value: "none" },
+];
+
+const animationSpeedOptions = [
+  { label: "Fast (0.25s)", value: "fast" },
+  { label: "Normal (0.45s)", value: "normal" },
+  { label: "Slow (0.8s)", value: "slow" },
+];
+
 const editorSections = [
   { id: "layout", label: "Layout", Icon: LayoutIcon },
   { id: "content", label: "Content", Icon: ContentIcon },
@@ -394,6 +408,13 @@ export default function VisitorBlockConfiguration() {
   const [visitorProductModalOpen, setVisitorProductModalOpen] = useState(false);
   const [selectedVisitorProductIds, setSelectedVisitorProductIds] = useState([]);
 
+  const [animationStyle, setAnimationStyle] = useState("slide");
+  const [animationSpeed, setAnimationSpeed] = useState("normal");
+  const [countInterval, setCountInterval]   = useState(0);
+  const [prefixText, setPrefixText]         = useState("");
+  const [suffixText, setSuffixText]         = useState("");
+  const [hideOnMobile, setHideOnMobile]     = useState(false);
+
   const [textColor, setTextColor]         = useState("#3F3F46");
   const [fontSize, setFontSize]           = useState(20);
   const [mobileFontSize, setMobileFontSize] = useState(16);
@@ -427,6 +448,12 @@ export default function VisitorBlockConfiguration() {
     if (saved.alignment     != null) setAlignment(saved.alignment);
     if (saved.topMargin     != null) setTopMargin(saved.topMargin);
     if (saved.bottomMargin  != null) setBottomMargin(saved.bottomMargin);
+    if (saved.animationStyle != null) setAnimationStyle(saved.animationStyle);
+    if (saved.animationSpeed != null) setAnimationSpeed(saved.animationSpeed);
+    if (saved.countInterval  != null) setCountInterval(saved.countInterval);
+    if (saved.prefixText     != null) setPrefixText(saved.prefixText);
+    if (saved.suffixText     != null) setSuffixText(saved.suffixText);
+    if (saved.hideOnMobile   != null) setHideOnMobile(saved.hideOnMobile);
     try {
       const ids = JSON.parse(saved.selectedProductsJson || "[]");
       if (Array.isArray(ids) && ids.length) setSelectedVisitorProductIds(ids);
@@ -441,7 +468,7 @@ export default function VisitorBlockConfiguration() {
     return Math.round((min + max) / 2);
   }, [visitorMin, visitorMax]);
 
-  const visitorText = visitorTemplate.replace("{count}", visitorCount);
+  const visitorText = (prefixText ? prefixText + " " : "") + visitorTemplate.replace("{count}", visitorCount) + (suffixText ? " " + suffixText : "");
   const justify = alignment === "center" ? "center" : alignment === "right" ? "flex-end" : "flex-start";
 
   // ── save ──
@@ -458,6 +485,12 @@ export default function VisitorBlockConfiguration() {
         iconColor:        visitorIconColor,
         refreshSeconds:   Number(visitorRefresh) || 20,
         behavior:         visitorBehavior,
+        animationStyle,
+        animationSpeed,
+        countInterval:    Number(countInterval) || 0,
+        prefixText,
+        suffixText,
+        hideOnMobile,
         productScope:     visitorProductScope,
         selectedProducts: selectedVisitorProductIds,
         textColor,
@@ -557,6 +590,14 @@ export default function VisitorBlockConfiguration() {
                         <VisitorIconField value={visitorIcon} onChange={setVisitorIcon} />
                         <TextField label="Refresh every (seconds)" value={visitorRefresh} onChange={setVisitorRefresh} type="number" autoComplete="off" />
                       </InlineGrid>
+                      <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                        <TextField label="Prefix text" value={prefixText} onChange={setPrefixText} helpText="Shown before visitor text." autoComplete="off" />
+                        <TextField label="Suffix text" value={suffixText} onChange={setSuffixText} helpText="Shown after visitor text." autoComplete="off" />
+                      </InlineGrid>
+                      <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                        <NumberField label="Count update interval (s)" value={countInterval} onChange={setCountInterval} min={0} max={300} />
+                        <Select label="Count behavior" options={behaviorOptions} value={visitorBehavior} onChange={setVisitorBehavior} />
+                      </InlineGrid>
                     </BlockStack>
                   </Card>
                 )}
@@ -591,9 +632,13 @@ export default function VisitorBlockConfiguration() {
                       <Text as="h2" variant="headingMd">Display</Text>
                       <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
                         <Select label="Alignment" options={alignOptions} value={alignment} onChange={setAlignment} />
-                        <Select label="Count behavior" options={behaviorOptions} value={visitorBehavior} onChange={setVisitorBehavior} />
+                        <Select label="Animation style" options={animationStyleOptions} value={animationStyle} onChange={setAnimationStyle} />
                       </InlineGrid>
-                   
+                      <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                        <Select label="Animation speed" options={animationSpeedOptions} value={animationSpeed} onChange={setAnimationSpeed} />
+                        <Checkbox label="Hide on mobile" checked={hideOnMobile} onChange={setHideOnMobile} />
+                      </InlineGrid>
+
                       <VisitorSpecificBox
                         productScope={visitorProductScope}
                         setProductScope={setVisitorProductScope}

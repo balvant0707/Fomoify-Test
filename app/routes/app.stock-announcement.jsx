@@ -221,6 +221,20 @@ const weightOptions = [
   { label: "Bold", value: "700" },
 ];
 
+const dotAnimationOptions = [
+  { label: "Ping (scale pulse)", value: "ping" },
+  { label: "Beat (heartbeat)", value: "beat" },
+  { label: "None", value: "none" },
+];
+
+const dotIconOptions = [
+  { label: "Dot (circle)", value: "none" },
+  { label: "Check mark", value: "check" },
+  { label: "Alert circle", value: "alert" },
+  { label: "Star", value: "star" },
+  { label: "Flame", value: "flame" },
+];
+
 function LayoutIcon() {
   return (
     <svg
@@ -348,6 +362,12 @@ export default function StockBlockConfiguration() {
   const [stockProductModalOpen, setStockProductModalOpen] = useState(false);
   const [selectedStockProductIds, setSelectedStockProductIds] = useState([]);
 
+  const [lowStockThreshold, setLowStockThreshold] = useState(10);
+  const [dotAnimationStyle, setDotAnimationStyle] = useState("ping");
+  const [dotIcon, setDotIcon]                     = useState("none");
+  const [highlightBg, setHighlightBg]             = useState("");
+  const [hideOnMobile, setHideOnMobile]           = useState(false);
+
   const [textColor, setTextColor] = useState("#3F3F46");
   const [fontSize, setFontSize] = useState(20);
   const [mobileFontSize, setMobileFontSize] = useState(16);
@@ -382,6 +402,11 @@ export default function StockBlockConfiguration() {
     if (saved.topMargin != null) setTopMargin(saved.topMargin);
     if (saved.bottomMargin != null) setBottomMargin(saved.bottomMargin);
     if (saved.customClass != null) setCustomClass(saved.customClass);
+    if (saved.lowStockThreshold != null) setLowStockThreshold(saved.lowStockThreshold);
+    if (saved.dotAnimationStyle != null) setDotAnimationStyle(saved.dotAnimationStyle);
+    if (saved.dotIcon           != null) setDotIcon(saved.dotIcon);
+    if (saved.highlightBg       != null) setHighlightBg(saved.highlightBg);
+    if (saved.hideOnMobile      != null) setHideOnMobile(saved.hideOnMobile);
     try {
       const ids = JSON.parse(saved.selectedProductsJson || "[]");
       if (Array.isArray(ids) && ids.length) setSelectedStockProductIds(ids);
@@ -411,6 +436,11 @@ export default function StockBlockConfiguration() {
         inStockDotColor,
         lowStockDotColor,
         outStockDotColor,
+        lowStockThreshold: Number(lowStockThreshold) || 0,
+        dotAnimationStyle,
+        dotIcon,
+        highlightBg,
+        hideOnMobile,
         productScope: stockProductScope,
         selectedProducts: selectedStockProductIds,
         textColor,
@@ -534,6 +564,14 @@ export default function StockBlockConfiguration() {
                   <NumberField label="Icon size (px)" value={dotSize} onChange={setDotSize} min={8} max={30} />
                   <NumberField label="Field spacing (px)" value={spacing} onChange={setSpacing} min={4} max={28} />
                 </InlineGrid>
+                <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                  <Select label="Dot animation" options={dotAnimationOptions} value={dotAnimationStyle} onChange={setDotAnimationStyle} />
+                  <Select label="Replace dot with icon" options={dotIconOptions} value={dotIcon} onChange={setDotIcon} />
+                </InlineGrid>
+                <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                  <ColorField label="Highlight background" value={highlightBg || "#FFFBEB"} onChange={setHighlightBg} fallback="#FFFBEB" />
+                  <NumberField label="Low stock threshold" value={lowStockThreshold} onChange={setLowStockThreshold} min={0} max={999} />
+                </InlineGrid>
               </BlockStack>
             </Card>
             )}
@@ -544,8 +582,11 @@ export default function StockBlockConfiguration() {
                   <Text as="h2" variant="headingMd">
                     Display
                   </Text>
-                  <Select label="Alignment" options={alignOptions} value={alignment} onChange={setAlignment} />
-                  
+                  <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                    <Select label="Alignment" options={alignOptions} value={alignment} onChange={setAlignment} />
+                    <Checkbox label="Hide on mobile" checked={hideOnMobile} onChange={setHideOnMobile} />
+                  </InlineGrid>
+
                   <StockSpecificBox
                     productScope={stockProductScope}
                     setProductScope={setStockProductScope}
@@ -589,6 +630,7 @@ export default function StockBlockConfiguration() {
                           fontSize: `${fontSize}px`,
                           fontWeight: textWeight,
                           gap: Math.max(6, Math.round(spacing / 2)),
+                          ...(highlightBg ? { background: highlightBg, borderRadius: 999, padding: "3px 10px" } : {}),
                         }}
                       >
                         <span
