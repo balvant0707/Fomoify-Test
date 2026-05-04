@@ -1,3 +1,5 @@
+import { useEffect, useMemo, useState } from "react";
+import { useFetcher } from "@remix-run/react";
 import {
   Badge,
   BlockStack,
@@ -17,30 +19,16 @@ const productScopeOptions = [
   { label: "Specific products", value: "specific" },
 ];
 
-const sampleProducts = [
-  {
-    id: "bedside-table",
-    title: "Bedside Table",
-    image:
-      "https://cdn.shopify.com/s/files/1/0690/3572/0758/files/dark-wall-bedside-table_925x_b29fc806-9f57-4768-857c-85bbb9a41f9b.jpg?v=1756986561",
-    status: "Active",
-    inventory: 8,
-  },
-  {
-    id: "blue-ball-gown",
-    title: "Dreamy Blue Ball Gown",
-    image: "",
-    status: "Active",
-    inventory: 3,
-  },
-  {
-    id: "classic-watch",
-    title: "Classic Watch",
-    image: "",
-    status: "Draft",
-    inventory: 0,
-  },
-];
+const normalizeProduct = (product) => ({
+  id: product.id,
+  title: product.title || "Untitled product",
+  image: product.featuredImage || product.image || "",
+  status: product.status || "",
+  inventory: Number(product.totalInventory ?? product.inventory ?? 0),
+});
+
+const isActiveProduct = (status) =>
+  String(status || "").toLowerCase() === "active";
 
 export default function StockSpecificBox({
   productScope,
@@ -50,9 +38,40 @@ export default function StockSpecificBox({
   selectedProductIds,
   setSelectedProductIds,
 }) {
-  const selectedProducts = sampleProducts.filter((product) =>
-    selectedProductIds.includes(product.id)
+  const productFetcher = useFetcher();
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [productCache, setProductCache] = useState({});
+  const products = useMemo(
+    () => (productFetcher.data?.items || []).map(normalizeProduct),
+    [productFetcher.data]
   );
+  const isLoading = productFetcher.state !== "idle";
+  const hasNextPage = Boolean(productFetcher.data?.hasNextPage);
+
+  useEffect(() => {
+    if (!productModalOpen) return;
+    const params = new URLSearchParams({
+      q: query,
+      page: String(page),
+    });
+    productFetcher.load(`/app/products-picker?${params.toString()}`);
+  }, [productModalOpen, query, page]);
+
+  useEffect(() => {
+    if (!products.length) return;
+    setProductCache((current) => {
+      const next = { ...current };
+      products.forEach((product) => {
+        next[product.id] = product;
+      });
+      return next;
+    });
+  }, [products]);
+
+  const selectedProducts = selectedProductIds
+    .map((id) => productCache[id])
+    .filter(Boolean);
 
   const toggleProduct = (id) => {
     setSelectedProductIds((current) =>
@@ -127,12 +146,16 @@ export default function StockSpecificBox({
             <TextField
               label="Search products"
               placeholder="Search products"
+              value={query}
+              onChange={(next) => {
+                setQuery(next);
+                setPage(1);
+              }}
               autoComplete="off"
-              disabled
             />
             <IndexTable
               selectable={false}
-              itemCount={sampleProducts.length}
+              itemCount={products.length}
               resourceName={{ singular: "product", plural: "products" }}
               headings={[
                 { title: "" },
@@ -141,7 +164,7 @@ export default function StockSpecificBox({
                 { title: "Inventory" },
               ]}
             >
-              {sampleProducts.map((product, index) => (
+              {products.map((product, index) => (
                 <IndexTable.Row id={product.id} key={product.id} position={index}>
                   <IndexTable.Cell>
                     <Checkbox
@@ -164,7 +187,7 @@ export default function StockSpecificBox({
                     </InlineStack>
                   </IndexTable.Cell>
                   <IndexTable.Cell>
-                    <Badge tone={product.status === "Active" ? "success" : "attention"}>
+                    <Badge tone={isActiveProduct(product.status) ? "success" : "attention"}>
                       {product.status}
                     </Badge>
                   </IndexTable.Cell>
@@ -174,6 +197,24 @@ export default function StockSpecificBox({
                 </IndexTable.Row>
               ))}
             </IndexTable>
+            {!products.length && !isLoading && (
+              <Text as="p" tone="subdued">
+                No products found.
+              </Text>
+            )}
+            <InlineStack align="space-between" blockAlign="center">
+              <Text as="span" tone="subdued">
+                {isLoading ? "Loading products..." : `Page ${page}`}
+              </Text>
+              <InlineStack gap="200">
+                <Button disabled={page <= 1 || isLoading} onClick={() => setPage((value) => Math.max(1, value - 1))}>
+                  Previous
+                </Button>
+                <Button disabled={!hasNextPage || isLoading} onClick={() => setPage((value) => value + 1)}>
+                  Next
+                </Button>
+              </InlineStack>
+            </InlineStack>
           </BlockStack>
         </Modal.Section>
       </Modal>

@@ -17,6 +17,7 @@ import {
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import StockSpecificBox from "../components/productInfo/StockSpecificBox";
+import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
 export const loader = async ({ request }) => {
   await authenticate.admin(request);
@@ -28,40 +29,54 @@ const styles = `
   display: flex;
   gap: 24px;
   align-items: flex-start;
+  color: #111827;
 }
 .product-info-sidebar {
-  width: 80px;
+  width: 100px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  background: #f6f7f8;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px;
 }
 .product-info-nav-btn {
   border: 1px solid #e5e7eb;
   background: #ffffff;
-  border-radius: 4px;
-  padding: 5px 10px;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+  border-radius: 6px;
+  min-height: 88px;
+  padding: 12px 8px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   color: #111827;
   cursor: pointer;
-  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    box-shadow 120ms ease,
+    color 120ms ease,
+    transform 120ms ease;
 }
 .product-info-nav-btn:hover {
-  border-color: #cbd5e1;
+  border-color: #b8c3d1;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
 }
 .product-info-nav-btn.is-active {
-  background: #2f855a;
+  background: #2f8d5a;
   color: #ffffff;
-  border-color: #2f855a;
+  border-color: #2f8d5a;
+  box-shadow: 0 8px 18px rgba(47, 141, 90, 0.24);
 }
 .product-info-nav-icon {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   display: grid;
   place-items: center;
 }
@@ -69,11 +84,16 @@ const styles = `
   flex: 1;
   min-width: 0;
 }
+.product-info-main .Polaris-Card {
+  border-radius: 8px;
+  box-shadow: 0 1px 0 rgba(17, 24, 39, 0.04);
+}
 .product-info-preview-shell {
   min-height: 320px;
   display: grid;
   place-items: center;
-  background: #f7f7f8;
+  background:
+    linear-gradient(135deg, #f8fafc 0%, #eef7f1 100%);
   border: 1px solid #e3e3e3;
   border-radius: 8px;
   padding: 24px;
@@ -81,9 +101,10 @@ const styles = `
 .product-info-preview-card {
   width: min(100%, 420px);
   background: #ffffff;
-  border: 1px solid #ebebeb;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 18px 20px;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.12);
 }
 .product-info-line {
   display: inline-flex;
@@ -122,9 +143,10 @@ const styles = `
     width: 100%;
     flex-direction: row;
     overflow-x: auto;
+    padding: 8px;
   }
   .product-info-nav-btn {
-    min-width: 92px;
+    min-width: 96px;
   }
   .product-info-color-grid {
     grid-template-columns: 1fr;
@@ -269,9 +291,7 @@ export default function StockBlockConfiguration() {
   const [outStockDotColor, setOutStockDotColor] = useState("#EF4444");
   const [stockProductScope, setStockProductScope] = useState("all");
   const [stockProductModalOpen, setStockProductModalOpen] = useState(false);
-  const [selectedStockProductIds, setSelectedStockProductIds] = useState([
-    "bedside-table",
-  ]);
+  const [selectedStockProductIds, setSelectedStockProductIds] = useState([]);
 
   const [textColor, setTextColor] = useState("#3F3F46");
   const [fontSize, setFontSize] = useState(20);
@@ -299,8 +319,9 @@ export default function StockBlockConfiguration() {
       backAction={{ content: "Back", url: "/app" }}
       primaryAction={{ content: "Save configuration", disabled: true }}
     >
+      <NotificationPageStyles />
       <style>{styles}</style>
-      <div className="product-info-designer">
+      <div className="product-info-designer notification-page">
         <div className="product-info-sidebar" aria-label="Stock block sections">
           {editorSections.map(({ id, label, Icon }) => (
             <button
