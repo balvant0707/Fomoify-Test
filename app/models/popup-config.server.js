@@ -236,6 +236,10 @@ export async function saveVisitorAnnouncement(shop, form) {
   if (!table) throw new Error("Prisma model missing: visitorannouncementconfig");
 
   const selectedProducts = Array.isArray(form?.selectedProducts) ? form.selectedProducts : [];
+  const productScope =
+    toStr(form?.productScope) === "specific" && !selectedProducts.length
+      ? "all"
+      : toStr(form?.productScope);
 
   const data = {
     enabled:         toBool(form?.enabled, true),
@@ -256,7 +260,7 @@ export async function saveVisitorAnnouncement(shop, form) {
     alignment:       toStr(form?.alignment),
     topMargin:       toInt(form?.topMargin),
     bottomMargin:    toInt(form?.bottomMargin),
-    productScope:    toStr(form?.productScope),
+    productScope,
     selectedProductsJson: toJson(selectedProducts),
   };
 
@@ -272,6 +276,10 @@ export async function saveStockAnnouncement(shop, form) {
   const selectedProducts = Array.isArray(form?.selectedProducts)
     ? form.selectedProducts
     : [];
+  const productScope =
+    toStr(form?.productScope) === "specific" && !selectedProducts.length
+      ? "all"
+      : toStr(form?.productScope);
 
   const data = {
     enabled:             toBool(form?.enabled, true),
@@ -294,7 +302,7 @@ export async function saveStockAnnouncement(shop, form) {
     alignment:           toStr(form?.alignment),
     topMargin:           toInt(form?.topMargin),
     bottomMargin:        toInt(form?.bottomMargin),
-    productScope:        toStr(form?.productScope),
+    productScope,
     selectedProductsJson: toJson(selectedProducts),
   };
 
