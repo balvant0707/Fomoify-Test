@@ -32,20 +32,16 @@ const styles = `
   color: #111827;
 }
 .product-info-sidebar {
-  width: 100px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+    width: 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   background: #f6f7f8;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 10px;
 }
 .product-info-nav-btn {
   border: 1px solid #e5e7eb;
   background: #ffffff;
   border-radius: 6px;
-  min-height: 88px;
   padding: 12px 8px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
   display: flex;
@@ -143,7 +139,6 @@ const styles = `
     width: 100%;
     flex-direction: row;
     overflow-x: auto;
-    padding: 8px;
   }
   .product-info-nav-btn {
     min-width: 96px;
@@ -362,15 +357,6 @@ export default function StockBlockConfiguration() {
                   <TextField label="Low-stock text" value={lowStockText} onChange={setLowStockText} autoComplete="off" />
                   <TextField label="Out-of-stock text" value={outOfStockText} onChange={setOutOfStockText} autoComplete="off" />
                 </InlineGrid>
-                <Divider />
-                <StockSpecificBox
-                  productScope={stockProductScope}
-                  setProductScope={setStockProductScope}
-                  productModalOpen={stockProductModalOpen}
-                  setProductModalOpen={setStockProductModalOpen}
-                  selectedProductIds={selectedStockProductIds}
-                  setSelectedProductIds={setSelectedStockProductIds}
-                />
               </BlockStack>
             </Card>
             )}
@@ -425,6 +411,15 @@ export default function StockBlockConfiguration() {
                     Display
                   </Text>
                   <Select label="Alignment" options={alignOptions} value={alignment} onChange={setAlignment} />
+                  <Divider />
+                  <StockSpecificBox
+                    productScope={stockProductScope}
+                    setProductScope={setStockProductScope}
+                    productModalOpen={stockProductModalOpen}
+                    setProductModalOpen={setStockProductModalOpen}
+                    selectedProductIds={selectedStockProductIds}
+                    setSelectedProductIds={setSelectedStockProductIds}
+                  />
                   <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
                     <BlockStack gap="200">
                       <RangeSlider label="Top margin" min={0} max={60} value={topMargin} onChange={setTopMargin} output />
