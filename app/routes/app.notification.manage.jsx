@@ -15,6 +15,8 @@ const POPUP_KEYS = [
   "lowstock",
   "addtocart",
   "review",
+  "visitor-block",
+  "stock-block",
 ];
 const ALLOWED_TYPES = new Set(["all", ...POPUP_KEYS]);
 const ALLOWED_STATUSES = new Set(["all", "enabled", "disabled"]);
@@ -89,6 +91,23 @@ const legacySelectByKey = {
     message: true,
     timestamp: true,
   },
+  "visitor-block": {
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+    enabled: true,
+    template: true,
+    productScope: true,
+  },
+  "stock-block": {
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+    enabled: true,
+    quantityText: true,
+    inStockText: true,
+    productScope: true,
+  },
 };
 
 const hasMissingColumnError = (error) => {
@@ -115,6 +134,10 @@ const tableModel = (key) => {
       return prisma.addtocartpopupconfig || prisma.addToCartPopupConfig || null;
     case "review":
       return prisma.reviewpopupconfig || prisma.reviewPopupConfig || null;
+    case "visitor-block":
+      return prisma.visitorannouncementconfig || prisma.visitorAnnouncementConfig || null;
+    case "stock-block":
+      return prisma.stockannouncementconfig || prisma.stockAnnouncementConfig || null;
     default:
       return null;
   }
@@ -122,6 +145,7 @@ const tableModel = (key) => {
 
 const deriveShowType = (row) => {
   if (!row) return "allpage";
+  if (row.productScope) return row.productScope === "all" ? "product" : "product";
   const flags = [
     row.showHome,
     row.showProduct,
@@ -147,6 +171,9 @@ const normalizeRow = (row, key) => ({
   messageText:
     row.messageText ||
     row.message ||
+    row.template ||
+    row.quantityText ||
+    row.inStockText ||
     row.name ||
     row.messageTitle ||
     row.title ||
@@ -201,6 +228,15 @@ export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
   const url = new URL(request.url);
   const normalizeShop = (value) => String(value || "").trim().toLowerCase();
+  const toShopSlug = (value) => {
+    const raw = normalizeShop(value).replace(/^https?:\/\//, "");
+    const domainMatch = raw.match(/^([a-z0-9-]+)\.myshopify\.com\b/);
+    if (domainMatch?.[1]) return domainMatch[1];
+    return raw
+      .split(/[/?#]/)[0]
+      .replace(".myshopify.com", "")
+      .trim();
+  };
   const shop =
     normalizeShop(session?.shop) || normalizeShop(url.searchParams.get("shop"));
 
@@ -214,6 +250,12 @@ export const loader = async ({ request }) => {
   const page = Math.max(parseInt(url.searchParams.get("page") || "1", 10), 1);
   const pageSizeRaw = parseInt(url.searchParams.get("pageSize") || "10", 10);
   const pageSize = [10, 25, 50].includes(pageSizeRaw) ? pageSizeRaw : 10;
+  const apiKey =
+    process.env.SHOPIFY_API_KEY ||
+    process.env.SHOPIFY_APP_BRIDGE_APP_ID ||
+    "";
+  const slug = toShopSlug(shop);
+  const shopDomain = slug ? `${slug}.myshopify.com` : "";
 
   const rowsPromise = getOrSetCache(`notification:rows:${shop}`, 10000, () =>
     fetchRows(shop)
@@ -227,7 +269,7 @@ export const loader = async ({ request }) => {
   });
 
   return defer({
-    critical: { page, pageSize, filters: { type, status, q } },
+    critical: { page, pageSize, filters: { type, status, q }, shopDomain, slug, apiKey },
     rows: rowsPromise,
   });
 };
@@ -369,7 +411,12 @@ export default function NotificationManagePage() {
                 total={data.total}
                 page={critical.page}
                 pageSize={critical.pageSize}
-                filters={critical.filters}
+                filters={{
+                  ...critical.filters,
+                  shopDomain: critical.shopDomain,
+                  slug: critical.slug,
+                  apiKey: critical.apiKey,
+                }}
               />
             )}
           </Await>

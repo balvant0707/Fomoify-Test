@@ -264,6 +264,44 @@ export async function saveVisitorAnnouncement(shop, form) {
   return upsertByShop(table, shop, data, "visitorannouncementconfig", preferredId);
 }
 
+export async function saveStockAnnouncement(shop, form) {
+  const table =
+    prisma?.stockannouncementconfig ?? prisma?.stockAnnouncementConfig ?? null;
+  if (!table) throw new Error("Prisma model missing: stockannouncementconfig");
+
+  const selectedProducts = Array.isArray(form?.selectedProducts)
+    ? form.selectedProducts
+    : [];
+
+  const data = {
+    enabled:             toBool(form?.enabled, true),
+    productQuantity:     toInt(form?.productQuantity),
+    showProductQuantity: toBool(form?.showProductQuantity, true),
+    hideOutOfStock:      toBool(form?.hideOutOfStock, false),
+    inStockText:         toStr(form?.inStockText),
+    quantityText:        toStr(form?.quantityText),
+    outOfStockText:      toStr(form?.outOfStockText),
+    inStockDotColor:     toStr(form?.inStockDotColor),
+    lowStockDotColor:    toStr(form?.lowStockDotColor),
+    outStockDotColor:    toStr(form?.outStockDotColor),
+    textColor:           toStr(form?.textColor),
+    fontSize:            toInt(form?.fontSize),
+    mobileFontSize:      toInt(form?.mobileFontSize),
+    dotSize:             toInt(form?.dotSize),
+    spacing:             toInt(form?.spacing),
+    textWeight:          toStr(form?.textWeight),
+    customClass:         toStr(form?.customClass),
+    alignment:           toStr(form?.alignment),
+    topMargin:           toInt(form?.topMargin),
+    bottomMargin:        toInt(form?.bottomMargin),
+    productScope:        toStr(form?.productScope),
+    selectedProductsJson: toJson(selectedProducts),
+  };
+
+  const preferredId = toInt(form?.editId ?? form?.id);
+  return upsertByShop(table, shop, data, "stockannouncementconfig", preferredId);
+}
+
 export async function saveVisitorPopup(shop, form) {
   const table =
     prisma?.visitorpopupconfig || prisma?.visitorPopupConfig || null;

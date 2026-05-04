@@ -463,6 +463,40 @@ model visitorannouncementconfig {
   @@index([shop], map: "VisitorAnnouncementConfig_shop_idx")
 }
 
+model stockannouncementconfig {
+  id                   Int      @id @default(autoincrement())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @default(now()) @updatedAt
+  shop                 String
+
+  enabled              Boolean  @default(true)
+  productQuantity      Int?
+  showProductQuantity  Boolean  @default(true)
+  hideOutOfStock       Boolean  @default(false)
+  inStockText          String?  @db.LongText
+  quantityText         String?  @db.LongText
+  outOfStockText       String?  @db.LongText
+  inStockDotColor      String?
+  lowStockDotColor     String?
+  outStockDotColor     String?
+
+  textColor            String?
+  fontSize             Int?
+  mobileFontSize       Int?
+  dotSize              Int?
+  spacing              Int?
+  textWeight           String?
+  customClass          String?
+
+  alignment            String?
+  topMargin            Int?
+  bottomMargin         Int?
+  productScope         String?
+  selectedProductsJson String?  @db.LongText
+
+  @@index([shop], map: "StockAnnouncementConfig_shop_idx")
+}
+
 model popupanalyticsevent {
   id            Int      @id @default(autoincrement())
   shop          String   @db.VarChar(255)

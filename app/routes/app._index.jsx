@@ -147,16 +147,16 @@ const POPUP_CARD_DATA = [
     key: "visitor-block",
     title: "Visitor Block",
     desc: "Show visitor count inside product information on all or selected products.",
-    path: "/app/visitor-block",
-    managePath: "/app/visitor-block",
+    path: "/app/visitor-announcement",
+    managePath: "/app/notification/manage?type=visitor-block",
     imageName: "Visitor Popup - new.png",
   },
   {
     key: "stock-block",
     title: "Stock Block",
     desc: "Show stock status inside product information on all or selected products.",
-    path: "/app/stock-block",
-    managePath: "/app/stock-block",
+    path: "/app/stock-announcement",
+    managePath: "/app/notification/manage?type=stock-block",
     imageName: "low stock popup.png",
   },
 ];
@@ -665,7 +665,13 @@ export default function AppIndex() {
   const [popupSlideIndex, setPopupSlideIndex] = useState(0);
   const [isPopupSliderPaused, setIsPopupSliderPaused] = useState(false);
   const search = location.search || "";
-  const appUrl = useCallback((path) => `${path}${search}`, [search]);
+  const appUrl = useCallback(
+    (path) => {
+      if (!search) return path;
+      return `${path}${path.includes("?") ? "&" : "?"}${search.slice(1)}`;
+    },
+    [search]
+  );
   const hasThemeEmbedCheck = embedContextState.appEmbedChecked === true;
   const hasThemeEmbedSignal =
     hasThemeEmbedCheck && embedContextState.appEmbedFound === true;

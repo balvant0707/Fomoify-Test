@@ -1,26 +1,80 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  Badge,
   BlockStack,
-  Button,
-  ButtonGroup,
   Card,
   Checkbox,
   Divider,
+  Frame,
+  Loading,
   InlineGrid,
   InlineStack,
   Page,
   Select,
   Text,
   TextField,
+  Toast,
 } from "@shopify/polaris";
+import { json } from "@remix-run/node";
+import { useLoaderData, useNavigate } from "@remix-run/react";
 import { authenticate } from "../shopify.server";
+import prisma from "../db.server";
+import { saveStockAnnouncement } from "../models/popup-config.server";
 import StockSpecificBox from "../components/productInfo/StockSpecificBox";
 import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
-export const loader = async ({ request }) => {
-  await authenticate.admin(request);
-  return null;
+export async function loader({ request }) {
+  const { session } = await authenticate.admin(request);
+  const shop = session?.shop;
+
+  let saved = null;
+  try {
+    const model = prisma?.stockannouncementconfig ?? null;
+    if (shop && model) {
+      saved = await model.findFirst({
+        where: { shop },
+        orderBy: { id: "desc" },
+      });
+    }
+  } catch (e) {
+    console.warn("[Stock Announcement] load failed:", e);
+  }
+
+  return json({ saved });
+}
+
+export async function action({ request }) {
+  let session;
+  try {
+    ({ session } = await authenticate.admin(request));
+  } catch {
+    return json({ success: false, error: "Auth temporarily unavailable." }, { status: 503 });
+  }
+  const shop = session?.shop;
+  if (!shop) return json({ success: false, error: "Unauthorized" }, { status: 401 });
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ success: false, error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const rawForm = body?.form;
+  const form =
+    rawForm && typeof rawForm === "object" && !Array.isArray(rawForm)
+      ? rawForm
+      : body && typeof body === "object" && !Array.isArray(body)
+        ? body
+        : null;
+  if (!form) return json({ success: false, error: "Missing form" }, { status: 400 });
+
+  try {
+    const record = await saveStockAnnouncement(shop, form);
+    return json({ success: true, id: record?.id });
+  } catch (e) {
+    console.error("[Stock Announcement] save failed:", e);
+    return json({ success: false, error: e?.message || "Save failed" }, { status: 500 });
+  }
 };
 
 const styles = `
@@ -271,7 +325,11 @@ function NumberField({ label, value, onChange, min, max }) {
 }
 
 export default function StockBlockConfiguration() {
+  const { saved } = useLoaderData();
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("layout");
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState({ active: false, error: false, msg: "" });
   const [stockEnabled, setStockEnabled] = useState(true);
   const [productQuantity, setProductQuantity] = useState("5");
   const [showProductQuantity, setShowProductQuantity] = useState(true);
@@ -297,6 +355,35 @@ export default function StockBlockConfiguration() {
   const [bottomMargin, setBottomMargin] = useState(0);
   const [customClass, setCustomClass] = useState("");
 
+  useEffect(() => {
+    if (!saved) return;
+    if (saved.enabled != null) setStockEnabled(saved.enabled);
+    if (saved.productQuantity != null) setProductQuantity(String(saved.productQuantity));
+    if (saved.showProductQuantity != null) setShowProductQuantity(saved.showProductQuantity);
+    if (saved.hideOutOfStock != null) setHideOutOfStock(saved.hideOutOfStock);
+    if (saved.inStockText != null) setInStockText(saved.inStockText);
+    if (saved.quantityText != null) setQuantityText(saved.quantityText);
+    if (saved.outOfStockText != null) setOutOfStockText(saved.outOfStockText);
+    if (saved.inStockDotColor != null) setInStockDotColor(saved.inStockDotColor);
+    if (saved.lowStockDotColor != null) setLowStockDotColor(saved.lowStockDotColor);
+    if (saved.outStockDotColor != null) setOutStockDotColor(saved.outStockDotColor);
+    if (saved.productScope != null) setStockProductScope(saved.productScope);
+    if (saved.textColor != null) setTextColor(saved.textColor);
+    if (saved.fontSize != null) setFontSize(saved.fontSize);
+    if (saved.mobileFontSize != null) setMobileFontSize(saved.mobileFontSize);
+    if (saved.dotSize != null) setDotSize(saved.dotSize);
+    if (saved.spacing != null) setSpacing(saved.spacing);
+    if (saved.textWeight != null) setTextWeight(saved.textWeight);
+    if (saved.alignment != null) setAlignment(saved.alignment);
+    if (saved.topMargin != null) setTopMargin(saved.topMargin);
+    if (saved.bottomMargin != null) setBottomMargin(saved.bottomMargin);
+    if (saved.customClass != null) setCustomClass(saved.customClass);
+    try {
+      const ids = JSON.parse(saved.selectedProductsJson || "[]");
+      if (Array.isArray(ids) && ids.length) setSelectedStockProductIds(ids);
+    } catch {}
+  }, [saved]);
+
   const previewStockCount = Math.max(0, Number(productQuantity) || 0);
   const stockText = showProductQuantity
     ? quantityText.replace("{count}", previewStockCount)
@@ -305,12 +392,75 @@ export default function StockBlockConfiguration() {
   const justify =
     alignment === "center" ? "center" : alignment === "right" ? "flex-end" : "flex-start";
 
+  const save = async () => {
+    setSaving(true);
+    try {
+      const form = {
+        editId: saved?.id ?? null,
+        enabled: stockEnabled,
+        productQuantity: Number(productQuantity) || 0,
+        showProductQuantity,
+        hideOutOfStock,
+        inStockText,
+        quantityText,
+        outOfStockText,
+        inStockDotColor,
+        lowStockDotColor,
+        outStockDotColor,
+        productScope: stockProductScope,
+        selectedProducts: selectedStockProductIds,
+        textColor,
+        fontSize,
+        mobileFontSize,
+        dotSize,
+        spacing,
+        textWeight,
+        alignment,
+        topMargin,
+        bottomMargin,
+        customClass,
+      };
+
+      const res = await fetch(window.location.pathname, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ form }),
+      });
+
+      let out = null;
+      try { out = await res.json(); } catch {}
+
+      if (!res.ok || out?.success === false) {
+        throw new Error(out?.error || `Save failed (HTTP ${res.status})`);
+      }
+
+      setToast({ active: true, error: false, msg: "Saved successfully." });
+      setTimeout(
+        () => navigate("/app/notification/manage?type=stock-block&saved=1"),
+        900
+      );
+    } catch (e) {
+      setToast({ active: true, error: true, msg: e?.message || "Save failed" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <Page
-      title="Stock Announcement"
-      backAction={{ content: "Back", url: "/app" }}
-      primaryAction={{ content: "Save", disabled: true }}
-    >
+    <Frame>
+      {saving && <Loading />}
+      {toast.active && (
+        <Toast
+          content={toast.msg}
+          error={toast.error}
+          onDismiss={() => setToast((t) => ({ ...t, active: false }))}
+        />
+      )}
+      <Page
+        title="Stock Announcement"
+        backAction={{ content: "Back", url: "/app" }}
+        primaryAction={{ content: "Save", onAction: save, loading: saving }}
+      >
       <NotificationPageStyles />
       <style>{styles}</style>
       <div className="product-info-designer notification-page">
@@ -460,6 +610,7 @@ export default function StockBlockConfiguration() {
         </InlineGrid>
         </div>
       </div>
-    </Page>
+      </Page>
+    </Frame>
   );
 }
