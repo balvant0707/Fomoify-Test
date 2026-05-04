@@ -653,12 +653,12 @@ export default function StockBlockConfiguration() {
                     </div>
                   ) : (
                     <>
-                      <div style={{ display: "flex", justifyContent: justify, marginTop: topMargin, marginBottom: bottomMargin }}>
+                      <style>{`.notification-page .product-info-preview-card .product-info-line .sa-preview-text { font-size: ${fontSize}px !important; }`}</style>
+                      <div style={{ display: "flex", justifyContent: justify, marginTop: topMargin, marginBottom: bottomMargin, fontSize: `${fontSize}px` }}>
                         <span
                           className="product-info-line"
                           style={{
                             color: textColor,
-                            fontSize: `${fontSize}px`,
                             fontWeight: textWeight,
                             gap: Math.max(6, Math.round(spacing / 2)),
                             ...(highlightBg ? { background: highlightBg, borderRadius: 999, padding: "3px 10px" } : {}),
@@ -673,7 +673,7 @@ export default function StockBlockConfiguration() {
                             />
                           )}
                           
-                          <span style={{ fontSize: `${fontSize}px !important` }}>{stockText}</span>
+                          <span className="sa-preview-text">{stockText}</span>
                         </span>
                       </div>
                     </>

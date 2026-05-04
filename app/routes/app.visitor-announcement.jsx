@@ -682,17 +682,17 @@ export default function VisitorBlockConfiguration() {
                   <div className="product-info-preview-shell">
                     <div className="product-info-preview-card">
                       {previewAnimCSS && <style>{previewAnimCSS}</style>}
+                      <style>{`.notification-page .product-info-preview-card .product-info-line .va-preview-text { font-size: ${fontSize}px !important; }`}</style>
                       {visitorEnabled ? (
                         <>
                           <div
                             key={`${animationStyle}-${animationSpeed}`}
-                            style={{ display: "flex", justifyContent: justify, marginTop: topMargin, marginBottom: bottomMargin }}
+                            style={{ display: "flex", justifyContent: justify, marginTop: topMargin, marginBottom: bottomMargin, fontSize: `${fontSize}px` }}
                           >
                             <span
                               className={`product-info-line${previewAnimName ? " fomoify-preview-anim" : ""}`}
                               style={{
                                 color: textColor,
-                                fontSize: `${fontSize}px`,
                                 fontWeight: textWeight,
                                 gap: Math.max(6, Math.round(spacing / 2)),
                               }}
@@ -705,7 +705,7 @@ export default function VisitorBlockConfiguration() {
                                   <Icon source={iconSourceFor(visitorIcon)} tone="inherit" />
                                 </span>
                               )}
-                              <span style={{  fontSize: `${fontSize}px !important`, }}>{visitorText}</span>
+                              <span className="va-preview-text">{visitorText}</span>
                             </span>
                           </div>
                         </>
