@@ -7,6 +7,7 @@ import {
   Card,
   Checkbox,
   Divider,
+  Icon,
   InlineGrid,
   InlineStack,
   Page,
@@ -15,6 +16,7 @@ import {
   Text,
   TextField,
 } from "@shopify/polaris";
+import { MagicIcon, PersonIcon, ViewIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import VisitorSpecificBox from "../components/productInfo/VisitorSpecificBox";
 import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
@@ -105,7 +107,31 @@ const styles = `
 .product-info-icon {
   display: inline-grid;
   place-items: center;
+  width: var(--product-info-icon-size);
+  height: var(--product-info-icon-size);
   flex: 0 0 auto;
+}
+.product-info-icon .Polaris-Icon,
+.product-info-icon svg {
+  width: 100%;
+  height: 100%;
+}
+.product-info-icon-picker {
+  display: grid;
+  gap: 6px;
+}
+.product-info-icon-picker-label {
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 600;
+}
+.product-info-icon-picker-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.product-info-icon-picker-buttons .Polaris-Button {
+  min-width: 86px;
 }
 .product-info-color-grid {
   display: grid;
@@ -146,9 +172,9 @@ const styles = `
 `;
 
 const iconOptions = [
-  { label: "Eye", value: "eye" },
-  { label: "Fire", value: "fire" },
-  { label: "User", value: "user" },
+  { label: "Eye", value: "eye", source: ViewIcon },
+  { label: "Fire", value: "fire", source: MagicIcon },
+  { label: "User", value: "user", source: PersonIcon },
   { label: "None", value: "none" },
 ];
 
@@ -234,12 +260,29 @@ const editorSections = [
   { id: "display", label: "Display", Icon: DisplayIcon },
 ];
 
-const iconFor = (icon) => {
-  if (icon === "fire") return "*";
-  if (icon === "user") return "o";
-  if (icon === "none") return "";
-  return "O";
-};
+const iconSourceFor = (icon) =>
+  iconOptions.find((option) => option.value === icon)?.source || ViewIcon;
+
+function VisitorIconField({ value, onChange }) {
+  return (
+    <div className="product-info-icon-picker">
+      <span className="product-info-icon-picker-label">Visitor icon</span>
+      <div className="product-info-icon-picker-buttons">
+        {iconOptions.map((option) => (
+          <Button
+            key={option.value}
+            size="slim"
+            pressed={value === option.value}
+            icon={option.source}
+            onClick={() => onChange(option.value)}
+          >
+            {option.label}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function ColorField({ label, value, onChange, fallback = "#000000" }) {
   const safeValue = /^#[0-9a-f]{6}$/i.test(String(value || ""))
@@ -370,7 +413,7 @@ export default function VisitorBlockConfiguration() {
                   autoComplete="off"
                 />
                 <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
-                  <Select label="Visitor icon" options={iconOptions} value={visitorIcon} onChange={setVisitorIcon} />
+                  <VisitorIconField value={visitorIcon} onChange={setVisitorIcon} />
                   <TextField label="Refresh every seconds" value={visitorRefresh} onChange={setVisitorRefresh} type="number" autoComplete="off" />
                 </InlineGrid>
               </BlockStack>
@@ -477,9 +520,12 @@ export default function VisitorBlockConfiguration() {
                       {visitorIcon !== "none" && (
                         <span
                           className="product-info-icon"
-                          style={{ color: visitorIconColor, fontSize: iconSize, width: iconSize + 4 }}
+                          style={{
+                            color: visitorIconColor,
+                            "--product-info-icon-size": `${iconSize}px`,
+                          }}
                         >
-                          {iconFor(visitorIcon)}
+                          <Icon source={iconSourceFor(visitorIcon)} tone="inherit" />
                         </span>
                       )}
                       <span>{visitorText}</span>
