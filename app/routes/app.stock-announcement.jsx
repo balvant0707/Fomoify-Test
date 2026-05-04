@@ -166,6 +166,17 @@ const styles = `
   box-shadow: inset 0 0 0 2px rgba(255,255,255,.72);
   flex: 0 0 auto;
 }
+@keyframes sa-dot-ping {
+  0%   { transform: scale(1); opacity: 1; }
+  70%  { transform: scale(1.7); opacity: 0; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+@keyframes sa-dot-beat {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.28); }
+}
+.sa-dot-ping { animation: sa-dot-ping 1.2s ease-out infinite; }
+.sa-dot-beat { animation: sa-dot-beat 0.75s ease-in-out infinite; }
 .product-info-color-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -668,7 +679,7 @@ export default function StockBlockConfiguration() {
                             <DotIconSvg name={dotIcon} color={stockDot} size={dotSize} />
                           ) : (
                             <span
-                              className="product-info-dot"
+                              className={`product-info-dot${dotAnimationStyle === "ping" ? " sa-dot-ping" : dotAnimationStyle === "beat" ? " sa-dot-beat" : ""}`}
                               style={{ width: dotSize, height: dotSize, background: stockDot }}
                             />
                           )}

@@ -418,8 +418,8 @@ export default function VisitorBlockConfiguration() {
   const [hideOnMobile, setHideOnMobile]     = useState(false);
 
   const [textColor, setTextColor]         = useState("#3F3F46");
-  const [fontSize, setFontSize]           = useState(20);
-  const [mobileFontSize, setMobileFontSize] = useState(16);
+  const [fontSize, setFontSize]           = useState(16);
+  const [mobileFontSize, setMobileFontSize] = useState(14);
   const [iconSize, setIconSize]           = useState(18);
   const [spacing, setSpacing]             = useState(12);
   const [textWeight, setTextWeight]       = useState("500");
@@ -470,7 +470,25 @@ export default function VisitorBlockConfiguration() {
     return Math.round((min + max) / 2);
   }, [visitorMin, visitorMax]);
 
-  const visitorText = (prefixText ? prefixText + " " : "") + visitorTemplate.replace("{count}", visitorCount) + (suffixText ? " " + suffixText : "");
+  // Live count simulation for preview — cycles/randomises when countInterval > 0
+  const [previewCount, setPreviewCount] = useState(visitorCount);
+  useEffect(() => {
+    setPreviewCount(visitorCount);
+    if (countInterval <= 0) return;
+    const min = Math.max(0, Number(visitorMin) || 0);
+    const max = Math.max(min, Number(visitorMax) || min);
+    if (min >= max) return;
+    let cur = visitorCount;
+    const id = setInterval(() => {
+      cur = visitorBehavior === "rotating"
+        ? (cur >= max ? min : cur + 1)
+        : Math.floor(Math.random() * (max - min + 1)) + min;
+      setPreviewCount(cur);
+    }, Math.max(1000, countInterval * 1000));
+    return () => clearInterval(id);
+  }, [visitorCount, countInterval, visitorBehavior, visitorMin, visitorMax]);
+
+  const visitorText = (prefixText ? prefixText + " " : "") + visitorTemplate.replace("{count}", previewCount) + (suffixText ? " " + suffixText : "");
   const justify = alignment === "center" ? "center" : alignment === "right" ? "flex-end" : "flex-start";
 
   const previewAnimDuration = animationSpeed === "fast" ? "0.25s" : animationSpeed === "slow" ? "0.8s" : "0.45s";
@@ -686,7 +704,7 @@ export default function VisitorBlockConfiguration() {
                       {visitorEnabled ? (
                         <>
                           <div
-                            key={`${animationStyle}-${animationSpeed}`}
+                            key={`${animationStyle}-${animationSpeed}-${previewCount}`}
                             style={{ display: "flex", justifyContent: justify, marginTop: topMargin, marginBottom: bottomMargin, fontSize: `${fontSize}px` }}
                           >
                             <span
