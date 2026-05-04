@@ -314,7 +314,7 @@ export default function StockBlockConfiguration() {
     <Page
       title="Stock Announcement"
       backAction={{ content: "Back", url: "/app" }}
-      primaryAction={{ content: "Save configuration", disabled: true }}
+      primaryAction={{ content: "Save", disabled: true }}
     >
       <NotificationPageStyles />
       <style>{styles}</style>

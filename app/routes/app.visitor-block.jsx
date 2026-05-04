@@ -326,7 +326,7 @@ export default function VisitorBlockConfiguration() {
     <Page
       title="Visitor Announcement"
       backAction={{ content: "Back", url: "/app" }}
-      primaryAction={{ content: "Save configuration", disabled: true }}
+      primaryAction={{ content: "Save", disabled: true }}
     >
       <NotificationPageStyles />
       <style>{styles}</style>
