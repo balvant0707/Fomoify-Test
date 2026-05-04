@@ -589,7 +589,7 @@ export default function VisitorBlockConfiguration() {
                         <Select label="Alignment" options={alignOptions} value={alignment} onChange={setAlignment} />
                         <Select label="Count behavior" options={behaviorOptions} value={visitorBehavior} onChange={setVisitorBehavior} />
                       </InlineGrid>
-                      <Divider />
+                   
                       <VisitorSpecificBox
                         productScope={visitorProductScope}
                         setProductScope={setVisitorProductScope}

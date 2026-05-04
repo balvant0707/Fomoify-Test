@@ -541,7 +541,7 @@ export default function StockBlockConfiguration() {
                     Display
                   </Text>
                   <Select label="Alignment" options={alignOptions} value={alignment} onChange={setAlignment} />
-                  <Divider />
+                  
                   <StockSpecificBox
                     productScope={stockProductScope}
                     setProductScope={setStockProductScope}
