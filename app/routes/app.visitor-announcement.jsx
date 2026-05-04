@@ -626,7 +626,7 @@ export default function VisitorBlockConfiguration() {
                         <VisitorIconField value={visitorIcon} onChange={setVisitorIcon} />
                         <TextField label="Refresh every (seconds)" value={visitorRefresh} onChange={setVisitorRefresh} type="number" autoComplete="off" />
                       </InlineGrid>
-                      <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                      <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300" style={{ display: "none" }}>
                         <TextField label="Prefix text" value={prefixText} onChange={setPrefixText} helpText="Shown before visitor text." autoComplete="off" />
                         <TextField label="Suffix text" value={suffixText} onChange={setSuffixText} helpText="Shown after visitor text." autoComplete="off" />
                       </InlineGrid>
