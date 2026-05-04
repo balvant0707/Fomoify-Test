@@ -431,6 +431,38 @@ model flashpopupconfig {
   @@index([shop], map: "FlashPopupConfig_shop_idx")
 }
 
+model visitorannouncementconfig {
+  id                   Int      @id @default(autoincrement())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @default(now()) @updatedAt
+  shop                 String
+
+  enabled              Boolean  @default(true)
+  visitorMin           Int?
+  visitorMax           Int?
+  template             String?  @db.LongText
+  iconKey              String?
+  iconColor            String?
+  refreshSeconds       Int?
+  behavior             String?
+
+  textColor            String?
+  fontSize             Int?
+  mobileFontSize       Int?
+  iconSize             Int?
+  spacing              Int?
+  textWeight           String?
+  customClass          String?
+
+  alignment            String?
+  topMargin            Int?
+  bottomMargin         Int?
+  productScope         String?
+  selectedProductsJson String?  @db.LongText
+
+  @@index([shop], map: "VisitorAnnouncementConfig_shop_idx")
+}
+
 model popupanalyticsevent {
   id            Int      @id @default(autoincrement())
   shop          String   @db.VarChar(255)

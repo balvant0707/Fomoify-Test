@@ -40,40 +40,35 @@ export default function VisitorSpecificBox({
 }) {
   const productFetcher = useFetcher();
   const [query, setQuery] = useState("");
-  const [page, setPage] = useState(1);
-  const [hasLoadedProducts, setHasLoadedProducts] = useState(false);
   const [productCache, setProductCache] = useState({});
-  const products = useMemo(
-    () => {
-      const items = productFetcher.data?.items || [];
-      if (!Array.isArray(items)) return [];
-      return items.map(normalizeProduct);
-    },
-    [productFetcher.data]
-  );
+
+  const products = useMemo(() => {
+    const items = productFetcher.data?.items || [];
+    if (!Array.isArray(items)) return [];
+    return items.map(normalizeProduct);
+  }, [productFetcher.data]);
+
   const isLoading = productFetcher.state !== "idle";
-  const hasNextPage = Boolean(productFetcher.data?.hasNextPage);
   const productError = productFetcher.data?.error || "";
 
-  const loadProducts = (nextQuery = query, nextPage = page) => {
+  const loadProducts = (nextQuery = query) => {
     const params = new URLSearchParams();
     if (nextQuery) params.set("q", nextQuery);
-    params.set("page", String(nextPage));
     productFetcher.load(`/app/products-picker?${params.toString()}`);
   };
 
+  // Load once on mount
   useEffect(() => {
-    if (hasLoadedProducts) return;
-    loadProducts("", 1);
-    setHasLoadedProducts(true);
+    loadProducts("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasLoadedProducts]);
+  }, []);
 
+  // Reload when search query changes
   useEffect(() => {
     if (!productModalOpen) return;
-    loadProducts(query, page);
+    loadProducts(query);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productModalOpen, query, page]);
+  }, [query]);
 
   useEffect(() => {
     if (!products.length) return;
@@ -160,74 +155,62 @@ export default function VisitorSpecificBox({
               label="Search products"
               placeholder="Search products"
               value={query}
-              onChange={(next) => {
-                setQuery(next);
-                setPage(1);
-              }}
+              onChange={(next) => setQuery(next)}
               autoComplete="off"
             />
-            <IndexTable
-              selectable={false}
-              itemCount={products.length}
-              resourceName={{ singular: "product", plural: "products" }}
-              headings={[
-                { title: "" },
-                { title: "Product" },
-                { title: "Status" },
-                { title: "Inventory" },
-              ]}
-            >
-              {products.map((product, index) => (
-                <IndexTable.Row id={product.id} key={product.id} position={index}>
-                  <IndexTable.Cell>
-                    <Checkbox
-                      label=""
-                      labelHidden
-                      checked={selectedProductIds.includes(product.id)}
-                      onChange={() => toggleProduct(product.id)}
-                    />
-                  </IndexTable.Cell>
-                  <IndexTable.Cell>
-                    <InlineStack gap="300" blockAlign="center">
-                      <Thumbnail
-                        source={product.image || ""}
-                        alt={product.title}
-                        size="small"
+            {isLoading ? (
+              <Text as="p" tone="subdued">Loading products…</Text>
+            ) : (
+              <IndexTable
+                selectable={false}
+                itemCount={products.length}
+                resourceName={{ singular: "product", plural: "products" }}
+                headings={[
+                  { title: "" },
+                  { title: "Product" },
+                  { title: "Status" },
+                  { title: "Inventory" },
+                ]}
+              >
+                {products.map((product, index) => (
+                  <IndexTable.Row id={product.id} key={product.id} position={index}>
+                    <IndexTable.Cell>
+                      <Checkbox
+                        label=""
+                        labelHidden
+                        checked={selectedProductIds.includes(product.id)}
+                        onChange={() => toggleProduct(product.id)}
                       />
-                      <Text as="span" fontWeight="semibold">
-                        {product.title}
-                      </Text>
-                    </InlineStack>
-                  </IndexTable.Cell>
-                  <IndexTable.Cell>
-                    <Badge tone={isActiveProduct(product.status) ? "success" : "attention"}>
-                      {product.status}
-                    </Badge>
-                  </IndexTable.Cell>
-                  <IndexTable.Cell>
-                    <Text as="span">{product.inventory}</Text>
-                  </IndexTable.Cell>
-                </IndexTable.Row>
-              ))}
-            </IndexTable>
+                    </IndexTable.Cell>
+                    <IndexTable.Cell>
+                      <InlineStack gap="300" blockAlign="center">
+                        <Thumbnail
+                          source={product.image || ""}
+                          alt={product.title}
+                          size="small"
+                        />
+                        <Text as="span" fontWeight="semibold">
+                          {product.title}
+                        </Text>
+                      </InlineStack>
+                    </IndexTable.Cell>
+                    <IndexTable.Cell>
+                      <Badge tone={isActiveProduct(product.status) ? "success" : "attention"}>
+                        {product.status}
+                      </Badge>
+                    </IndexTable.Cell>
+                    <IndexTable.Cell>
+                      <Text as="span">{product.inventory}</Text>
+                    </IndexTable.Cell>
+                  </IndexTable.Row>
+                ))}
+              </IndexTable>
+            )}
             {!products.length && !isLoading && (
               <Text as="p" tone={productError ? "critical" : "subdued"}>
                 {productError || "No products found."}
               </Text>
             )}
-            <InlineStack align="space-between" blockAlign="center">
-              <Text as="span" tone="subdued">
-                {isLoading ? "Loading products..." : `Page ${page}`}
-              </Text>
-              <InlineStack gap="200">
-                <Button disabled={page <= 1 || isLoading} onClick={() => setPage((value) => Math.max(1, value - 1))}>
-                  Previous
-                </Button>
-                <Button disabled={!hasNextPage || isLoading} onClick={() => setPage((value) => value + 1)}>
-                  Next
-                </Button>
-              </InlineStack>
-            </InlineStack>
           </BlockStack>
         </Modal.Section>
       </Modal>

@@ -11,7 +11,6 @@ import {
   BlockStack,
   InlineStack,
   Text,
-  RangeSlider,
   Frame,
   Modal,
   IndexTable,
@@ -1341,29 +1340,33 @@ export default function LowStockPopupPage() {
                               }
                             />
 
-                            <BlockStack gap="200">
-                              <Text>Size</Text>
-                              <RangeSlider
-                                min={0}
-                                max={100}
-                                value={design.size}
-                                onChange={(v) =>
-                                  setDesign((d) => ({ ...d, size: v }))
-                                }
-                              />
-                            </BlockStack>
+                            <TextField
+                              label="Size"
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={String(design.size)}
+                              onChange={(v) => {
+                                const n = Math.min(100, Math.max(0, Number(v) || 0));
+                                setDesign((d) => ({ ...d, size: n }));
+                              }}
+                              autoComplete="off"
+                              suffix="%"
+                            />
 
-                            <BlockStack gap="200">
-                              <Text>Transparent</Text>
-                              <RangeSlider
-                                min={0}
-                                max={100}
-                                value={design.transparent}
-                                onChange={(v) =>
-                                  setDesign((d) => ({ ...d, transparent: v }))
-                                }
-                              />
-                            </BlockStack>
+                            <TextField
+                              label="Transparent"
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={String(design.transparent)}
+                              onChange={(v) => {
+                                const n = Math.min(100, Math.max(0, Number(v) || 0));
+                                setDesign((d) => ({ ...d, transparent: n }));
+                              }}
+                              autoComplete="off"
+                              suffix="%"
+                            />
 
                             <BlockStack gap="200">
                               <Text as="p">Color template</Text>
