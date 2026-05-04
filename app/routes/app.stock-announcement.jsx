@@ -672,7 +672,7 @@ export default function StockBlockConfiguration() {
                               style={{ width: dotSize, height: dotSize, background: stockDot }}
                             />
                           )}
-                          <span style={{ fontSize: `${fontSize}px` }}>{stockText}</span>
+                          <span style={{ fontSize: `${fontSize}px !important` }}>{stockText}</span>
                         </span>
                       </div>
                     </>
