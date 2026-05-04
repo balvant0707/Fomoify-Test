@@ -15,6 +15,16 @@ export function setCache(key, value, ttlMs = 30000) {
   return value;
 }
 
+export function deleteCache(key) {
+  cache.delete(key);
+}
+
+export function deleteCacheByPrefix(prefix) {
+  for (const key of cache.keys()) {
+    if (key.startsWith(prefix)) cache.delete(key);
+  }
+}
+
 export async function getOrSetCache(key, ttlMs, loader) {
   const cached = getCache(key);
   if (cached) return cached;

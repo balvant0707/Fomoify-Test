@@ -32,6 +32,7 @@ import { useLoaderData, useNavigate } from "@remix-run/react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { saveVisitorAnnouncement } from "../models/popup-config.server";
+import { deleteCacheByPrefix } from "../utils/serverCache.server";
 import VisitorSpecificBox from "../components/productInfo/VisitorSpecificBox";
 import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
@@ -87,6 +88,7 @@ export async function action({ request }) {
 
   try {
     const record = await saveVisitorAnnouncement(shop, form);
+    deleteCacheByPrefix(`notification:rows:${shop}`);
     return json({ success: true, id: record?.id });
   } catch (e) {
     console.error("[Visitor Announcement] save failed:", e);
@@ -471,6 +473,22 @@ export default function VisitorBlockConfiguration() {
   const visitorText = (prefixText ? prefixText + " " : "") + visitorTemplate.replace("{count}", visitorCount) + (suffixText ? " " + suffixText : "");
   const justify = alignment === "center" ? "center" : alignment === "right" ? "flex-end" : "flex-start";
 
+  const previewAnimDuration = animationSpeed === "fast" ? "0.25s" : animationSpeed === "slow" ? "0.8s" : "0.45s";
+  const previewAnimName = (() => {
+    if (animationStyle === "fade")   return "fomoifyPrevFade";
+    if (animationStyle === "bounce") return "fomoifyPrevBounce";
+    if (animationStyle === "zoom")   return "fomoifyPrevZoom";
+    if (animationStyle === "none")   return "";
+    return "fomoifyPrevSlide";
+  })();
+  const previewAnimCSS = previewAnimName ? `
+    @keyframes fomoifyPrevSlide  { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:none; } }
+    @keyframes fomoifyPrevFade   { from { opacity:0; } to { opacity:1; } }
+    @keyframes fomoifyPrevBounce { 0%{opacity:0;transform:translateY(-14px);} 60%{opacity:1;transform:translateY(4px);} 80%{transform:translateY(-3px);} 100%{transform:none;} }
+    @keyframes fomoifyPrevZoom   { from { opacity:0; transform:scale(0.8); } to { opacity:1; transform:none; } }
+    .fomoify-preview-anim { animation: ${previewAnimName} ${previewAnimDuration} ease-out both; }
+  ` : "";
+
   // ── save ──
   const save = async () => {
     setSaving(true);
@@ -663,28 +681,49 @@ export default function VisitorBlockConfiguration() {
                   <Divider />
                   <div className="product-info-preview-shell">
                     <div className="product-info-preview-card">
+                      {previewAnimCSS && <style>{previewAnimCSS}</style>}
                       {visitorEnabled ? (
-                        <div style={{ display: "flex", justifyContent: justify, marginTop: topMargin, marginBottom: bottomMargin }}>
-                          <span
-                            className="product-info-line"
-                            style={{
-                              color: textColor,
-                              fontSize: `${fontSize}px`,
-                              fontWeight: textWeight,
-                              gap: Math.max(6, Math.round(spacing / 2)),
-                            }}
+                        <>
+                          <div
+                            key={`${animationStyle}-${animationSpeed}`}
+                            style={{ display: "flex", justifyContent: justify, marginTop: topMargin, marginBottom: bottomMargin }}
                           >
-                            {visitorIcon !== "none" && (
-                              <span
-                                className="product-info-icon"
-                                style={{ color: visitorIconColor, width: iconSize, height: iconSize }}
-                              >
-                                <Icon source={iconSourceFor(visitorIcon)} tone="inherit" />
+                            <span
+                              className={`product-info-line${previewAnimName ? " fomoify-preview-anim" : ""}`}
+                              style={{
+                                color: textColor,
+                                fontSize: `${fontSize}px`,
+                                fontWeight: textWeight,
+                                gap: Math.max(6, Math.round(spacing / 2)),
+                              }}
+                            >
+                              {visitorIcon !== "none" && (
+                                <span
+                                  className="product-info-icon"
+                                  style={{ color: visitorIconColor, width: iconSize, height: iconSize }}
+                                >
+                                  <Icon source={iconSourceFor(visitorIcon)} tone="inherit" />
+                                </span>
+                              )}
+                              <span>{visitorText}</span>
+                            </span>
+                          </div>
+                          <div style={{ marginTop: 12, display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+                            <span style={{ fontSize: 11, color: "#9ca3af" }}>
+                              Midpoint of {visitorMin}–{visitorMax}; storefront shows random in range
+                            </span>
+                            {hideOnMobile && (
+                              <span style={{ fontSize: 11, color: "#6b7280", background: "#f3f4f6", borderRadius: 4, padding: "2px 7px" }}>
+                                Hidden on mobile
                               </span>
                             )}
-                            <span>{visitorText}</span>
-                          </span>
-                        </div>
+                            {countInterval > 0 && (
+                              <span style={{ fontSize: 11, color: "#6b7280", background: "#f3f4f6", borderRadius: 4, padding: "2px 7px" }}>
+                                Updates every {countInterval}s
+                              </span>
+                            )}
+                          </div>
+                        </>
                       ) : (
                         <div style={{ textAlign: "center", color: "#9ca3af", fontSize: 13, padding: "24px 0" }}>
                           Visitor announcement is disabled

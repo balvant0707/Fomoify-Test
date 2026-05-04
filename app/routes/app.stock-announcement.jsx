@@ -19,6 +19,7 @@ import { useLoaderData, useNavigate } from "@remix-run/react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { saveStockAnnouncement } from "../models/popup-config.server";
+import { deleteCacheByPrefix } from "../utils/serverCache.server";
 import StockSpecificBox from "../components/productInfo/StockSpecificBox";
 import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
@@ -70,6 +71,7 @@ export async function action({ request }) {
 
   try {
     const record = await saveStockAnnouncement(shop, form);
+    deleteCacheByPrefix(`notification:rows:${shop}`);
     return json({ success: true, id: record?.id });
   } catch (e) {
     console.error("[Stock Announcement] save failed:", e);
@@ -298,6 +300,23 @@ const editorSections = [
   { id: "display", label: "Display", Icon: DisplayIcon },
 ];
 
+function DotIconSvg({ name, color, size }) {
+  const wrapStyle = {
+    width: size, height: size, display: "inline-grid",
+    placeItems: "center", flex: "0 0 auto", color,
+  };
+  const p = { viewBox: "0 0 20 20", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", width: "100%", height: "100%", "aria-hidden": true };
+  if (name === "check")
+    return <span style={wrapStyle}><svg {...p}><path d="m4 10 4.5 4.5 7.5-8"/></svg></span>;
+  if (name === "alert")
+    return <span style={wrapStyle}><svg {...p}><circle cx="10" cy="10" r="7.25"/><path d="M10 5.75v5"/><path d="M10 14.25h.01"/></svg></span>;
+  if (name === "star")
+    return <span style={wrapStyle}><svg {...p} fill="currentColor" stroke="none"><path d="m10 2.6 2.15 4.35 4.8.7-3.48 3.4.82 4.78L10 13.58l-4.29 2.25.82-4.78-3.48-3.4 4.8-.7L10 2.6Z"/></svg></span>;
+  if (name === "flame")
+    return <span style={wrapStyle}><svg {...p} fill="currentColor" stroke="none"><path d="M10 2s-4 3.5-4 7.5a4 4 0 0 0 8 0C14 5.5 10 2 10 2Zm0 10a2 2 0 0 1-2-2c0-2 2-4 2-4s2 2 2 4a2 2 0 0 1-2 2Z"/></svg></span>;
+  return null;
+}
+
 function ColorField({ label, value, onChange, fallback = "#000000" }) {
   const safeValue = /^#[0-9a-f]{6}$/i.test(String(value || ""))
     ? value
@@ -414,10 +433,20 @@ export default function StockBlockConfiguration() {
   }, [saved]);
 
   const previewStockCount = Math.max(0, Number(productQuantity) || 0);
-  const stockText = showProductQuantity
-    ? quantityText.replace("{count}", previewStockCount)
-    : inStockText;
-  const stockDot = showProductQuantity ? lowStockDotColor : inStockDotColor;
+  const isPreviewOut = previewStockCount <= 0;
+  const stockText = isPreviewOut
+    ? outOfStockText
+    : showProductQuantity
+      ? quantityText.replace("{count}", previewStockCount)
+      : inStockText;
+  const stockDot = (() => {
+    if (isPreviewOut) return outStockDotColor;
+    const threshold = Math.max(0, Number(lowStockThreshold) || 0);
+    if (threshold > 0 && previewStockCount <= threshold) return lowStockDotColor;
+    if (showProductQuantity) return lowStockDotColor;
+    return inStockDotColor;
+  })();
+  const previewHideStock = isPreviewOut && hideOutOfStock;
   const justify =
     alignment === "center" ? "center" : alignment === "right" ? "flex-end" : "flex-start";
 
@@ -614,40 +643,51 @@ export default function StockBlockConfiguration() {
               <Divider />
               <div className="product-info-preview-shell">
                 <div className="product-info-preview-card">
-                  {stockEnabled ? (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: justify,
-                        marginTop: topMargin,
-                        marginBottom: bottomMargin,
-                      }}
-                    >
-                      <span
-                        className="product-info-line"
-                        style={{
-                          color: textColor,
-                          fontSize: `${fontSize}px`,
-                          fontWeight: textWeight,
-                          gap: Math.max(6, Math.round(spacing / 2)),
-                          ...(highlightBg ? { background: highlightBg, borderRadius: 999, padding: "3px 10px" } : {}),
-                        }}
-                      >
-                        <span
-                          className="product-info-dot"
-                          style={{
-                            width: dotSize,
-                            height: dotSize,
-                            background: stockDot,
-                          }}
-                        />
-                        <span>{stockText}</span>
-                      </span>
-                    </div>
-                  ) : (
+                  {!stockEnabled ? (
                     <div style={{ textAlign: "center", color: "#9ca3af", fontSize: 13, padding: "24px 0" }}>
                       Stock announcement is disabled
                     </div>
+                  ) : previewHideStock ? (
+                    <div style={{ textAlign: "center", color: "#9ca3af", fontSize: 13, padding: "24px 0" }}>
+                      Hidden — out of stock &amp; "Hide when out of stock" is on
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display: "flex", justifyContent: justify, marginTop: topMargin, marginBottom: bottomMargin }}>
+                        <span
+                          className="product-info-line"
+                          style={{
+                            color: textColor,
+                            fontSize: `${fontSize}px`,
+                            fontWeight: textWeight,
+                            gap: Math.max(6, Math.round(spacing / 2)),
+                            ...(highlightBg ? { background: highlightBg, borderRadius: 999, padding: "3px 10px" } : {}),
+                          }}
+                        >
+                          {dotIcon && dotIcon !== "none" ? (
+                            <DotIconSvg name={dotIcon} color={stockDot} size={dotSize} />
+                          ) : (
+                            <span
+                              className="product-info-dot"
+                              style={{ width: dotSize, height: dotSize, background: stockDot }}
+                            />
+                          )}
+                          <span>{stockText}</span>
+                        </span>
+                      </div>
+                      <div style={{ marginTop: 12, display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+                        {hideOnMobile && (
+                          <span style={{ fontSize: 11, color: "#6b7280", background: "#f3f4f6", borderRadius: 4, padding: "2px 7px" }}>
+                            Hidden on mobile
+                          </span>
+                        )}
+                        {dotAnimationStyle && dotAnimationStyle !== "none" && (
+                          <span style={{ fontSize: 11, color: "#6b7280", background: "#f3f4f6", borderRadius: 4, padding: "2px 7px" }}>
+                            {dotAnimationStyle === "ping" ? "Dot: ping animation" : "Dot: beat animation"}
+                          </span>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
               </div>

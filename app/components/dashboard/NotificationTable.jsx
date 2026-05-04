@@ -57,7 +57,10 @@ function pretty(str) {
 
 function showTypeLabel(val) {
   const found = pageOptions.find((o) => o.value === val);
-  return found?.label || pretty(val);
+  if (found) return found.label;
+  // Already a human-readable label (multi-page or announcement block scope)
+  if (!val) return "All Pages";
+  return String(val);
 }
 
 function formatLines(val) {

@@ -143,31 +143,29 @@ const tableModel = (key) => {
   }
 };
 
-const deriveShowType = (row) => {
-  if (!row) return "allpage";
-  if (row.productScope) return row.productScope === "all" ? "product" : "product";
-  const flags = [
-    row.showHome,
-    row.showProduct,
-    row.showCollection,
-    row.showCollectionList,
-    row.showCart,
-  ];
-  const enabledCount = flags.filter(Boolean).length;
-  if (enabledCount === 0) return "allpage";
-  if (enabledCount > 1) return "allpage";
-  if (row.showHome) return "home";
-  if (row.showProduct) return "product";
-  if (row.showCollection || row.showCollectionList) return "collection";
-  if (row.showCart) return "cart";
-  return "allpage";
+const deriveShowType = (row, key) => {
+  if (!row) return "All pages";
+
+  if (key === "visitor-block" || key === "stock-block") {
+    const scope = String(row.productScope || "all").toLowerCase();
+    return scope === "specific" ? "Product (specific)" : "Product (all)";
+  }
+
+  const pages = [];
+  if (row.showHome) pages.push("Home");
+  if (row.showProduct) pages.push("Product");
+  if (row.showCollection || row.showCollectionList) pages.push("Collection");
+  if (row.showCart) pages.push("Cart");
+
+  if (pages.length === 0) return "All pages";
+  return pages.join(", ");
 };
 
 const normalizeRow = (row, key) => ({
   ...row,
   key,
   enabled: row.enabled === true || row.enabled === 1 || row.enabled === "1",
-  showType: row.showType || deriveShowType(row),
+  showType: row.showType || deriveShowType(row, key),
   messageText:
     row.messageText ||
     row.message ||
@@ -257,8 +255,10 @@ export const loader = async ({ request }) => {
   const slug = toShopSlug(shop);
   const shopDomain = slug ? `${slug}.myshopify.com` : "";
 
-  const rowsPromise = getOrSetCache(`notification:rows:${shop}`, 10000, () =>
-    fetchRows(shop)
+  const justSaved = url.searchParams.get("saved") === "1";
+  const rowsPromise = (justSaved
+    ? fetchRows(shop)
+    : getOrSetCache(`notification:rows:${shop}`, 10000, () => fetchRows(shop))
   ).catch((error) => {
     console.error("[notification.manage.loader] Prisma error:", error);
     return {
