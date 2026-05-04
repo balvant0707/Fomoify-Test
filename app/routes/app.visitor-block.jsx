@@ -9,18 +9,12 @@ import {
   Divider,
   InlineGrid,
   InlineStack,
-  Icon,
   Page,
   RangeSlider,
   Select,
   Text,
   TextField,
 } from "@shopify/polaris";
-import {
-  ContentIcon as PolarisContentIcon,
-  DesktopIcon,
-  LayoutColumns2Icon,
-} from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import VisitorSpecificBox from "../components/productInfo/VisitorSpecificBox";
 
@@ -70,10 +64,6 @@ const styles = `
   height: 20px;
   display: grid;
   place-items: center;
-}
-.product-info-nav-icon .Polaris-Icon {
-  width: 20px;
-  height: 20px;
 }
 .product-info-main {
   flex: 1;
@@ -170,10 +160,67 @@ const behaviorOptions = [
   { label: "Real-time later", value: "realtime" },
 ];
 
+function LayoutIcon() {
+  return (
+    <svg
+      className="product-info-nav-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <line x1="9" y1="4" x2="9" y2="20" />
+      <line x1="9" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+
+function ContentIcon() {
+  return (
+    <svg
+      className="product-info-nav-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="4" y="5" width="16" height="14" rx="2" />
+      <line x1="7" y1="9" x2="17" y2="9" />
+      <line x1="7" y1="13" x2="15" y2="13" />
+    </svg>
+  );
+}
+
+function DisplayIcon() {
+  return (
+    <svg
+      className="product-info-nav-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="5" width="18" height="12" rx="2" />
+      <line x1="8" y1="21" x2="16" y2="21" />
+      <line x1="12" y1="17" x2="12" y2="21" />
+    </svg>
+  );
+}
+
 const editorSections = [
-  { id: "layout", label: "Layout", icon: LayoutColumns2Icon },
-  { id: "content", label: "Content", icon: PolarisContentIcon },
-  { id: "display", label: "Display", icon: DesktopIcon },
+  { id: "layout", label: "Layout", Icon: LayoutIcon },
+  { id: "content", label: "Content", Icon: ContentIcon },
+  { id: "display", label: "Display", Icon: DisplayIcon },
 ];
 
 const iconFor = (icon) => {
@@ -276,16 +323,14 @@ export default function VisitorBlockConfiguration() {
       <style>{styles}</style>
       <div className="product-info-designer">
         <div className="product-info-sidebar" aria-label="Visitor block sections">
-          {editorSections.map(({ id, label, icon }) => (
+          {editorSections.map(({ id, label, Icon }) => (
             <button
               key={id}
               type="button"
               className={`product-info-nav-btn ${activeSection === id ? "is-active" : ""}`}
               onClick={() => setActiveSection(id)}
             >
-              <span className="product-info-nav-icon">
-                <Icon source={icon} />
-              </span>
+              <Icon />
               {label}
             </button>
           ))}
