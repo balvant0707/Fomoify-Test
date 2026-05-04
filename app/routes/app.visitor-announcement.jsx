@@ -12,7 +12,18 @@ import {
   Text,
   TextField,
 } from "@shopify/polaris";
-import * as PolarisIcons from "@shopify/polaris-icons";
+import {
+  ViewIcon,
+  PersonIcon,
+  PersonFilledIcon,
+  MagicIcon,
+  HeartIcon,
+  LocationIcon,
+  StarFilledIcon,
+  AlertCircleIcon,
+  EyeCheckMarkIcon,
+  SocialAdIcon,
+} from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import VisitorSpecificBox from "../components/productInfo/VisitorSpecificBox";
 import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
@@ -167,24 +178,31 @@ const styles = `
 }
 `;
 
-const humanizeIconName = (name) =>
-  name
-    .replace(/Icon$/, "")
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-
-const polarisIconOptions = Object.keys(PolarisIcons)
-  .filter((name) => name.endsWith("Icon") && typeof PolarisIcons[name] === "function")
-  .sort((a, b) => humanizeIconName(a).localeCompare(humanizeIconName(b)))
-  .map((name) => ({
-    label: humanizeIconName(name),
-    value: name,
-    source: PolarisIcons[name],
-  }));
+const VISITOR_ICONS = {
+  ViewIcon,
+  PersonIcon,
+  PersonFilledIcon,
+  MagicIcon,
+  HeartIcon,
+  LocationIcon,
+  StarFilledIcon,
+  AlertCircleIcon,
+  EyeCheckMarkIcon,
+  SocialAdIcon,
+};
 
 const iconOptions = [
   { label: "None", value: "none" },
-  ...polarisIconOptions,
+  { label: "View", value: "ViewIcon" },
+  { label: "Person", value: "PersonIcon" },
+  { label: "People", value: "PersonFilledIcon" },
+  { label: "Magic", value: "MagicIcon" },
+  { label: "Heart", value: "HeartIcon" },
+  { label: "Location", value: "LocationIcon" },
+  { label: "Star", value: "StarFilledIcon" },
+  { label: "Alert", value: "AlertCircleIcon" },
+  { label: "Eye Check", value: "EyeCheckMarkIcon" },
+  { label: "Social Ad", value: "SocialAdIcon" },
 ];
 
 const alignOptions = [
@@ -277,7 +295,7 @@ const legacyIconAliases = {
 
 const iconSourceFor = (icon) => {
   const iconKey = legacyIconAliases[icon] || icon;
-  return PolarisIcons[iconKey] || PolarisIcons.ViewIcon;
+  return VISITOR_ICONS[iconKey] || ViewIcon;
 };
 
 function VisitorIconField({ value, onChange }) {

@@ -21,36 +21,64 @@ CREATE TABLE IF NOT EXISTS \`session\` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 `;
 
-export async function ensurePrismaSessionTable(prismaClient) {
-  try {
-    const existingTables = await prismaClient.$queryRaw`
-      SELECT table_name AS tableName
-      FROM information_schema.tables
-      WHERE table_schema = DATABASE()
-        AND table_name IN ('session', 'Session')
-    `;
+const MAX_RETRIES = 3;
 
-    const tableNames = new Set(
-      existingTables.map((row) => String(row.tableName || ""))
-    );
+function isConnectionLimitError(err) {
+  const msg = err?.message || err?.cause?.message || "";
+  return msg.includes("max_user_connections") || msg.includes("1203");
+}
 
-    const hasLowercaseTable = tableNames.has("session");
-    const hasUppercaseTable = tableNames.has("Session");
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
-    if (!hasLowercaseTable && hasUppercaseTable) {
-      await prismaClient.$executeRawUnsafe(
-        "RENAME TABLE `Session` TO `session`"
-      );
-      return;
-    }
+async function runTableCheck(prismaClient) {
+  const existingTables = await prismaClient.$queryRaw`
+    SELECT table_name AS tableName
+    FROM information_schema.tables
+    WHERE table_schema = DATABASE()
+      AND table_name IN ('session', 'Session')
+  `;
 
-    if (!hasLowercaseTable) {
-      await prismaClient.$executeRawUnsafe(CREATE_SESSION_TABLE_SQL);
-    }
-  } catch (error) {
-    throw new Error(
-      "Failed to prepare Prisma session table. Run `prisma migrate deploy` or grant CREATE/RENAME permissions.",
-      { cause: error }
-    );
+  const tableNames = new Set(
+    existingTables.map((row) => String(row.tableName || ""))
+  );
+
+  const hasLowercaseTable = tableNames.has("session");
+  const hasUppercaseTable = tableNames.has("Session");
+
+  if (!hasLowercaseTable && hasUppercaseTable) {
+    await prismaClient.$executeRawUnsafe("RENAME TABLE `Session` TO `session`");
+    return;
   }
+
+  if (!hasLowercaseTable) {
+    await prismaClient.$executeRawUnsafe(CREATE_SESSION_TABLE_SQL);
+  }
+}
+
+export async function ensurePrismaSessionTable(prismaClient) {
+  let lastError;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      await sleep(400 * attempt);
+    }
+    try {
+      await runTableCheck(prismaClient);
+      return;
+    } catch (error) {
+      if (isConnectionLimitError(error) && attempt < MAX_RETRIES - 1) {
+        lastError = error;
+        continue;
+      }
+      throw new Error(
+        "Failed to prepare Prisma session table. Run `prisma migrate deploy` or grant CREATE/RENAME permissions.",
+        { cause: error }
+      );
+    }
+  }
+  throw new Error(
+    "Failed to prepare Prisma session table. Run `prisma migrate deploy` or grant CREATE/RENAME permissions.",
+    { cause: lastError }
+  );
 }

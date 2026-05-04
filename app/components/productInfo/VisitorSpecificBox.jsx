@@ -66,12 +66,14 @@ export default function VisitorSpecificBox({
     if (hasLoadedProducts) return;
     loadProducts("", 1);
     setHasLoadedProducts(true);
-  }, [hasLoadedProducts, productFetcher]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasLoadedProducts]);
 
   useEffect(() => {
     if (!productModalOpen) return;
     loadProducts(query, page);
-  }, [productModalOpen, query, page, productFetcher]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productModalOpen, query, page]);
 
   useEffect(() => {
     if (!products.length) return;
