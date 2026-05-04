@@ -455,7 +455,6 @@ export default function VisitorBlockConfiguration() {
                 <Text as="h2" variant="headingMd">
                   Preview
                 </Text>
-                <Badge tone="attention">Design only</Badge>
               </InlineStack>
               <Divider />
               <div className="product-info-preview-shell">
