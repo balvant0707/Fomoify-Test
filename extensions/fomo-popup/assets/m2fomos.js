@@ -525,13 +525,34 @@ const bootFomoify = async function () {
     if (!SHOP || !payload || !payload.eventType || !payload.popupType) return;
     if (toBool(window.Shopify?.designMode)) return;
 
+    const productHandle =
+      payload.productHandle || productHandleFromUrl(payload.productUrl);
+    const eventType = safe(payload.eventType, "").toLowerCase();
+    const popupType = safe(payload.popupType, "").toLowerCase();
+    const dedupeMs = eventType === "click" ? 3000 : 30000;
+    const dedupeKey = [
+      "__fomo_track__",
+      SHOP,
+      popupType,
+      eventType,
+      productHandle,
+      safe(window.location.pathname, "/"),
+    ].join("|");
+    try {
+      const lastTrackedAt = Number(window.sessionStorage.getItem(dedupeKey) || "0");
+      if (Number.isFinite(lastTrackedAt) && Date.now() - lastTrackedAt < dedupeMs) {
+        return;
+      }
+      window.sessionStorage.setItem(dedupeKey, String(Date.now()));
+    } catch {}
+
     const body = JSON.stringify({
       ...payload,
       shop: SHOP,
       visitorId: ensureVisitorId(),
       pagePath: safe(window.location.pathname, "/"),
       sourceUrl: safe(window.location.href, ""),
-      productHandle: payload.productHandle || productHandleFromUrl(payload.productUrl),
+      productHandle,
       ts: new Date().toISOString(),
     });
 

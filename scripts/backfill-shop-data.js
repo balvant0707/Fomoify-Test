@@ -9,7 +9,6 @@
 //
 // Reads DATABASE_URL from .env automatically.
 
-import { createRequire } from "module";
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -33,11 +32,7 @@ try {
   // .env not found — rely on environment variables already set
 }
 
-const { PrismaClient } = createRequire(import.meta.url)(
-  resolve(__dirname, "../node_modules/@prisma/client")
-);
-
-const prisma = new PrismaClient();
+const { prisma } = await import("../app/db.server.js");
 
 const SHOPIFY_API_VERSION = "2025-01";
 

@@ -37,11 +37,17 @@ function buildPrismaOptions() {
 
 const globalForPrisma = globalThis;
 
-if (!globalForPrisma.__prisma) {
-  globalForPrisma.__prisma = new PrismaClient(buildPrismaOptions());
+if (!globalForPrisma.prisma && globalForPrisma.__prisma) {
+  globalForPrisma.prisma = globalForPrisma.__prisma;
 }
 
-const prisma = globalForPrisma.__prisma;
+if (!globalForPrisma.prisma) {
+  globalForPrisma.prisma = new PrismaClient(buildPrismaOptions());
+}
+
+globalForPrisma.__prisma = globalForPrisma.prisma;
+
+const prisma = globalForPrisma.prisma;
 
 // In serverless environments each Lambda instance holds its own connection.
 // Disconnecting when the event loop drains releases the MySQL connection before

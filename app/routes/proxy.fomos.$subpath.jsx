@@ -56,6 +56,9 @@ const CACHE_TTL = {
   products: 120 * 1000,
 };
 const SELECT_KEY_CACHE = new Map();
+const TRACK_DEDUPE_MS = Number(process.env.FOMO_TRACK_DEDUPE_MS || 30000);
+const TRACK_DEDUPE_LIMIT = 1000;
+const TRACK_DEDUPE_CACHE = new Map();
 const analyticsModel = () =>
   prisma.popupanalyticsevent || prisma.popupAnalyticsEvent || null;
 const getProxyShopRecord = async (shop) => {
@@ -771,16 +774,42 @@ async function saveTrackEvent({ shop, body }) {
     return { ok: false, skipped: "invalid_event" };
   }
 
+  const visitorId = clean(body?.visitorId, 128);
+  const productHandle = clean(body?.productHandle, 128);
+  const pagePath = clean(body?.pagePath, 255);
+  const sourceUrl = clean(body?.sourceUrl, 500);
+  const dedupeKey = [
+    shop,
+    popupType,
+    eventType,
+    visitorId,
+    productHandle,
+    pagePath,
+  ].join("|");
+  const now = Date.now();
+  const lastTrackedAt = TRACK_DEDUPE_CACHE.get(dedupeKey) || 0;
+  if (now - lastTrackedAt < TRACK_DEDUPE_MS) {
+    return { ok: false, skipped: "duplicate" };
+  }
+
+  TRACK_DEDUPE_CACHE.set(dedupeKey, now);
+  if (TRACK_DEDUPE_CACHE.size > TRACK_DEDUPE_LIMIT) {
+    for (const [key, trackedAt] of TRACK_DEDUPE_CACHE) {
+      if (now - trackedAt > TRACK_DEDUPE_MS) TRACK_DEDUPE_CACHE.delete(key);
+      if (TRACK_DEDUPE_CACHE.size <= TRACK_DEDUPE_LIMIT) break;
+    }
+  }
+
   try {
     await model.create({
       data: {
         shop,
         popupType,
         eventType,
-        visitorId: clean(body?.visitorId, 128),
-        productHandle: clean(body?.productHandle, 128),
-        pagePath: clean(body?.pagePath, 255),
-        sourceUrl: clean(body?.sourceUrl, 500),
+        visitorId,
+        productHandle,
+        pagePath,
+        sourceUrl,
       },
     });
     return { ok: true };

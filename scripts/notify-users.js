@@ -236,7 +236,7 @@ const SEND_DELAY_MS = 300;
 
 import "dotenv/config";
 import nodemailer from "nodemailer";
-import { PrismaClient } from "@prisma/client";
+import prisma from "../app/db.server.js";
 
 const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM_EMAIL, SMTP_FROM_NAME } = process.env;
 const SMTP_PORT = Number(process.env.SMTP_PORT ?? 587);
@@ -250,8 +250,6 @@ if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
   );
   process.exit(1);
 }
-
-const prisma = new PrismaClient();
 
 /** Returns installed shop owners that have a recorded email address. */
 async function getRecipients() {
