@@ -1306,7 +1306,6 @@ export default function AddToCartPopupPage() {
   const [collectionSearch, setCollectionSearch] = useState("");
   const [page, setPage] = useState(1);
   const [collectionPage, setCollectionPage] = useState(1);
-  const [hasLoadedProducts, setHasLoadedProducts] = useState(false);
   const [hasLoadedCollections, setHasLoadedCollections] = useState(false);
 
   const [selectedDataProducts, setSelectedDataProducts] = useState([]);
@@ -1361,14 +1360,6 @@ export default function AddToCartPopupPage() {
   }, [selectedDataProducts]);
 
   useEffect(() => {
-    if (hasLoadedProducts) return;
-    const params = new URLSearchParams();
-    params.set("page", "1");
-    productFetcher.load(`/app/products-picker?${params.toString()}`);
-    setHasLoadedProducts(true);
-  }, [hasLoadedProducts, productFetcher]);
-
-  useEffect(() => {
     if (!pickerOpen) return;
     const params = new URLSearchParams();
     if (search) params.set("q", search);
@@ -1399,7 +1390,7 @@ export default function AddToCartPopupPage() {
       id: item.id,
       title: item.title,
       handle: item.handle || null,
-      image: item.featuredImage || null,
+      image: item.image || item.featuredImage || null,
       status: item.status,
       price: item.price || null,
       compareAt: item.compareAt || null,

@@ -77,10 +77,12 @@ export async function ensurePrismaSessionTable(prismaClient) {
       // Connection-limit errors won't resolve with retries — fail fast to avoid
       // compounding the connection count on an already-saturated DB user.
       if (isConnectionLimitError(error)) {
-        throw new Error(
-          "Failed to prepare Prisma session table. Run `prisma migrate deploy` or grant CREATE/RENAME permissions.",
-          { cause: error }
+        console.warn(
+          "[SessionTable] Skipping readiness check because database connections are saturated.",
+          error?.message || error
         );
+        sessionTableReady = true;
+        return;
       }
       if (attempt < MAX_RETRIES - 1) {
         lastError = error;

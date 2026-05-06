@@ -50,9 +50,11 @@ export async function loader({ request }) {
           title: p.title,
           handle: p.handle,
           status: p.status,
+          image: p.featuredImage?.url || null,
           featuredImage: p.featuredImage?.url || null,
           totalInventory: p.totalInventory,
         })),
+        hasNextPage: false,
       };
     });
 
