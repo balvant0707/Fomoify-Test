@@ -1153,7 +1153,7 @@ function PreviewCard({
         </div>
       )}
 
-      <div style={{ display: "grid", gap: isPortrait ? 8 : 6, minWidth: 0, flex: 1 }}>
+      <div style={{ display: "grid", gap: isPortrait ? 8 : 6, minWidth: 0, flex: 1, textAlign: isPortrait ? "center" : undefined }}>
         {showRating && (
           <div style={{ color: starColor, fontSize: ratingFontSize, letterSpacing: 1 }}>
             {"★★★★★".slice(0, product?.rating || 4)}
@@ -1194,7 +1194,7 @@ function PreviewCard({
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
+            justifyContent: isPortrait ? "center" : "space-between",
             fontSize: metaFontSize,
             color: timestampColor,
             gap: 12,

@@ -761,7 +761,7 @@ function PreviewCard({
     position: "relative",
     flexDirection: isPortrait ? "column" : "row",
     gap: 12,
-    alignItems: "flex-start",
+    alignItems: isPortrait ? "center" : "flex-start",
     maxWidth: isPortrait ? 320 : 460,
   };
 
@@ -901,7 +901,7 @@ function PreviewCard({
           </div>
         ))}
 
-      <div style={{ display: "grid", gap: 6, minWidth: 0, flex: 1 }}>
+      <div style={{ display: "grid", gap: 6, minWidth: 0, flex: 1, textAlign: isPortrait ? "center" : undefined }}>
         {showRating && (
           <div
             style={{

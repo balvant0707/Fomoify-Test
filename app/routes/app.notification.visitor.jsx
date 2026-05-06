@@ -992,6 +992,7 @@ function PreviewCard({
           minWidth: 0,
           flex: 1,
           width: portraitVisitor ? "100%" : undefined,
+          textAlign: isPortrait ? "center" : undefined,
         }}
       >
         {showRating && (
@@ -1053,7 +1054,7 @@ function PreviewCard({
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
+            justifyContent: isPortrait ? "center" : "space-between",
             gap: 12,
             fontSize: metaFontSize,
             color: timestampColor,

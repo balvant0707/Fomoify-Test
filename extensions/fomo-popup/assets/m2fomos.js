@@ -1657,7 +1657,7 @@ const bootFomoify = async function () {
     const alignItems = portraitVisitor
       ? "stretch"
       : isPortrait
-        ? "flex-start"
+        ? "center"
         : "center";
     card.style.cssText = `
       display:flex; gap:${gap}px; align-items:${alignItems};
@@ -1709,7 +1709,7 @@ const bootFomoify = async function () {
     imgWrap.appendChild(img);
 
     const body = document.createElement("div");
-    body.style.cssText = `flex:1;min-width:0;pointer-events:none;display:grid;gap:${portraitVisitor ? 8 : 6}px;${portraitVisitor ? "width:100%;" : ""}`;
+    body.style.cssText = `flex:1;min-width:0;pointer-events:none;display:grid;gap:${portraitVisitor ? 8 : 6}px;${portraitVisitor ? "width:100%;" : ""}${isPortrait ? "text-align:center;" : ""}`;
 
     if (cfg.showRating) {
       const rating = Math.max(
@@ -1879,7 +1879,7 @@ const bootFomoify = async function () {
       if (!shouldRenderPrice) return false;
 
       const line = document.createElement("div");
-      line.style.cssText = `display:flex;gap:8px;align-items:center;flex-wrap:wrap;`;
+      line.style.cssText = `display:flex;gap:8px;align-items:center;flex-wrap:wrap;${isPortrait ? "justify-content:center;" : ""}`;
       if (priceText) {
         const p = document.createElement("span");
         p.textContent = priceText;
@@ -1942,6 +1942,7 @@ const bootFomoify = async function () {
         gap:6px;
         flex-wrap:wrap;
         overflow:visible;
+        ${isPortrait ? "justify-content:center;" : ""}
       `;
 
       const nameSpan = document.createElement("span");
@@ -1980,7 +1981,7 @@ const bootFomoify = async function () {
       const brandText = String(cfg.brandText || "").trim();
       if (timestampText || brandText) {
         const footer = document.createElement("div");
-        footer.style.cssText = `display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:${Math.max(
+        footer.style.cssText = `display:flex;align-items:center;justify-content:${portraitVisitor ? "center" : "space-between"};gap:10px;font-size:${Math.max(
           10,
           fontSize - 2
         )}px;color:${cfg.timestampColor || "rgba(0,0,0,0.62)"};margin-top:${priceLineRendered ? "2px" : "2px"};`;
