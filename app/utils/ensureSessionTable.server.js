@@ -23,6 +23,10 @@ CREATE TABLE IF NOT EXISTS \`session\` (
 
 const MAX_RETRIES = 3;
 
+// Module-level flag: once the table is verified in this process, skip future checks.
+// In serverless (Lambda), each instance checks once then reuses the flag.
+let sessionTableReady = false;
+
 function isConnectionLimitError(err) {
   const msg = err?.message || err?.cause?.message || "";
   return msg.includes("max_user_connections") || msg.includes("1203");
@@ -58,6 +62,8 @@ async function runTableCheck(prismaClient) {
 }
 
 export async function ensurePrismaSessionTable(prismaClient) {
+  if (sessionTableReady) return;
+
   let lastError;
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     if (attempt > 0) {
@@ -65,9 +71,18 @@ export async function ensurePrismaSessionTable(prismaClient) {
     }
     try {
       await runTableCheck(prismaClient);
+      sessionTableReady = true;
       return;
     } catch (error) {
-      if (isConnectionLimitError(error) && attempt < MAX_RETRIES - 1) {
+      // Connection-limit errors won't resolve with retries — fail fast to avoid
+      // compounding the connection count on an already-saturated DB user.
+      if (isConnectionLimitError(error)) {
+        throw new Error(
+          "Failed to prepare Prisma session table. Run `prisma migrate deploy` or grant CREATE/RENAME permissions.",
+          { cause: error }
+        );
+      }
+      if (attempt < MAX_RETRIES - 1) {
         lastError = error;
         continue;
       }
