@@ -1,6 +1,6 @@
 // app/routes/proxy.fomo.$subpath.jsx
 import { json } from "@remix-run/node";
-import prisma from "../db.server";                // <-- default import (IMPORTANT)
+import prisma, { scheduleDisconnect } from "../db.server";  // <-- default import (IMPORTANT)
 import { ensureShopRow } from "../utils/ensureShop.server";
 import { touchEmbedPing } from "../utils/embedPingWrite.server";
 import { normalizeShopDomain } from "../utils/shopDomain.server";
@@ -750,6 +750,17 @@ const enrichOrdersLineItems = (orders, productMap) =>
     return { ...order, line_items: nextLines };
   });
 
+function isDbConnectionError(err) {
+  const msg = err?.message || "";
+  return (
+    msg.includes("max_user_connections") ||
+    msg.includes("Too many database connections") ||
+    msg.includes("connection pool timed out") ||
+    msg.includes("Can't connect to MySQL") ||
+    err?.errorCode === "P2024"
+  );
+}
+
 async function saveTrackEvent({ shop, body }) {
   const model = analyticsModel();
   if (!model) return { ok: false, skipped: "model_missing" };
@@ -760,18 +771,26 @@ async function saveTrackEvent({ shop, body }) {
     return { ok: false, skipped: "invalid_event" };
   }
 
-  await model.create({
-    data: {
-      shop,
-      popupType,
-      eventType,
-      visitorId: clean(body?.visitorId, 128),
-      productHandle: clean(body?.productHandle, 128),
-      pagePath: clean(body?.pagePath, 255),
-      sourceUrl: clean(body?.sourceUrl, 500),
-    },
-  });
-  return { ok: true };
+  try {
+    await model.create({
+      data: {
+        shop,
+        popupType,
+        eventType,
+        visitorId: clean(body?.visitorId, 128),
+        productHandle: clean(body?.productHandle, 128),
+        pagePath: clean(body?.pagePath, 255),
+        sourceUrl: clean(body?.sourceUrl, 500),
+      },
+    });
+    return { ok: true };
+  } catch (err) {
+    if (isDbConnectionError(err)) {
+      console.warn("[FOMO Track] DB connection limit reached, skipping analytics write");
+      return { ok: false, skipped: "db_busy" };
+    }
+    throw err;
+  }
 }
 
 export const loader = async ({ request, params }) => {
@@ -1290,6 +1309,7 @@ export const action = async ({ request, params }) => {
     }
 
     const res = await saveTrackEvent({ shop, body });
+    scheduleDisconnect();
     if (!res.ok) return ok({ tracked: false, ...res });
 
     return ok({ tracked: true });

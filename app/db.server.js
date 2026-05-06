@@ -43,5 +43,18 @@ if (!globalForPrisma.__prisma) {
 
 const prisma = globalForPrisma.__prisma;
 
+// In serverless environments each Lambda instance holds its own connection.
+// Disconnecting when the event loop drains releases the MySQL connection before
+// the container is frozen, preventing max_user_connections exhaustion on the
+// next burst of concurrent invocations.
+let _disconnectTimer = null;
+export function scheduleDisconnect(delayMs = 2000) {
+  if (_disconnectTimer) clearTimeout(_disconnectTimer);
+  _disconnectTimer = setTimeout(() => {
+    _disconnectTimer = null;
+    prisma.$disconnect().catch(() => {});
+  }, delayMs);
+}
+
 export { prisma };        // named export
 export default prisma;    // optional default
