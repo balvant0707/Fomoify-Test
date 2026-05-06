@@ -1,6 +1,6 @@
 // app/routes/proxy.fomo.$subpath.jsx
 import { json } from "@remix-run/node";
-import prisma, { scheduleDisconnect } from "../db.server";  // <-- default import (IMPORTANT)
+import prisma from "../db.server";  // <-- default import (IMPORTANT)
 import { ensureShopRow } from "../utils/ensureShop.server";
 import { touchEmbedPing } from "../utils/embedPingWrite.server";
 import { normalizeShopDomain } from "../utils/shopDomain.server";
@@ -754,12 +754,13 @@ const enrichOrdersLineItems = (orders, productMap) =>
   });
 
 function isDbConnectionError(err) {
-  const msg = err?.message || "";
+  const msg = `${err?.message || ""} ${err?.cause?.message || ""}`;
   return (
     msg.includes("max_user_connections") ||
     msg.includes("Too many database connections") ||
     msg.includes("connection pool timed out") ||
     msg.includes("Can't connect to MySQL") ||
+    msg.includes("Engine is not yet connected") ||
     err?.errorCode === "P2024"
   );
 }
@@ -1338,7 +1339,6 @@ export const action = async ({ request, params }) => {
     }
 
     const res = await saveTrackEvent({ shop, body });
-    scheduleDisconnect();
     if (!res.ok) return ok({ tracked: false, ...res });
 
     return ok({ tracked: true });
