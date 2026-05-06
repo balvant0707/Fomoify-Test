@@ -1,4 +1,4 @@
-import { getOrSetCache } from "./serverCache.server";
+import { getOrSetCache, deleteCache } from "./serverCache.server";
 import { APP_EMBED_HANDLE } from "./themeEmbed.shared";
 
 export const THEME_SETTINGS_DATA_KEY = "config/settings_data.json";
@@ -88,21 +88,16 @@ const entriesFromBlocks = (blocks) => {
     .filter(([, block]) => isObjectRecord(block))
     .map(([blockId, block]) => ({ blockId: String(blockId), block }));
 };
+
 // Returns ONLY the root-level blocks from the active (current) configuration.
 // App embed blocks live exclusively at this level — NOT inside sections or presets.
-// Deep-walking presets/sections causes false
-// positives: a preset copy with disabled:false makes the embed appear ON even
-// when the current config has disabled:true.
 const getActiveRootBlockEntries = (parsed) => {
   let blocks = null;
   if (typeof parsed?.current === "string") {
-    // Old theme format: "current" is a preset name string
     blocks = parsed?.presets?.[parsed.current]?.blocks ?? null;
   } else if (isObjectRecord(parsed?.current)) {
-    // Modern 2.0 theme format: "current" is the active configuration object
     blocks = parsed?.current?.blocks ?? null;
   }
-  // Fallback for non-standard layouts
   if (!isObjectRecord(blocks) && !Array.isArray(blocks)) {
     blocks = parsed?.blocks ?? null;
   }
@@ -115,6 +110,7 @@ const hasRestThemeResources = (admin) =>
   Boolean(admin?.rest?.resources?.Theme?.all);
 const hasRestGet = (admin) => Boolean(admin?.rest?.get);
 const hasGraphql = (admin) => typeof admin?.graphql === "function";
+
 const graphqlJson = async (admin, query, variables) => {
   const response = await admin.graphql(query, { variables });
   const payload = response?.json ? await response.json() : response;
@@ -125,7 +121,8 @@ const graphqlJson = async (admin, query, variables) => {
   return payload;
 };
 
-async function fetchThemeSettingsData({ admin, themeId }) {
+// Fetch settings_data.json via REST or GraphQL.
+async function _fetchThemeSettingsRaw({ admin, themeId }) {
   const restThemeId = toNumericThemeId(themeId);
   const themeGid = toThemeGid(themeId);
 
@@ -135,7 +132,6 @@ async function fetchThemeSettingsData({ admin, themeId }) {
       theme_id: restThemeId,
       asset: { key: THEME_SETTINGS_DATA_KEY },
     };
-
     try {
       const resp = await admin.rest.resources.Asset.all(params);
       const data = resp?.data;
@@ -188,17 +184,32 @@ async function fetchThemeSettingsData({ admin, themeId }) {
   throw new Error("Theme settings fetch unavailable: no REST or GraphQL transport");
 }
 
+// Cached wrapper — 30-second TTL so status is fresh after merchant toggles the embed.
+async function fetchThemeSettingsData({ admin, themeId }) {
+  const cacheKey = `theme:settings:${themeId}`;
+  return getOrSetCache(cacheKey, 30 * 1000, () =>
+    _fetchThemeSettingsRaw({ admin, themeId })
+  );
+}
+
+// Invalidate the settings cache (call after merchant toggles the embed).
+export function invalidateThemeSettingsCache(themeId) {
+  if (themeId) deleteCache(`theme:settings:${themeId}`);
+}
+
 export async function getMainThemeId({ admin, shop }) {
   try {
     const cacheKey = `themes:main:${shop}`;
-    const cached = await getOrSetCache(cacheKey, 60000, async () => {
+    const cached = await getOrSetCache(cacheKey, 60 * 1000, async () => {
       if (hasRestThemeResources(admin)) {
         const resp = await admin.rest.resources.Theme.all({
           session: admin.session,
           fields: "id,role",
         });
         const themes = resp?.data || [];
-        const live = themes.find((t) => t.role === "main");
+        const live = themes.find((t) =>
+          ["main", "live"].includes(toLower(t?.role))
+        );
         return live?.id ?? null;
       }
 
@@ -215,8 +226,9 @@ export async function getMainThemeId({ admin, shop }) {
         `;
         const payload = await graphqlJson(admin, query, {});
         const themes = payload?.data?.themes?.nodes || [];
-        const live = themes.find(
-          (t) => toLower(t?.role) === "main" || t?.role === "MAIN"
+        // Handle all known role names: MAIN, LIVE, main, live
+        const live = themes.find((t) =>
+          ["main", "live"].includes(toLower(t?.role))
         );
         return live?.id ?? null;
       }
@@ -288,6 +300,7 @@ export async function getThemeEmbedState({
 
     const expectedBlockPath = `blocks/${toLower(embedHandle)}`;
     const expectedBlockPathUnderscore = expectedBlockPath.replace(/-/g, "_");
+
     const matches = entries
       .filter(({ blockId, block }) => {
         const type = toLower(block?.type);
@@ -350,6 +363,7 @@ export async function getThemeEmbedState({
         );
       })
       .map(({ block }) => block);
+
     const found = matches.length > 0;
     const enabled = matches.some((block) => !toBool(block?.disabled));
 
