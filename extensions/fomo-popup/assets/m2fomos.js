@@ -1301,7 +1301,7 @@ const bootFomoify = async function () {
 
     const card = document.createElement("div");
     card.style.cssText = `
-    display:flex; gap:${isPortrait ? 10 : 12}px; align-items:${isPortrait ? "flex-start" : "center"}; position:relative; box-sizing:border-box; width:100%;
+    display:flex; gap:${isPortrait ? 10 : 12}px; align-items:center; position:relative; box-sizing:border-box; width:100%;
     flex-direction:${isPortrait ? "column" : "row"};
     padding:${pad}px ${rightPad}px ${pad}px ${leftPad}px;
     font-size:${Number(cfg.baseFontSize) || (mode === "mobile" ? mt.fs : 14)}px; line-height:1.35;
@@ -1340,11 +1340,11 @@ const bootFomoify = async function () {
     imgWrap.appendChild(img);
 
     const body = document.createElement("div");
-    body.style.cssText = `flex:1;min-width:0;max-width:100%;pointer-events:none;overflow-wrap:anywhere;word-break:normal;`;
+    body.style.cssText = `flex:1;min-width:0;max-width:100%;pointer-events:none;overflow-wrap:anywhere;word-break:normal;${isPortrait ? "text-align:center;width:100%;" : ""}`;
 
     // Name, location, and message flow in one block so wrapped text fills the available width.
     const textFlow = document.createElement("div");
-    textFlow.style.cssText = `margin:0 0 6px 0;max-width:100%;overflow-wrap:anywhere;word-break:normal;`;
+    textFlow.style.cssText = `margin:0 0 6px 0;max-width:100%;overflow-wrap:anywhere;word-break:normal;${isPortrait ? "text-align:center;" : ""}`;
     const fw = safe(cfg.fontWeight, "700");
     const nameText = cfg.hideName ? "" : safe(cfg.name, "Someone");
 
@@ -1418,7 +1418,7 @@ const bootFomoify = async function () {
       : "";
     if (priceText || compareText) {
       const priceLine = document.createElement("div");
-      priceLine.style.cssText = `display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 6px 0;`;
+      priceLine.style.cssText = `display:flex;gap:8px;align-items:center;justify-content:${isPortrait ? "center" : "flex-start"};flex-wrap:wrap;margin:0 0 6px 0;`;
 
       if (compareText) {
         const compareEl = document.createElement("span");
@@ -1454,7 +1454,7 @@ const bootFomoify = async function () {
       line3.style.cssText = `font-size:${Math.max(
         10,
         (Number(cfg.baseFontSize) || 14) - 1
-      )}px;opacity:.7;margin-top:${priceText || compareText ? "-2px" : "0"};`;
+      )}px;opacity:.7;margin-top:${priceText || compareText ? "-2px" : "0"};${isPortrait ? "text-align:center;" : ""}`;
       body.appendChild(line3);
     }
 

@@ -1290,7 +1290,7 @@ function Bubble({ form, order, isMobile = false }) {
     <div
       style={{
         display: "flex",
-        alignItems: isPortrait ? "flex-start" : "center",
+        alignItems: "center",
         gap: isPortrait ? 10 : 12,
         flexDirection: isPortrait ? "column" : "row",
         fontFamily:
@@ -1429,8 +1429,15 @@ function Bubble({ form, order, isMobile = false }) {
           </div>
         )
       )}
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <p style={{ margin: 0 }}>
+      <div
+        style={{
+          minWidth: 0,
+          flex: 1,
+          width: isPortrait ? "100%" : undefined,
+          textAlign: isPortrait ? "center" : undefined,
+        }}
+      >
+        <p style={{ margin: 0, textAlign: isPortrait ? "center" : undefined }}>
           {!hide.has("name") && (
             <span
               style={{
@@ -1477,6 +1484,7 @@ function Bubble({ form, order, isMobile = false }) {
                   display: "inline-flex",
                   gap: 8,
                   alignItems: "center",
+                  justifyContent: isPortrait ? "center" : "flex-start",
                   flexWrap: "wrap",
                   marginTop: 6,
                 }}
