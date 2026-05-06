@@ -2142,8 +2142,7 @@ export default function VisitorPopupPage() {
                       </Box>
                       <Box width="50%">
                         <Select
-                          label=" "
-                          labelHidden
+                          label="Unit"
                           options={TIME_UNITS}
                           value={behavior.intervalUnit}
                           onChange={(v) =>

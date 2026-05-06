@@ -2102,8 +2102,7 @@ export default function RecentOrdersPopupPage() {
                     </Box>
                     <Box width="50%">
                       <Select
-                        label=" "
-                        labelHidden
+                        label="Unit"
                         options={TIME_UNITS}
                         value={intervalUnit}
                         onChange={onIntervalUnitChange}
