@@ -295,6 +295,19 @@ export async function action({ request }) {
     return json({ success: false, error: "Missing form" }, { status: 400 });
   }
 
+  if (
+    !Array.isArray(form.selectedDataProducts) ||
+    form.selectedDataProducts.length === 0
+  ) {
+    return json(
+      {
+        success: false,
+        error: "Please select at least 1 product in Data before saving.",
+      },
+      { status: 400 }
+    );
+  }
+
   console.log("[Visitor Popup] form payload:", JSON.stringify(form, null, 2));
   try {
     const saved = await saveVisitorPopup(shop, form);
@@ -1090,6 +1103,7 @@ export default function VisitorPopupPage() {
   const [activeSection, setActiveSection] = useState("layout");
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ active: false, error: false, msg: "" });
+  const [dataProductError, setDataProductError] = useState(false);
 
   const [design, setDesign] = useState({
     notiType: "visitor_list",
@@ -1170,6 +1184,12 @@ export default function VisitorPopupPage() {
   const [selectedVisibilityProducts, setSelectedVisibilityProducts] = useState([]);
   const [selectedCollections, setSelectedCollections] = useState([]);
   const [pickerMode, setPickerMode] = useState("data");
+
+  useEffect(() => {
+    if (selectedDataProducts.length > 0) {
+      setDataProductError(false);
+    }
+  }, [selectedDataProducts.length]);
 
   useEffect(() => {
     if (!saved) return;
@@ -1345,6 +1365,17 @@ export default function VisitorPopupPage() {
   const save = async () => {
     setSaving(true);
     try {
+      if (selectedDataProducts.length === 0) {
+        setDataProductError(true);
+        setActiveSection("layout");
+        setToast({
+          active: true,
+          error: true,
+          msg: "Please select at least 1 product in Data before saving.",
+        });
+        setSaving(false);
+        return;
+      }
       if (
         visibility.productScope === "specific" &&
         selectedVisibilityProducts.length === 0
@@ -1793,6 +1824,11 @@ export default function VisitorPopupPage() {
                         {selectedDataProducts.length} products selected
                       </Text>
                     </InlineStack>
+                    {dataProductError && selectedDataProducts.length === 0 && (
+                      <Text as="p" tone="critical">
+                        Please select at least 1 product before saving.
+                      </Text>
+                    )}
                     <BlockStack gap="150">
                       <Checkbox
                         label="Notification direct to specific product page"
