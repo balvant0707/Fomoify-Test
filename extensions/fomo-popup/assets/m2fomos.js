@@ -1048,10 +1048,14 @@ const bootFomoify = async function () {
 
     const wrap = document.createElement("div");
     wrap.className = "fomo-flash";
-    const wrapWidth = mode === "mobile" ? mt.w : isPortrait ? "340px" : "";
+    const wrapWidth = mode === "mobile"
+      ? mt.w
+      : isPortrait
+        ? "min(calc(100vw - 32px), 340px)"
+        : "min(calc(100vw - 32px), 560px)";
     wrap.style.cssText = `
       position:fixed; z-index:9999; box-sizing:border-box;
-      width:${wrapWidth}; overflow:${imageOverflow ? "visible" : "hidden"}; cursor:pointer;
+      width:${wrapWidth}; max-width:calc(100vw - 32px); overflow:${imageOverflow ? "visible" : "hidden"}; cursor:pointer;
       border-radius:${cardRadius}px;
       background:${bgFlash}; color:${flashTextColor};
       box-shadow:0 12px 28px rgba(15,23,42,.14);
@@ -1064,10 +1068,15 @@ const bootFomoify = async function () {
     const iconBoxSize = mode === "mobile" ? Math.max(mt.img || 0, 56) : 64;
     const cardDirection = isPortrait ? "column" : "row";
     const cardGap = isPortrait ? 10 : 12;
+    const cardPadding = isPortrait
+      ? "20px 10px 20px 10px"
+      : imageOverflow
+        ? "20px 12px 20px 50px"
+        : "20px 12px 20px 12px";
     card.style.cssText = `
-      display:flex; gap:${cardGap}px; align-items:center; position:relative;
+      display:flex; gap:${cardGap}px; align-items:center; position:relative; box-sizing:border-box; width:100%;
       flex-direction:${cardDirection};
-      padding:20px 12px 20px 50px;
+      padding:${cardPadding};
       font-size:${Number(cfg.baseFontSize) || (mode === "mobile" ? mt.fs : 14)
       }px; line-height:1.35;
     `;
@@ -1111,8 +1120,8 @@ const bootFomoify = async function () {
     const body = document.createElement("div");
     body.className = "fomo-body";
     body.style.cssText = isPortrait
-      ? "flex:1;min-width:0;pointer-events:none;text-align:center;width:100%;"
-      : "flex:1;min-width:0;pointer-events:none;";
+      ? "flex:1;min-width:0;max-width:100%;pointer-events:none;text-align:center;width:100%;overflow-wrap:anywhere;word-break:normal;"
+      : "flex:1;min-width:0;max-width:100%;pointer-events:none;overflow-wrap:anywhere;word-break:normal;";
 
     const ttl = document.createElement("div");
     ttl.className = "fomo-title";
@@ -1275,9 +1284,14 @@ const bootFomoify = async function () {
       : cfg.image || cfg.productImage || cfg.uploadedImage || "";
 
     const wrap = document.createElement("div");
+    const wrapWidth = mode === "mobile"
+      ? mt.w
+      : isPortrait
+        ? "min(calc(100vw - 32px), 360px)"
+        : "min(calc(100vw - 32px), 420px)";
     wrap.style.cssText = `
     position:fixed; z-index:9999; box-sizing:border-box;
-    width:${mode === "mobile" ? mt.w : "360px"}; max-width:${mode === "mobile" ? "92vw" : "360px"}; overflow:${imageOverflow ? "visible" : "hidden"}; cursor:pointer;
+    width:${wrapWidth}; max-width:calc(100vw - 32px); overflow:${imageOverflow ? "visible" : "hidden"}; cursor:pointer;
     border-radius:${cardRadius}px;
     background:${bgRecent}; color:${cfg.fontColor || "#111"};
     box-shadow:0 12px 28px rgba(15,23,42,.14);
@@ -1287,7 +1301,7 @@ const bootFomoify = async function () {
 
     const card = document.createElement("div");
     card.style.cssText = `
-    display:flex; gap:${isPortrait ? 10 : 12}px; align-items:${isPortrait ? "flex-start" : "center"}; position:relative;
+    display:flex; gap:${isPortrait ? 10 : 12}px; align-items:${isPortrait ? "flex-start" : "center"}; position:relative; box-sizing:border-box; width:100%;
     flex-direction:${isPortrait ? "column" : "row"};
     padding:${pad}px ${rightPad}px ${pad}px ${leftPad}px;
     font-size:${Number(cfg.baseFontSize) || (mode === "mobile" ? mt.fs : 14)}px; line-height:1.35;
