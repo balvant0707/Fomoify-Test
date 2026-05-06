@@ -887,9 +887,14 @@ export async function loader({ request }) {
 
 /* ---------------- action ---------------- */
 export async function action({ request }) {
-  const { admin, session } = await authenticate.admin(request);
+  let admin, session;
+  try {
+    ({ admin, session } = await authenticate.admin(request));
+  } catch {
+    return json({ success: false, error: "Auth temporarily unavailable." }, { status: 503 });
+  }
   const shop = session?.shop;
-  if (!shop) throw new Response("Unauthorized", { status: 401 });
+  if (!shop) return json({ success: false, error: "Unauthorized" }, { status: 401 });
 
   let body;
   try {

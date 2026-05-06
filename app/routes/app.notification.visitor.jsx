@@ -274,7 +274,12 @@ export async function loader({ request }) {
 }
 
 export async function action({ request }) {
-  const { session } = await authenticate.admin(request);
+  let session;
+  try {
+    ({ session } = await authenticate.admin(request));
+  } catch {
+    return json({ success: false, error: "Auth temporarily unavailable." }, { status: 503 });
+  }
   const shop = session?.shop;
   if (!shop) return json({ success: false, error: "Unauthorized" }, { status: 401 });
 

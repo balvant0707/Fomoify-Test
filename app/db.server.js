@@ -13,19 +13,16 @@ function buildPrismaOptions() {
   try {
     const tunedUrl = new URL(rawUrl);
 
-    if (!tunedUrl.searchParams.has("connection_limit")) {
-      tunedUrl.searchParams.set(
-        "connection_limit",
-        process.env.PRISMA_CONNECTION_LIMIT || DEFAULT_CONNECTION_LIMIT
-      );
-    }
-
-    if (!tunedUrl.searchParams.has("pool_timeout")) {
-      tunedUrl.searchParams.set(
-        "pool_timeout",
-        process.env.PRISMA_POOL_TIMEOUT || DEFAULT_POOL_TIMEOUT
-      );
-    }
+    // Always enforce limits — URL-embedded values are overridden by env vars
+    // so a misconfigured DATABASE_URL can't silently raise the connection count.
+    tunedUrl.searchParams.set(
+      "connection_limit",
+      process.env.PRISMA_CONNECTION_LIMIT || DEFAULT_CONNECTION_LIMIT
+    );
+    tunedUrl.searchParams.set(
+      "pool_timeout",
+      process.env.PRISMA_POOL_TIMEOUT || DEFAULT_POOL_TIMEOUT
+    );
 
     return {
       datasources: {

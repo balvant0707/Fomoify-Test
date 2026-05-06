@@ -71,7 +71,7 @@ export async function action({ request }) {
 
   try {
     const record = await saveStockAnnouncement(shop, form);
-    deleteCacheByPrefix(`notification:rows:${shop}`);
+    deleteCacheByPrefix(`proxy:popup:${shop}:`);
     return json({ success: true, id: record?.id });
   } catch (e) {
     console.error("[Stock Announcement] save failed:", e);

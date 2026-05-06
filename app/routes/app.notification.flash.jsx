@@ -500,9 +500,14 @@ export async function loader({ request }) {
 
 /* ---------------- Action: Upsert Per Shop ---------------- */
 export async function action({ request }) {
-  const { session } = await authenticate.admin(request);
+  let session;
+  try {
+    ({ session } = await authenticate.admin(request));
+  } catch {
+    return json({ success: false, error: "Auth temporarily unavailable." }, { status: 503 });
+  }
   const shop = session?.shop;
-  if (!shop) throw new Response("Missing shop", { status: 400 });
+  if (!shop) return json({ success: false, error: "Missing shop" }, { status: 400 });
 
   let body;
   try {

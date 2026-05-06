@@ -14,7 +14,6 @@ import {
   Frame,
   Modal,
   IndexTable,
-  Thumbnail,
   Badge,
   Checkbox,
   RadioButton,
@@ -2128,14 +2127,7 @@ export default function LowStockPopupPage() {
                       />
                     </IndexTable.Cell>
                     <IndexTable.Cell>
-                      <InlineStack gap="200" blockAlign="center">
-                        <Thumbnail
-                          source={item.image}
-                          alt={item.title}
-                          size="small"
-                        />
-                        <Text>{item.title}</Text>
-                      </InlineStack>
+                      <Text>{item.title}</Text>
                     </IndexTable.Cell>
                     <IndexTable.Cell>
                       <Badge tone="success">active</Badge>
@@ -2226,14 +2218,7 @@ export default function LowStockPopupPage() {
                       />
                     </IndexTable.Cell>
                     <IndexTable.Cell>
-                      <InlineStack gap="200" blockAlign="center">
-                        <Thumbnail
-                          source={item.image}
-                          alt={item.title}
-                          size="small"
-                        />
-                        <Text>{item.title}</Text>
-                      </InlineStack>
+                      <Text>{item.title}</Text>
                     </IndexTable.Cell>
                     <IndexTable.Cell>
                       <Badge tone="info">
