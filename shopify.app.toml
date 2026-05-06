@@ -7,7 +7,7 @@ embedded = true
 handle = "fomoify-popup-test"
 
 [build]
-automatically_update_urls_on_dev = true
+automatically_update_urls_on_dev = false
 
 [webhooks]
 api_version = "2026-01"
