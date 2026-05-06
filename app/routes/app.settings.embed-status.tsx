@@ -56,6 +56,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     shop,
     storeHandle,
     apiKey,
+    extId,
     isEmbedOn,
     hasThemeEmbedCheck,
     hasThemeEmbedSignal,
@@ -65,7 +66,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function AppEmbedStatusSettingsPage() {
-  const { storeHandle, apiKey, isEmbedOn } =
+  const { storeHandle, apiKey, extId, isEmbedOn } =
     useLoaderData<typeof loader>();
   const app = useAppBridge();
   const revalidator = useRevalidator();
@@ -74,7 +75,8 @@ export default function AppEmbedStatusSettingsPage() {
   const openAppEmbeds = () => {
     const params = new URLSearchParams({ context: "apps" });
     if (apiKey) {
-      const embedId = `${apiKey}/${APP_EMBED_HANDLE}`;
+      const embedSuffix = extId || APP_EMBED_HANDLE;
+      const embedId = `${apiKey}/${embedSuffix}`;
       params.set("appEmbed", embedId);
       params.set("activateAppId", embedId);
     }

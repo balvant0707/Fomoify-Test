@@ -351,6 +351,7 @@ export const loader = async ({ request }) => {
     slug,
     shopDomain,
     apiKey,
+    extId,
     dashboardReviewPopupStatus,
     embedContext,
   });
@@ -627,6 +628,7 @@ export default function AppIndex() {
     slug,
     shopDomain,
     apiKey,
+    extId,
     dashboardReviewPopupStatus,
     embedContext,
   } = useLoaderData();
@@ -735,7 +737,8 @@ export default function AppIndex() {
     const safeThemeId = toThemeEditorThemeId(id);
     const params = new URLSearchParams({ context: "apps" });
     if (mode === "activate" && apiKey) {
-      const embedId = `${apiKey}/${APP_EMBED_HANDLE}`;
+      const embedSuffix = extId || APP_EMBED_HANDLE;
+      const embedId = `${apiKey}/${embedSuffix}`;
       params.set("appEmbed", embedId);
       params.set("activateAppId", embedId);
     }
