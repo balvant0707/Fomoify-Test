@@ -352,16 +352,11 @@ const bootFomoify = async function () {
     if (!Number.isFinite(n)) return "";
     const code = String(currencyCode || "").trim().toUpperCase();
     if (!code) return "";
-    if (code === "INR") {
-      return `Rs. ${n.toLocaleString("en-IN", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })}`;
-    }
     try {
       return new Intl.NumberFormat(undefined, {
         style: "currency",
         currency: code,
+        currencyDisplay: "narrowSymbol",
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }).format(n);
@@ -421,7 +416,7 @@ const bootFomoify = async function () {
     if (window.Shopify && typeof window.Shopify.formatMoney === "function") {
       const fmt = activeMoneyFormat() || "${{amount}}";
       const rendered = String(window.Shopify.formatMoney(cents, fmt) || "").trim();
-      if (hasMoneySymbol(rendered)) return rendered;
+      if (hasMoneySymbol(rendered) && !/[A-Za-z]{2,}/.test(rendered)) return rendered;
       return formatCurrencyByCode(n, activeCurrency) || rendered;
     }
     return formatCurrencyByCode(n, activeCurrency) || n.toFixed(2);
