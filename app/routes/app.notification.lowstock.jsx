@@ -1121,7 +1121,7 @@ export default function LowStockPopupPage() {
       id: item.id,
       title: item.title,
       handle: item.handle || null,
-      image: item.featuredImage || null,
+      image: item.image || item.featuredImage || null,
       status: item.status,
       price: item.price || null,
       compareAt: item.compareAt || null,

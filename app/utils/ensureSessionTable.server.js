@@ -81,8 +81,7 @@ export async function ensurePrismaSessionTable(prismaClient) {
           "[SessionTable] Skipping readiness check because database connections are saturated.",
           error?.message || error
         );
-        sessionTableReady = true;
-        return;
+        throw error;
       }
       if (attempt < MAX_RETRIES - 1) {
         lastError = error;

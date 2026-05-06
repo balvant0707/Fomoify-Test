@@ -37,6 +37,17 @@ const createPrismaSessionStorage = async (prismaClient) => {
   });
 };
 
+function isMissingSessionTableError(error) {
+  const name = error?.name || error?.constructor?.name || "";
+  const message = `${error?.message || ""} ${error?.cause?.message || ""}`;
+  return (
+    name === "MissingSessionTableError" ||
+    message.includes("MissingSessionTableError") ||
+    message.includes("The table `session` does not exist") ||
+    message.includes("The table `Session` does not exist")
+  );
+}
+
 function createSessionStorage(prismaClient) {
   let storagePromise;
 
@@ -50,26 +61,35 @@ function createSessionStorage(prismaClient) {
     return storagePromise;
   };
 
+  const runWithStorageRetry = async (operation) => {
+    const storage = await getStorage();
+    try {
+      return await operation(storage);
+    } catch (error) {
+      if (!isMissingSessionTableError(error)) throw error;
+
+      storagePromise = undefined;
+      await ensurePrismaSessionTable(prismaClient);
+      const nextStorage = await getStorage();
+      return operation(nextStorage);
+    }
+  };
+
   return {
     async storeSession(session) {
-      const storage = await getStorage();
-      return storage.storeSession(session);
+      return runWithStorageRetry((storage) => storage.storeSession(session));
     },
     async loadSession(id) {
-      const storage = await getStorage();
-      return storage.loadSession(id);
+      return runWithStorageRetry((storage) => storage.loadSession(id));
     },
     async deleteSession(id) {
-      const storage = await getStorage();
-      return storage.deleteSession(id);
+      return runWithStorageRetry((storage) => storage.deleteSession(id));
     },
     async deleteSessions(ids) {
-      const storage = await getStorage();
-      return storage.deleteSessions(ids);
+      return runWithStorageRetry((storage) => storage.deleteSessions(ids));
     },
     async findSessionsByShop(shop) {
-      const storage = await getStorage();
-      return storage.findSessionsByShop(shop);
+      return runWithStorageRetry((storage) => storage.findSessionsByShop(shop));
     },
     async isReady() {
       try {
