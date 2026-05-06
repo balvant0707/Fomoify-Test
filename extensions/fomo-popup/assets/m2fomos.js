@@ -997,7 +997,7 @@ const bootFomoify = async function () {
     const barWrap = document.createElement("div");
     barWrap.className = "fomo-progress-wrap";
     barWrap.style.cssText = `
-      height:5px;
+      height:4px;
       width:100%;
       overflow:hidden;
       line-height:0;
@@ -1044,6 +1044,7 @@ const bootFomoify = async function () {
         ? `linear-gradient(135deg, ${cfg.bgColor || "#111"} 0%, ${cfg.bgAlt || cfg.bgColor || "#111"} 100%)`
         : cfg.bgColor || "#111";
     const cardRadius = popupRadius(cfg);
+    const flashTextColor = cfg.textColor || cfg.fontColor || "#111827";
 
     const wrap = document.createElement("div");
     wrap.className = "fomo-flash";
@@ -1052,7 +1053,7 @@ const bootFomoify = async function () {
       position:fixed; z-index:9999; box-sizing:border-box;
       width:${wrapWidth}; overflow:${imageOverflow ? "visible" : "hidden"}; cursor:pointer;
       border-radius:${cardRadius}px;
-      background:${bgFlash}; color:${cfg.fontColor || "#fff"};
+      background:${bgFlash}; color:${flashTextColor};
       box-shadow:0 12px 28px rgba(15,23,42,.14);
       animation:${inAnim} ${DUR.in}ms ease-out both;
     `;
@@ -1061,28 +1062,12 @@ const bootFomoify = async function () {
     const card = document.createElement("div");
     card.className = "fomo-card";
     const iconBoxSize = mode === "mobile" ? Math.max(mt.img || 0, 56) : 64;
-    const mobileLeftPad = imageOverflow
-      ? 12 + Math.round(iconBoxSize * 0.45)
-      : 14;
-    const desktopLeftPad = imageOverflow ? 44 : 25;
-    const padTop = mode === "mobile" ? (isPortrait ? 22 : mt.pad + 4) : isPortrait ? 28 : 20;
-    const padRight = isPortrait ? 28 : 52;
-    const padBottom =
-      mode === "mobile" ? (isPortrait ? 22 : mt.pad + 4) : isPortrait ? 28 : 20;
-    const padLeft = isPortrait
-      ? 28
-      : mode === "mobile"
-        ? mobileLeftPad + 4
-        : desktopLeftPad + 6;
     const cardDirection = isPortrait ? "column" : "row";
     const cardGap = isPortrait ? 10 : 12;
     card.style.cssText = `
       display:flex; gap:${cardGap}px; align-items:center; position:relative;
       flex-direction:${cardDirection};
-      padding-top:${padTop}px;
-      padding-right:${padRight}px;
-      padding-bottom:${padBottom}px;
-      padding-left:${padLeft}px;
+      padding:20px 12px 20px 50px;
       font-size:${Number(cfg.baseFontSize) || (mode === "mobile" ? mt.fs : 14)
       }px; line-height:1.35;
     `;
@@ -1148,10 +1133,10 @@ const bootFomoify = async function () {
     loc.className = "fomo-location";
     loc.textContent = safe(cfg.location, "");
     loc.style.cssText = `
-      color:${cfg.priceColor || cfg.fontColor || cfg.textColor || "inherit"};
-      background:${cfg.priceTagBg || "transparent"};
-      border-radius:${POPUP_CARD_RADIUS}px;
-      padding:${cfg.priceTagBg ? "2px 8px" : "0"};
+      color:${flashTextColor};
+      background:transparent;
+      border-radius:0;
+      padding:0;
       font-weight:${safe(cfg.fontWeight, "700")};
     `;
     locLine.appendChild(loc);
@@ -1161,7 +1146,7 @@ const bootFomoify = async function () {
       const sep = document.createElement("span");
       sep.textContent = "—";
       sep.style.opacity = ".6";
-      sep.style.color = cfg.fontColor || cfg.textColor || "inherit";
+      sep.style.color = flashTextColor;
       sep.setAttribute("aria-hidden", "true");
       const tmt = document.createElement("span");
       tmt.className = "fomo-time";
@@ -1169,7 +1154,7 @@ const bootFomoify = async function () {
       tmt.style.cssText = `font-size:${Math.max(
         10,
         (Number(cfg.baseFontSize) || 14) - 1
-      )}px;color:${cfg.starColor || cfg.priceTagAlt || cfg.fontColor || cfg.textColor || "inherit"};background:${cfg.priceTagAlt || "rgba(255,255,255,0.24)"};border:1px solid ${cfg.priceTagAlt || "rgba(255,255,255,0.36)"};border-radius:999px;padding:2px 8px;font-weight:700;`;
+      )}px;color:${flashTextColor};background:transparent;border:0;border-radius:0;padding:0;font-weight:700;`;
       locLine.appendChild(sep);
       locLine.appendChild(tmt);
     }
@@ -2421,7 +2406,7 @@ const bootFomoify = async function () {
         animationSpeed: it.animationSpeed,
         animationMs: it.animationMs,
         layout: it.layout,
-        fontFamily: it.fontFamily,
+       
         fontWeight: it.fontWeight,
         baseFontSize: Number(it.fontSize ?? it.rounded ?? 0) || null,
         cornerRadius: Number(it.cornerRadius ?? POPUP_CARD_RADIUS),
@@ -2579,7 +2564,7 @@ const bootFomoify = async function () {
               animation: it.animation,
               animationSpeed: it.animationSpeed,
               animationMs: it.animationMs,
-              fontFamily: it.fontFamily,
+             
               fontWeight: it.fontWeight,
               baseFontSize:
                 Number(it.fontSize ?? it.rounded ?? 0) || null,
@@ -2611,7 +2596,7 @@ const bootFomoify = async function () {
         animation: it.animation,
         animationSpeed: it.animationSpeed,
         animationMs: it.animationMs,
-        fontFamily: it.fontFamily,
+       
         fontWeight: it.fontWeight,
         baseFontSize: Number(it.fontSize ?? it.rounded ?? 0) || null,
         cornerRadius: Number(it.cornerRadius ?? POPUP_CARD_RADIUS),
@@ -3711,12 +3696,13 @@ const bootFomoify = async function () {
             mobileSize: it.mobileSize,
             animation: it.animation,
             layout: it.layout,
-            fontFamily: it.fontFamily,
+           
             fontWeight: it.fontWeight,
             template: it.template,
             bgColor: it.bgColor,
             bgAlt: it.bgAlt,
             fontColor: it.textColor,
+            textColor: it.textColor,
             titleColor: it.numberColor,
             priceTagBg: it.priceTagBg,
             priceTagAlt: it.priceTagAlt,
@@ -3752,7 +3738,6 @@ const bootFomoify = async function () {
           enabled: toBool(it.enabled),
           showType: safe(it.showType, "allpage"),
           messageText: msgTxt,
-          fontFamily: safe(it.fontFamily, "System"),
           position: safe(it.position, "bottom-left"),
           animation: safe(it.animation, "fade"),
           mobileSize: safe(it.mobileSize, "compact"),
@@ -4161,7 +4146,6 @@ const bootFomoify = async function () {
           textSizePrice: row.textSizePrice,
           size: row.size,
           transparent: row.transparent,
-          fontFamily: row.fontFamily,
           showProductImage: toBool(row.showProductImage, true),
           showPriceTag: toBool(row.showPriceTag, true),
           showRating: toBool(row.showRating, false),
