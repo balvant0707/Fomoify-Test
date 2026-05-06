@@ -1,9 +1,10 @@
-document.addEventListener("DOMContentLoaded", async function () {
-  if (window.__fomoOneFile) return;
-  window.__fomoOneFile = true;
+(function () {
+const bootFomoify = async function () {
+  if (window.__fomoOneFile) return true;
 
   const ROOT = document.getElementById("fomo-embed-root");
-  if (!ROOT) return;
+  if (!ROOT) return false;
+  window.__fomoOneFile = true;
 
   const rootShopDomain = String(
     ROOT.getAttribute("data-shop-domain") || ""
@@ -4550,4 +4551,24 @@ document.addEventListener("DOMContentLoaded", async function () {
     for (const v of a) if (b.has(v)) return true;
     return false;
   }
-});
+  return true;
+};
+
+const runWhenRootIsReady = () => {
+  let attempts = 0;
+  const tryBoot = () => {
+    Promise.resolve(bootFomoify()).then((started) => {
+      if (started || attempts >= 40) return;
+      attempts += 1;
+      window.setTimeout(tryBoot, 50);
+    });
+  };
+  tryBoot();
+};
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", runWhenRootIsReady, { once: true });
+} else {
+  runWhenRootIsReady();
+}
+})();

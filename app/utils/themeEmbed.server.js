@@ -50,6 +50,30 @@ const isObjectRecord = (value) =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 const isBlockLike = (value) =>
   isObjectRecord(value) && typeof value.type === "string";
+const responseStatus = (error) => {
+  const status = Number(error?.status);
+  return Number.isFinite(status) ? status : null;
+};
+const responseHeader = (error, name) => {
+  try {
+    return String(error?.headers?.get?.(name) || "").trim();
+  } catch {
+    return "";
+  }
+};
+const isEmbeddedAuthRedirect = (error) => {
+  const status = responseStatus(error);
+  if (!status || status < 300 || status >= 400) return false;
+  const location = responseHeader(error, "location").toLowerCase();
+  return (
+    location.includes("/auth/session-token") ||
+    location.includes("shopify-reload=")
+  );
+};
+const logThemeEmbedError = (message, error) => {
+  if (isEmbeddedAuthRedirect(error)) return;
+  console.error(message, error);
+};
 const entriesFromBlocks = (blocks) => {
   if (Array.isArray(blocks)) {
     return blocks
@@ -119,6 +143,7 @@ async function fetchThemeSettingsData({ admin, themeId }) {
       if (data?.asset?.value) return data.asset.value;
       return data?.value || "";
     } catch (assetError) {
+      if (isEmbeddedAuthRedirect(assetError)) throw assetError;
       if (!hasRestGet(admin)) throw assetError;
       const fallbackResp = await admin.rest.get({
         path: `themes/${restThemeId}/assets`,
@@ -200,7 +225,7 @@ export async function getMainThemeId({ admin, shop }) {
     });
     return cached ?? null;
   } catch (error) {
-    console.error("[theme-embed] theme list failed:", error);
+    logThemeEmbedError("[theme-embed] theme list failed:", error);
     return null;
   }
 }
@@ -330,7 +355,7 @@ export async function getThemeEmbedState({
 
     return { enabled, found, checked: true };
   } catch (error) {
-    console.error("[theme-embed] embed detect failed:", error);
+    logThemeEmbedError("[theme-embed] embed detect failed:", error);
     return { enabled: false, found: false, checked: false };
   }
 }

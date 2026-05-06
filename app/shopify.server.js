@@ -189,9 +189,10 @@ export const shopify = shopifyApp({
         console.error("[FOMO][afterAuth] failed to fetch shop info:", e);
       }
 
-      // 3) Register webhooks
-      const reg = await shopify.registerWebhooks({ session });
-      console.log("registerWebhooks:", JSON.stringify(reg, null, 2));
+      // Webhook subscriptions are managed by shopify.app.toml.
+      // Calling registerWebhooks here duplicates app-managed subscriptions and
+      // Shopify rejects ORDERS_CREATE with "Address for this topic has already
+      // been taken".
     },
   },
 });
