@@ -39,7 +39,6 @@ import {
   StarIcon,
 } from "@shopify/polaris-icons";
 import { APP_EMBED_HANDLE } from "../utils/themeEmbed.shared";
-import { getEmbedPingStatus } from "../utils/embedPingStatus.server";
 import { sendOwnerEmail } from "../utils/sendOwnerEmail.server";
 import { maybeSendAnnouncementEmail } from "../utils/sendAnnouncementEmail.server";
 import { getDashboardReviewPopupStatus } from "../utils/reviewPopupStatus.server";
@@ -346,7 +345,6 @@ export const loader = async ({ request }) => {
     : Promise.resolve({ themeId: null, appEmbedEnabled: false, appEmbedFound: false, appEmbedChecked: false });
 
   const embedContext = await embedContextState;
-  const embedPingStatus = await getEmbedPingStatus(shop);
   const dashboardReviewPopupStatus = await getDashboardReviewPopupStatus(shop);
 
   return json({
@@ -354,7 +352,6 @@ export const loader = async ({ request }) => {
     shopDomain,
     apiKey,
     dashboardReviewPopupStatus,
-    embedPingStatus,
     embedContext,
   });
 };
@@ -631,7 +628,6 @@ export default function AppIndex() {
     shopDomain,
     apiKey,
     dashboardReviewPopupStatus,
-    embedPingStatus,
     embedContext,
   } = useLoaderData();
   const contactFetcher = useFetcher();
@@ -645,12 +641,6 @@ export default function AppIndex() {
     appEmbedEnabled: Boolean(embedContext?.appEmbedEnabled),
     appEmbedFound: Boolean(embedContext?.appEmbedFound),
     appEmbedChecked: Boolean(embedContext?.appEmbedChecked),
-  });
-  const [embedPing, setEmbedPing] = useState({
-    isOn: Boolean(embedPingStatus?.isOn),
-    isFresh: Boolean(embedPingStatus?.isFresh ?? embedPingStatus?.isOn),
-    lastPingAt: embedPingStatus?.lastPingAt || null,
-    checkedAt: embedPingStatus?.checkedAt || null,
   });
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
@@ -675,14 +665,10 @@ export default function AppIndex() {
   const hasThemeEmbedCheck = embedContextState.appEmbedChecked === true;
   const hasThemeEmbedSignal =
     hasThemeEmbedCheck && embedContextState.appEmbedFound === true;
-  const hasFreshPingSignal =
-    embedPing?.isFresh === true || embedPing?.isOn === true;
   const isEmbedActive =
-    hasThemeEmbedSignal
-      ? Boolean(embedContextState.appEmbedEnabled)
-      : hasFreshPingSignal;
+    hasThemeEmbedSignal && Boolean(embedContextState.appEmbedEnabled);
   const embedStatusTone = isEmbedActive ? "on" : "off";
-  const embedBadgeText = `App embed: ${isEmbedActive ? "ON" : "OFF"}`;
+  const embedBadgeText = `App embed: ${isEmbedActive ? "On" : "Off"}`;
   const whatsappSupportUrl = `https://wa.me/?text=${encodeURIComponent(
     `${WHATSAPP_SUPPORT_MESSAGE}${shopDomain ? ` Store: ${shopDomain}` : ""}`
   )}`;
@@ -710,32 +696,6 @@ export default function AppIndex() {
       active = false;
     };
   }, [embedContext]);
-
-  useEffect(() => {
-    let active = true;
-    Promise.resolve(embedPingStatus)
-      .then((state) => {
-        if (!active) return;
-        setEmbedPing({
-          isOn: Boolean(state?.isOn),
-          isFresh: Boolean(state?.isFresh ?? state?.isOn),
-          lastPingAt: state?.lastPingAt || null,
-          checkedAt: state?.checkedAt || null,
-        });
-      })
-      .catch(() => {
-        if (!active) return;
-        setEmbedPing({
-          isOn: false,
-          isFresh: false,
-          lastPingAt: null,
-          checkedAt: null,
-        });
-      });
-    return () => {
-      active = false;
-    };
-  }, [embedPingStatus]);
 
   useEffect(() => {
     const refreshStatus = () => {

@@ -17,7 +17,6 @@ import {
   Text,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
-import { getEmbedPingStatus } from "../utils/embedPingStatus.server";
 import {
   getStoreHandleFromShopDomain,
   normalizeShopDomain,
@@ -46,16 +45,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   });
 
   const storeHandle = getStoreHandleFromShopDomain(shop);
-  const pingStatus = await getEmbedPingStatus(shop);
   const hasThemeEmbedCheck = Boolean(embedContext.appEmbedChecked);
   const hasThemeEmbedSignal =
     hasThemeEmbedCheck &&
     Boolean(embedContext.appEmbedFound);
-  const hasFreshPingSignal =
-    pingStatus?.isFresh === true || pingStatus?.isOn === true;
-  const isEmbedOn = hasThemeEmbedSignal
-    ? Boolean(embedContext.appEmbedEnabled)
-    : hasFreshPingSignal;
+  const isEmbedOn =
+    hasThemeEmbedSignal && Boolean(embedContext.appEmbedEnabled);
 
   return json({
     shop,
@@ -66,18 +61,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     hasThemeEmbedSignal,
     appEmbedChecked: Boolean(embedContext.appEmbedChecked),
     appEmbedFound: Boolean(embedContext.appEmbedFound),
-    lastPingAt: pingStatus?.lastPingAt || null,
-    checkedAt: pingStatus?.checkedAt || new Date().toISOString(),
   });
 };
 
 export default function AppEmbedStatusSettingsPage() {
-  const { storeHandle, apiKey, isEmbedOn, hasThemeEmbedSignal } =
+  const { storeHandle, apiKey, isEmbedOn } =
     useLoaderData<typeof loader>();
   const app = useAppBridge();
   const revalidator = useRevalidator();
   const isRefreshing = revalidator.state !== "idle";
-  const statusSource = hasThemeEmbedSignal ? "theme-confirmed" : "storefront ping";
 
   const openAppEmbeds = () => {
     const params = new URLSearchParams({ context: "apps" });
@@ -103,14 +95,13 @@ export default function AppEmbedStatusSettingsPage() {
               <Badge
                 tone={isEmbedOn ? "success" : "critical"}
               >
-                {`App embed: ${isEmbedOn ? "ON" : "OFF"} (${statusSource})`}
+                {`App embed: ${isEmbedOn ? "On" : "Off"}`}
               </Badge>
             </InlineStack>
-            {!hasThemeEmbedSignal && (
+            {!isEmbedOn && (
               <Text as="p" tone="subdued">
-                Theme-based embed confirmation is unavailable. The current
-                status is based on a recent storefront ping, so open the theme
-                editor to confirm the app embed is enabled on the active theme.
+                Theme customization does not show Fomoify - Core Embed as
+                enabled on the active theme.
               </Text>
             )}
 

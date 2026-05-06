@@ -64,69 +64,9 @@ const entriesFromBlocks = (blocks) => {
     .filter(([, block]) => isObjectRecord(block))
     .map(([blockId, block]) => ({ blockId: String(blockId), block }));
 };
-const collectThemeBlockMaps = (parsed) => {
-  const maps = [];
-  const pushBlocks = (value) => {
-    if (isObjectRecord(value)) maps.push(value);
-  };
-
-  pushBlocks(parsed?.current?.blocks);
-  pushBlocks(parsed?.blocks);
-
-  if (typeof parsed?.current === "string") {
-    pushBlocks(parsed?.presets?.[parsed.current]?.blocks);
-  }
-
-  if (isObjectRecord(parsed?.presets)) {
-    Object.values(parsed.presets).forEach((preset) => {
-      pushBlocks(preset?.blocks);
-    });
-  }
-
-  const unique = [];
-  const seen = new Set();
-  maps.forEach((map) => {
-    if (seen.has(map)) return;
-    seen.add(map);
-    unique.push(map);
-  });
-  return unique;
-};
-const collectThemeBlockEntries = (parsed) => {
-  const entries = [];
-  const seenBlocks = new Set();
-  const pushEntry = (blockId, block) => {
-    if (!isObjectRecord(block) || seenBlocks.has(block)) return;
-    seenBlocks.add(block);
-    entries.push({ blockId: String(blockId || ""), block });
-  };
-
-  collectThemeBlockMaps(parsed).forEach((blocks) => {
-    Object.entries(blocks).forEach(([blockId, block]) => {
-      pushEntry(blockId, block);
-    });
-  });
-
-  const walk = (value, keyHint = "") => {
-    if (Array.isArray(value)) {
-      value.forEach((item, idx) =>
-        walk(item, keyHint ? `${keyHint}:${idx}` : String(idx))
-      );
-      return;
-    }
-    if (!isObjectRecord(value)) return;
-    if (typeof value.type === "string") {
-      pushEntry(keyHint || value?.id || value?.type || "", value);
-    }
-    Object.entries(value).forEach(([key, child]) => walk(child, key));
-  };
-
-  walk(parsed);
-  return entries;
-};
 // Returns ONLY the root-level blocks from the active (current) configuration.
 // App embed blocks live exclusively at this level — NOT inside sections or presets.
-// Using collectThemeBlockEntries (which deep-walks presets/sections) causes false
+// Deep-walking presets/sections causes false
 // positives: a preset copy with disabled:false makes the embed appear ON even
 // when the current config has disabled:true.
 const getActiveRootBlockEntries = (parsed) => {
@@ -143,43 +83,6 @@ const getActiveRootBlockEntries = (parsed) => {
     blocks = parsed?.blocks ?? null;
   }
   return entriesFromBlocks(blocks);
-};
-
-const getActiveCurrentBlockEntries = (parsed) => {
-  const roots = [];
-  if (isObjectRecord(parsed?.current)) {
-    roots.push(parsed.current);
-  } else if (typeof parsed?.current === "string") {
-    const preset = parsed?.presets?.[parsed.current];
-    if (isObjectRecord(preset)) roots.push(preset);
-  } else if (isObjectRecord(parsed?.blocks)) {
-    roots.push({ blocks: parsed.blocks });
-  }
-
-  const entries = [];
-  const seen = new Set();
-  const pushEntry = (blockId, block) => {
-    if (!isObjectRecord(block) || typeof block.type !== "string") return;
-    if (seen.has(block)) return;
-    seen.add(block);
-    entries.push({ blockId: String(blockId || block.id || block.type || ""), block });
-  };
-  const walk = (value, keyHint = "") => {
-    if (Array.isArray(value)) {
-      value.forEach((item, idx) =>
-        walk(item, keyHint ? `${keyHint}:${idx}` : String(idx))
-      );
-      return;
-    }
-    if (!isObjectRecord(value)) return;
-    pushEntry(keyHint, value);
-    Object.entries(value).forEach(([key, child]) =>
-      walk(child, keyHint ? `${keyHint}:${key}` : key)
-    );
-  };
-
-  roots.forEach((root) => walk(root));
-  return entries;
 };
 
 const hasRestAssetResources = (admin) =>
@@ -323,14 +226,9 @@ export async function getThemeEmbedState({
       return { enabled: false, found: false, checked: false };
     }
 
-    const rootEntries = getActiveRootBlockEntries(parsed);
-    const currentEntries = getActiveCurrentBlockEntries(parsed);
-    const seenEntryBlocks = new Set();
-    const entries = [...rootEntries, ...currentEntries].filter(({ block }) => {
-      if (!isObjectRecord(block) || seenEntryBlocks.has(block)) return false;
-      seenEntryBlocks.add(block);
-      return true;
-    });
+    const entries = getActiveRootBlockEntries(parsed).filter(({ block }) =>
+      isObjectRecord(block)
+    );
 
     if (!entries.length) {
       return { enabled: false, found: false, checked: true };
