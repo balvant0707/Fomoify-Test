@@ -4450,7 +4450,7 @@ const bootFomoify = async function () {
         )
       );
 
-    const shouldCombine = () => activeQueues().length > 1;
+    const shouldCombine = () => false;
 
     function stopAll() {
       try {
