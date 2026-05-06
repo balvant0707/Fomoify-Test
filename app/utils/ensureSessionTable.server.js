@@ -27,6 +27,10 @@ const MAX_RETRIES = 3;
 // In serverless (Lambda), each instance checks once then reuses the flag.
 let sessionTableReady = false;
 
+export function resetPrismaSessionTableReady() {
+  sessionTableReady = false;
+}
+
 function isConnectionLimitError(err) {
   const msg = err?.message || err?.cause?.message || "";
   return msg.includes("max_user_connections") || msg.includes("1203");
@@ -61,8 +65,8 @@ async function runTableCheck(prismaClient) {
   }
 }
 
-export async function ensurePrismaSessionTable(prismaClient) {
-  if (sessionTableReady) return;
+export async function ensurePrismaSessionTable(prismaClient, options = {}) {
+  if (sessionTableReady && !options.force) return;
 
   let lastError;
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -84,8 +88,7 @@ export async function ensurePrismaSessionTable(prismaClient) {
           "[SessionTable] DB connections saturated — assuming session table exists and marking ready.",
           error?.message || error
         );
-        sessionTableReady = true;
-        return;
+        throw error;
       }
       if (attempt < MAX_RETRIES - 1) {
         lastError = error;

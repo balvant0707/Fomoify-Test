@@ -9,7 +9,10 @@ import {
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
 import { upsertInstalledShop } from "./utils/upsertShop.server";
-import { ensurePrismaSessionTable } from "./utils/ensureSessionTable.server";
+import {
+  ensurePrismaSessionTable,
+  resetPrismaSessionTableReady,
+} from "./utils/ensureSessionTable.server";
 
 const toPositiveInt = (value, fallback) => {
   const n = Number(value);
@@ -69,7 +72,8 @@ function createSessionStorage(prismaClient) {
       if (!isMissingSessionTableError(error)) throw error;
 
       storagePromise = undefined;
-      await ensurePrismaSessionTable(prismaClient);
+      resetPrismaSessionTableReady();
+      await ensurePrismaSessionTable(prismaClient, { force: true });
       const nextStorage = await getStorage();
       return operation(nextStorage);
     }

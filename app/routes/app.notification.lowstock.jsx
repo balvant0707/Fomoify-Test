@@ -2137,25 +2137,6 @@ export default function LowStockPopupPage() {
               })}
             </IndexTable>
 
-            <InlineStack gap="200" align="space-between" blockAlign="center">
-              <Text tone="subdued">
-                {pickerProducts.length} products selected
-              </Text>
-              <InlineStack gap="200">
-                <Button
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  Previous
-                </Button>
-                <Button
-                  disabled={!hasNextPage}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Next
-                </Button>
-              </InlineStack>
-            </InlineStack>
           </BlockStack>
         </Modal.Section>
       </Modal>
