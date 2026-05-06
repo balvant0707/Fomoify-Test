@@ -144,6 +144,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const t = String(raw).toLowerCase();
     if (t === "index" || t === "frontpage" || t === "home") return "home";
     if (t === "page") return "pages";
+    if (t === "list-collections" || t === "collection-list") return "collection_list";
     return t || "allpage";
   };
   const currHandle = () =>
@@ -2736,8 +2737,15 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     // ==== TABLE CONFIGS (new popup tables) ====
     const matchesShowType = (showType) => {
-      const st = String(showType || "allpage").toLowerCase();
-      return st === "all" || st === "allpage" || st === pt;
+      const types = String(showType || "allpage")
+        .toLowerCase()
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+      if (!types.length || types.includes("all") || types.includes("allpage")) {
+        return true;
+      }
+      return types.includes(pt);
     };
     const normalizeImage = (img) => {
       if (!img) return "";

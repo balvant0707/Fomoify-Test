@@ -157,18 +157,27 @@ const deriveShowType = (row, key) => {
   }
 
   const pages = [];
-  if (row.showHome) pages.push("Home");
+  const allSelected =
+    Boolean(row.showHome) &&
+    Boolean(row.showProduct) &&
+    Boolean(row.showCollectionList) &&
+    Boolean(row.showCollection) &&
+    Boolean(row.showCart);
+  if (allSelected) return "All page";
+
+  if (row.showHome) pages.push("Home page");
   if (row.showProduct) {
     const scope = String(row.productScope || "all").toLowerCase();
-    pages.push(scope === "specific" ? "Product (specific)" : "Product");
+    pages.push(scope === "specific" ? "Product page (specific)" : "Product page");
   }
-  if (row.showCollection || row.showCollectionList) {
+  if (row.showCollectionList) pages.push("Collection list");
+  if (row.showCollection) {
     const scope = String(row.collectionScope || "all").toLowerCase();
-    pages.push(scope === "specific" ? "Collection (specific)" : "Collection");
+    pages.push(scope === "specific" ? "Collection page (specific)" : "Collection page");
   }
-  if (row.showCart) pages.push("Cart");
+  if (row.showCart) pages.push("Cart page");
 
-  if (pages.length === 0 || pages.length >= 4) return "All Pages";
+  if (pages.length === 0) return "All page";
   return pages.join(", ");
 };
 
@@ -176,7 +185,7 @@ const normalizeRow = (row, key) => ({
   ...row,
   key,
   enabled: row.enabled === true || row.enabled === 1 || row.enabled === "1",
-  showType: row.showType || deriveShowType(row, key),
+  showType: deriveShowType(row, key),
   messageText:
     row.messageText ||
     row.message ||

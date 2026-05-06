@@ -679,7 +679,15 @@ export default function AppIndex() {
     hasThemeEmbedSignal
       ? Boolean(embedContextState.appEmbedEnabled)
       : hasFreshPingSignal;
-  const embedBadgeText = `App embed: ${isEmbedActive ? "ON" : "OFF"}`;
+  const hasReliableEmbedStatus = hasThemeEmbedSignal || hasFreshPingSignal;
+  const embedStatusTone = isEmbedActive
+    ? "on"
+    : hasReliableEmbedStatus
+    ? "off"
+    : "checking";
+  const embedBadgeText = hasReliableEmbedStatus
+    ? `App embed: ${isEmbedActive ? "ON" : "OFF"}`
+    : "App embed: CHECKING";
   const whatsappSupportUrl = `https://wa.me/?text=${encodeURIComponent(
     `${WHATSAPP_SUPPORT_MESSAGE}${shopDomain ? ` Store: ${shopDomain}` : ""}`
   )}`;
@@ -773,6 +781,7 @@ export default function AppIndex() {
     const params = new URLSearchParams({ context: "apps" });
     if (mode === "activate" && apiKey) {
       const embedId = `${apiKey}/${APP_EMBED_HANDLE}`;
+      params.set("appEmbed", embedId);
       params.set("activateAppId", embedId);
     }
     const editorBase = shopDomain
@@ -945,10 +954,9 @@ export default function AppIndex() {
           <h1 className="dashboard-page-title">Dashboard</h1>
           <button
             type="button"
-            className={`dashboard-embed-status dashboard-embed-status--${
-              isEmbedActive ? "on" : "off"
-            }`}
+            className={`dashboard-embed-status dashboard-embed-status--${embedStatusTone}`}
             onClick={() => openThemeEditor(resolvedThemeId, "activate")}
+            title="Open Theme Customize app embeds"
           >
             {embedBadgeText}
           </button>

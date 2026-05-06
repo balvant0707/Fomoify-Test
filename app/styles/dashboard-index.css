@@ -40,6 +40,10 @@
   color: #0f7b31;
 }
 
+.dashboard-embed-status--checking {
+  color: #8a6116;
+}
+
 .dashboard-embed-status:focus-visible {
   outline: var(--p-border-width-050) solid var(--p-color-border-focus);
   outline-offset: var(--p-space-050);

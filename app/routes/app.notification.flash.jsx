@@ -51,45 +51,41 @@ const initVisibility = (showType) => {
     collectionScope: "all",
     showCart: false,
   };
-  switch (showType) {
-    case "home":
-      return { ...base, showHome: true };
-    case "product":
-      return { ...base, showProduct: true };
-    case "collection":
-      return { ...base, showCollection: true, showCollectionList: true };
-    case "cart":
-      return { ...base, showCart: true };
-    case "allpage":
-    default:
-      return {
-        ...base,
-        showHome: true,
-        showProduct: true,
-        showCollection: true,
-        showCollectionList: true,
-        showCart: true,
-      };
+  const parts = String(showType || "allpage")
+    .toLowerCase()
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (!parts.length || parts.includes("all") || parts.includes("allpage")) {
+    return {
+      ...base,
+      showHome: true,
+      showProduct: true,
+      showCollection: true,
+      showCollectionList: true,
+      showCart: true,
+    };
   }
+  return {
+    ...base,
+    showHome: parts.includes("home"),
+    showProduct: parts.includes("product"),
+    showCollectionList:
+      parts.includes("collection_list") || parts.includes("collectionlist"),
+    showCollection: parts.includes("collection"),
+    showCart: parts.includes("cart"),
+  };
 };
 
 const visibilityToShowType = (visibility) => {
-  const flags = [
-    visibility.showHome,
-    visibility.showProduct,
-    visibility.showCollection,
-    visibility.showCollectionList,
-    visibility.showCart,
-  ];
-  const enabledCount = flags.filter(Boolean).length;
-  if (enabledCount === 0) return "allpage";
-  if (enabledCount > 1) return "allpage";
-  if (visibility.showHome) return "home";
-  if (visibility.showProduct) return "product";
-  if (visibility.showCollection || visibility.showCollectionList)
-    return "collection";
-  if (visibility.showCart) return "cart";
-  return "allpage";
+  const selected = [];
+  if (visibility.showHome) selected.push("home");
+  if (visibility.showProduct) selected.push("product");
+  if (visibility.showCollectionList) selected.push("collection_list");
+  if (visibility.showCollection) selected.push("collection");
+  if (visibility.showCart) selected.push("cart");
+  if (selected.length === 0 || selected.length === 5) return "allpage";
+  return selected.join(",");
 };
 
 const FLASH_STYLES = `

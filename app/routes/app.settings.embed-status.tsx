@@ -22,6 +22,7 @@ import {
   getStoreHandleFromShopDomain,
   normalizeShopDomain,
 } from "../utils/shopDomain.server";
+import { APP_EMBED_HANDLE } from "../utils/themeEmbed.shared";
 
 const DISABLED_MESSAGE =
   "Fomoify App Embed is currently disabled. To enable popups and social proof on your storefront, go to Theme Customize \u2192 App embeds and turn ON \u201cFomoify - Core Embed\u201d.";
@@ -56,11 +57,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     ? Boolean(embedContext.appEmbedEnabled)
     : hasFreshPingSignal;
   const hasReliableStatus =
-    hasThemeEmbedCheck || hasFreshPingSignal;
+    hasThemeEmbedSignal || hasFreshPingSignal;
 
   return json({
     shop,
     storeHandle,
+    apiKey,
     isEmbedOn,
     hasReliableStatus,
     hasThemeEmbedCheck,
@@ -73,7 +75,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function AppEmbedStatusSettingsPage() {
-  const { storeHandle, isEmbedOn, hasReliableStatus, hasThemeEmbedSignal } =
+  const { storeHandle, apiKey, isEmbedOn, hasReliableStatus, hasThemeEmbedSignal } =
     useLoaderData<typeof loader>();
   const app = useAppBridge();
   const revalidator = useRevalidator();
@@ -81,7 +83,13 @@ export default function AppEmbedStatusSettingsPage() {
   const statusSource = hasThemeEmbedSignal ? "theme-confirmed" : "storefront ping";
 
   const openAppEmbeds = () => {
-    const url = `https://admin.shopify.com/store/${storeHandle}/themes/current/editor?context=apps`;
+    const params = new URLSearchParams({ context: "apps" });
+    if (apiKey) {
+      const embedId = `${apiKey}/${APP_EMBED_HANDLE}`;
+      params.set("appEmbed", embedId);
+      params.set("activateAppId", embedId);
+    }
+    const url = `https://admin.shopify.com/store/${storeHandle}/themes/current/editor?${params.toString()}`;
     const redirect = createRedirect(app as any);
     redirect.dispatch(RedirectAction.REMOTE, { url, newContext: true });
   };

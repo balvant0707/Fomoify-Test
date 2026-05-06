@@ -1,4 +1,5 @@
 import prisma from "../db.server";
+import { deleteCacheByPrefix } from "../utils/serverCache.server";
 
 const toStr = (v) => {
   const s = v === undefined || v === null ? "" : String(v).trim();
@@ -34,6 +35,16 @@ const withoutKeys = (obj, keys) => {
   const out = { ...obj };
   for (const key of keys) delete out[key];
   return out;
+};
+const invalidatePopupProxyCache = (shop) => {
+  try {
+    if (shop) deleteCacheByPrefix(`proxy:popup:${shop}:`);
+  } catch (error) {
+    console.warn("[PopupConfig] popup proxy cache invalidation failed:", {
+      shop,
+      error: error?.message || error,
+    });
+  }
 };
 const normalizeColumnName = (value) => {
   const raw = String(value || "")
@@ -128,6 +139,7 @@ async function upsertByShop(
         updatedCount: updated?.id ? 1 : 0,
         id: existing.id,
       });
+      invalidatePopupProxyCache(shop);
       return updated;
     }
 
@@ -154,6 +166,7 @@ async function upsertByShop(
       shop,
       id: created?.id ?? null,
     });
+    invalidatePopupProxyCache(shop);
     return created;
   } catch (e) {
     console.error("[PopupConfig] upsert failed:", {
@@ -717,6 +730,12 @@ export async function saveRecentPopup(shop, form) {
 }
 
 export async function saveFlashPopup(shop, form) {
+  const table =
+    prisma?.flashpopupconfig || prisma?.flashPopupConfig || null;
+  if (!table) {
+    throw new Error("Prisma model missing: flashpopupconfig");
+  }
+
   const data = {
     enabled: form?.enabled?.includes?.("enabled") ?? false,
     showType: toStr(form?.showType),
@@ -762,7 +781,7 @@ export async function saveFlashPopup(shop, form) {
   const preferredId = toInt(form?.editId ?? form?.id);
 
   return upsertByShop(
-    prisma.flashpopupconfig,
+    table,
     shop,
     data,
     "flashpopupconfig",

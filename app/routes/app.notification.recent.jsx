@@ -50,45 +50,41 @@ const initVisibility = (showType) => {
     showCollection: false,
     showCart: false,
   };
-  switch (showType) {
-    case "home":
-      return { ...base, showHome: true };
-    case "product":
-      return { ...base, showProduct: true };
-    case "collection":
-      return { ...base, showCollection: true, showCollectionList: true };
-    case "cart":
-      return { ...base, showCart: true };
-    case "allpage":
-    default:
-      return {
-        ...base,
-        showHome: true,
-        showProduct: true,
-        showCollection: true,
-        showCollectionList: true,
-        showCart: true,
-      };
+  const parts = String(showType || "allpage")
+    .toLowerCase()
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (!parts.length || parts.includes("all") || parts.includes("allpage")) {
+    return {
+      ...base,
+      showHome: true,
+      showProduct: true,
+      showCollection: true,
+      showCollectionList: true,
+      showCart: true,
+    };
   }
+  return {
+    ...base,
+    showHome: parts.includes("home"),
+    showProduct: parts.includes("product"),
+    showCollectionList:
+      parts.includes("collection_list") || parts.includes("collectionlist"),
+    showCollection: parts.includes("collection"),
+    showCart: parts.includes("cart"),
+  };
 };
 
 const visibilityToShowType = (visibility) => {
-  const flags = [
-    visibility.showHome,
-    visibility.showProduct,
-    visibility.showCollection,
-    visibility.showCollectionList,
-    visibility.showCart,
-  ];
-  const enabledCount = flags.filter(Boolean).length;
-  if (enabledCount === 0) return "allpage";
-  if (enabledCount > 1) return "allpage";
-  if (visibility.showHome) return "home";
-  if (visibility.showProduct) return "product";
-  if (visibility.showCollection || visibility.showCollectionList)
-    return "collection";
-  if (visibility.showCart) return "cart";
-  return "allpage";
+  const selected = [];
+  if (visibility.showHome) selected.push("home");
+  if (visibility.showProduct) selected.push("product");
+  if (visibility.showCollectionList) selected.push("collection_list");
+  if (visibility.showCollection) selected.push("collection");
+  if (visibility.showCart) selected.push("cart");
+  if (selected.length === 0 || selected.length === 5) return "allpage";
+  return selected.join(",");
 };
 const HIDE_CHOICES = [
   { label: "Customer Name", value: "name" },
@@ -946,30 +942,56 @@ export async function action({ request }) {
 
   // 2) Strong validation: require at least one product handle
   const allHandlesWindow = collectAllProductHandles(orders);
+  const existingProductHandles = Array.isArray(form?.selectedProductsJson)
+    ? form.selectedProductsJson
+    : [];
+  const canReuseExistingRecentData =
+    existingProductHandles.length > 0 ||
+    (Array.isArray(form?.messageTitlesJson) && form.messageTitlesJson.length > 0) ||
+    (Array.isArray(form?.locationsJson) && form.locationsJson.length > 0);
   if (!orders || orders.length === 0 || allHandlesWindow.length === 0) {
-    // No usable orders => 422 validation (not 500)
-    return json(
-      {
-        success: false,
-        error:
-          "No usable orders found in the selected window. Try selecting fewer days or wait until you have some orders with products.",
-        validation: "NO_USABLE_ORDERS",
-      },
-      { status: 422 }
-    );
+    if (!canReuseExistingRecentData) {
+      // No usable orders => 422 validation (not 500)
+      return json(
+        {
+          success: false,
+          error:
+            "No usable orders found in the selected window. Try selecting fewer days or wait until you have some orders with products.",
+          validation: "NO_USABLE_ORDERS",
+        },
+        { status: 422 }
+      );
+    }
   }
 
   // 3) Persist only after validation
-  try {
-    const persistRes = await persistCustomerProductHandles(prisma, shop, orders);
-    if (persistRes?.error)
-      console.warn("[action] persist warning:", persistRes.error);
-  } catch (e) {
-    console.error("[action] persist failed:", e);
+  if (orders.length > 0 && allHandlesWindow.length > 0) {
+    try {
+      const persistRes = await persistCustomerProductHandles(prisma, shop, orders);
+      if (persistRes?.error)
+        console.warn("[action] persist warning:", persistRes.error);
+    } catch (e) {
+      console.error("[action] persist failed:", e);
+    }
   }
 
   // 4) Build save payload
   const { locations, customerNames } = deriveBucketsFromOrders(orders);
+  const nextLocations =
+    locations?.length
+      ? locations
+      : Array.isArray(form?.locationsJson)
+        ? form.locationsJson
+        : [];
+  const nextCustomerNames =
+    customerNames?.length
+      ? customerNames
+      : Array.isArray(form?.messageTitlesJson)
+        ? form.messageTitlesJson
+        : [];
+  const nextProductHandles = allHandlesWindow.length
+    ? allHandlesWindow
+    : existingProductHandles;
   const newestOrderCreatedAtISO =
     orders.length > 0 && orders[0]?.createdAt
       ? trimIso(String(orders[0].createdAt))
@@ -979,14 +1001,14 @@ export async function action({ request }) {
     ...form,
     editId,
     rounded: form?.fontSize ?? form?.rounded,
-    messageTitlesJson: customerNames || [],
-    locationsJson: locations || [],
+    messageTitlesJson: nextCustomerNames || [],
+    locationsJson: nextLocations || [],
     namesJson: Array.isArray(form?.namesJson) ? form.namesJson : [],
-    selectedProductsJson: allHandlesWindow || [],
+    selectedProductsJson: nextProductHandles || [],
     mobilePosition: Array.isArray(form?.mobilePosition)
       ? form.mobilePosition
       : [form?.mobilePosition || "bottom"],
-    createOrderTime: newestOrderCreatedAtISO ?? null,
+    createOrderTime: newestOrderCreatedAtISO ?? form?.createOrderTime ?? null,
     orderDays: Number(fetchDays),
   };
 
@@ -996,11 +1018,11 @@ export async function action({ request }) {
       success: true,
       id: saved?.id ?? null,
       savedDays: Number(fetchDays),
-      savedCreateOrderTime: newestOrderCreatedAtISO ?? null,
+      savedCreateOrderTime: newestOrderCreatedAtISO ?? form?.createOrderTime ?? null,
       counts: {
-        products: allHandlesWindow.length,
-        locations: (locations || []).length,
-        names: (customerNames || []).length,
+        products: (nextProductHandles || []).length,
+        locations: (nextLocations || []).length,
+        names: (nextCustomerNames || []).length,
       },
       window: { startISO, endISO },
     });
