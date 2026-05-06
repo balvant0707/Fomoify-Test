@@ -1,7 +1,12 @@
 // app/utils/ensureShop.server.js
 import prisma from "../db.server.js";
 
-const norm = (s) => (s || "").toLowerCase().replace(/^https?:\/\//, "");
+const norm = (s) =>
+  (s || "")
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "")
+    .trim();
 
 /**
  * Ensure Shop row exists.
@@ -14,7 +19,17 @@ export async function ensureShopRow(rawShop) {
 
   // 1) Already exists and is properly installed — fast path.
   const existing = await prisma.shop.findUnique({ where: { shop } });
-  if (existing?.installed && existing?.accessToken) return existing;
+  if (existing?.installed && existing?.accessToken) {
+    if (existing.status === "installed" && !existing.uninstalledAt) return existing;
+
+    return prisma.shop.update({
+      where: { shop },
+      data: {
+        status: "installed",
+        uninstalledAt: null,
+      },
+    });
+  }
 
   // 2) Try to read offline session first, else any session for that shop.
   // This also heals a shop row that has installed:false (e.g. after a failed
@@ -33,6 +48,7 @@ export async function ensureShopRow(rawShop) {
     update: {
       accessToken: sess.accessToken ?? null,
       installed: true,
+      status: "installed",
       uninstalledAt: null,
       updatedAt: new Date(),
     },
@@ -40,6 +56,7 @@ export async function ensureShopRow(rawShop) {
       shop,
       accessToken: sess.accessToken ?? null,
       installed: true,
+      status: "installed",
       createdAt: new Date(),
       updatedAt: new Date(),
     },
