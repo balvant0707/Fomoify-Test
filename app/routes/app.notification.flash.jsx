@@ -259,19 +259,11 @@ const FLASH_STYLES = `
   font-size: 12px;
   line-height: 16px;
   font-weight: 700;
-  background: rgba(255, 255, 255, 0.74);
-  border: 1px solid rgba(17, 24, 39, 0.08);
 }
 .flash-sale-popup--portrait .flash-sale-popup__timer {
   margin: 0 auto;
 }
-.flash-sale-popup__timer-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: currentColor;
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.5);
-}
+
 .flash-preview-note {
   text-align: center;
 }
@@ -897,13 +889,10 @@ function NotificationPreview({ form, isMobile = false }) {
           <span
             className="flash-sale-popup__timer"
             style={{
-              color: form.starColor || form.priceTagAlt,
-              background: form.priceTagAlt,
-              borderColor: form.priceTagAlt,
+              color: form.textColor || form.priceTagAlt,
               fontSize: Math.max(11, sized - 2),
             }}
           >
-            <span className="flash-sale-popup__timer-dot" />
             <span style={{ fontSize: Math.max(11, sized - 2), lineHeight: 1.2 }}>
               {timer}
             </span>
@@ -1462,41 +1451,9 @@ export default function FlashConfigPage() {
                     </Box>
                     <Box width="50%">
                       <ColorInput
-                        label="Number color"
+                        label="Heading color"
                         value={form.numberColor}
                         onChange={(v) => setForm(f => ({ ...f, numberColor: v }))}
-                      />
-                    </Box>
-                  </InlineStack>
-                  <InlineStack gap="400" wrap={false} width="100%">
-                    <Box width="50%">
-                      <ColorInput
-                        label="Price tag background"
-                        value={form.priceTagBg}
-                        onChange={(v) => setForm(f => ({ ...f, priceTagBg: v }))}
-                      />
-                    </Box>
-                    <Box width="50%">
-                      <ColorInput
-                        label="Compare at price color"
-                        value={form.priceTagAlt}
-                        onChange={(v) => setForm(f => ({ ...f, priceTagAlt: v }))}
-                      />
-                    </Box>
-                  </InlineStack>
-                  <InlineStack gap="400" wrap={false} width="100%">
-                    <Box width="50%">
-                      <ColorInput
-                        label="Price color"
-                        value={form.priceColor}
-                        onChange={(v) => setForm(f => ({ ...f, priceColor: v }))}
-                      />
-                    </Box>
-                    <Box width="50%">
-                      <ColorInput
-                        label="Star color"
-                        value={form.starColor}
-                        onChange={(v) => setForm(f => ({ ...f, starColor: v }))}
                       />
                     </Box>
                   </InlineStack>
