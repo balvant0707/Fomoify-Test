@@ -15,6 +15,7 @@ const normalizeWords = (value) =>
 const blockSearchText = (blockId, block) =>
   [
     blockId,
+    block?.id,
     block?.type,
     block?.name,
     block?.target,
@@ -23,6 +24,7 @@ const blockSearchText = (blockId, block) =>
     block?.settings?.schemaName,
     block?.settings?.app_id,
     block?.settings?.appId,
+    isObjectRecord(block?.settings) ? JSON.stringify(block.settings) : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -141,6 +143,43 @@ const getActiveRootBlockEntries = (parsed) => {
     blocks = parsed?.blocks ?? null;
   }
   return entriesFromBlocks(blocks);
+};
+
+const getActiveCurrentBlockEntries = (parsed) => {
+  const roots = [];
+  if (isObjectRecord(parsed?.current)) {
+    roots.push(parsed.current);
+  } else if (typeof parsed?.current === "string") {
+    const preset = parsed?.presets?.[parsed.current];
+    if (isObjectRecord(preset)) roots.push(preset);
+  } else if (isObjectRecord(parsed?.blocks)) {
+    roots.push({ blocks: parsed.blocks });
+  }
+
+  const entries = [];
+  const seen = new Set();
+  const pushEntry = (blockId, block) => {
+    if (!isObjectRecord(block) || typeof block.type !== "string") return;
+    if (seen.has(block)) return;
+    seen.add(block);
+    entries.push({ blockId: String(blockId || block.id || block.type || ""), block });
+  };
+  const walk = (value, keyHint = "") => {
+    if (Array.isArray(value)) {
+      value.forEach((item, idx) =>
+        walk(item, keyHint ? `${keyHint}:${idx}` : String(idx))
+      );
+      return;
+    }
+    if (!isObjectRecord(value)) return;
+    pushEntry(keyHint, value);
+    Object.entries(value).forEach(([key, child]) =>
+      walk(child, keyHint ? `${keyHint}:${key}` : key)
+    );
+  };
+
+  roots.forEach((root) => walk(root));
+  return entries;
 };
 
 const hasRestAssetResources = (admin) =>
@@ -284,7 +323,14 @@ export async function getThemeEmbedState({
       return { enabled: false, found: false, checked: false };
     }
 
-    const entries = getActiveRootBlockEntries(parsed);
+    const rootEntries = getActiveRootBlockEntries(parsed);
+    const currentEntries = getActiveCurrentBlockEntries(parsed);
+    const seenEntryBlocks = new Set();
+    const entries = [...rootEntries, ...currentEntries].filter(({ block }) => {
+      if (!isObjectRecord(block) || seenEntryBlocks.has(block)) return false;
+      seenEntryBlocks.add(block);
+      return true;
+    });
 
     if (!entries.length) {
       return { enabled: false, found: false, checked: true };
@@ -313,6 +359,9 @@ export async function getThemeEmbedState({
           .filter(Boolean)
       )
     );
+    ["fomoifypopuptest", "fomoifypopup", "fomoifysalespopup"].forEach((marker) =>
+      appMarkers.push(marker)
+    );
 
     const expectedBlockPath = `blocks/${toLower(embedHandle)}`;
     const expectedBlockPathUnderscore = expectedBlockPath.replace(/-/g, "_");
@@ -337,6 +386,8 @@ export async function getThemeEmbedState({
         const hasAppType =
           type.includes("shopify://apps/") ||
           type.includes("/apps/") ||
+          appUrl.includes("apps/") ||
+          appUrl.includes("/blocks/") ||
           normalizedType.includes("shopifyapps") ||
           normalizedBlockId.includes("shopifyapps") ||
           appMarkers.some((marker) => normalizedSearchText.includes(marker));

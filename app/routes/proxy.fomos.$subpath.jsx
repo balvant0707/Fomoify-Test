@@ -58,6 +58,12 @@ const CACHE_TTL = {
 const SELECT_KEY_CACHE = new Map();
 const analyticsModel = () =>
   prisma.popupanalyticsevent || prisma.popupAnalyticsEvent || null;
+const getProxyShopRecord = async (shop) => {
+  const existing = await prisma.shop.findUnique({ where: { shop } });
+  if (existing?.installed && existing?.accessToken) return existing;
+  const healed = await ensureShopRow(shop);
+  return healed || existing || null;
+};
 const tableModel = (key) => {
   switch (key) {
     case "visitor":
@@ -829,9 +835,7 @@ export const loader = async ({ request, params }) => {
         `proxy:session:${shop}`,
         CACHE_TTL.session,
         async () => {
-          const shopRecord =
-            (await prisma.shop.findUnique({ where: { shop } })) ||
-            (await ensureShopRow(shop));
+          const shopRecord = await getProxyShopRecord(shop);
 
           if (!shopRecord) {
             return {
@@ -865,9 +869,7 @@ export const loader = async ({ request, params }) => {
         `proxy:orders:${shop}:${days}:${limit}`,
         CACHE_TTL.orders,
         async () => {
-          const shopRecord =
-            (await prisma.shop.findUnique({ where: { shop } })) ||
-            (await ensureShopRow(shop));
+          const shopRecord = await getProxyShopRecord(shop);
 
           if (!shopRecord || !shopRecord.installed || !shopRecord.accessToken) {
             return {
@@ -1045,9 +1047,7 @@ export const loader = async ({ request, params }) => {
         `proxy:customers:${shop}:${limit}`,
         CACHE_TTL.customers,
         async () => {
-          const shopRecord =
-            (await prisma.shop.findUnique({ where: { shop } })) ||
-            (await ensureShopRow(shop));
+          const shopRecord = await getProxyShopRecord(shop);
 
           if (!shopRecord || !shopRecord.installed || !shopRecord.accessToken) {
             return {
@@ -1111,9 +1111,7 @@ export const loader = async ({ request, params }) => {
         `proxy:products:${shop}:${limit}`,
         CACHE_TTL.products,
         async () => {
-          const shopRecord =
-            (await prisma.shop.findUnique({ where: { shop } })) ||
-            (await ensureShopRow(shop));
+          const shopRecord = await getProxyShopRecord(shop);
 
           if (!shopRecord || !shopRecord.installed || !shopRecord.accessToken) {
             return {
@@ -1154,9 +1152,7 @@ export const loader = async ({ request, params }) => {
 
     if (subpath === "popup") {
       // Ensure/require session
-      const shopRecord =
-        (await prisma.shop.findUnique({ where: { shop } })) ||
-        (await ensureShopRow(shop));
+      const shopRecord = await getProxyShopRecord(shop);
 
       if (!shopRecord || !shopRecord.installed) {
         return ok({
