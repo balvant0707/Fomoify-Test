@@ -13,13 +13,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   const SHOP = String((window.Shopify && window.Shopify.shop) || rootShopDomain)
     .trim()
     .toLowerCase();
-  const directProxyBase = String(ROOT.getAttribute("data-direct-proxy-base") || "")
-    .trim()
-    .replace(/\/$/, "");
-  const PROXY_BASES = [
-    "/apps/fomo",
-    ...(directProxyBase ? [directProxyBase] : []),
-  ];
+  const PROXY_BASES = ["/apps/fomo"];
   const PROXY_STORE_KEY = "__fomo_proxy_base__";
   const readSavedProxyBase = () => {
     try {
@@ -190,6 +184,30 @@ document.addEventListener("DOMContentLoaded", async function () {
       if (Number.isFinite(n) && n > 0) return n;
     }
     return 6;
+  };
+  const timingFromConfig = (cfg = {}) => {
+    const firstDelaySeconds = Math.max(
+      0,
+      toNum(cfg.firstDelaySeconds ?? cfg.delaySeconds ?? cfg.delay, 0)
+    );
+    const durationSeconds = displaySecondsFrom(
+      cfg.durationSeconds,
+      cfg.visibleSeconds,
+      cfg.duration
+    );
+    const hasSavedIntervalSeconds =
+      cfg.alternateSeconds !== undefined &&
+      cfg.alternateSeconds !== null &&
+      cfg.alternateSeconds !== "";
+    const alternateSeconds = hasSavedIntervalSeconds
+      ? Math.max(0, toNum(cfg.alternateSeconds, 0))
+      : unitToSeconds(cfg.interval, cfg.intervalUnit);
+    return {
+      firstDelaySeconds,
+      durationSeconds,
+      visibleSeconds: durationSeconds,
+      alternateSeconds,
+    };
   };
   const formatProductName = (name, mode, limit) => {
     const raw = String(name || "").trim();
@@ -2127,7 +2145,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Combined playlist — alternates items one-by-one
   function createCombinedStream() {
     return {
-      mode: "mobile",
+      mode: isMobile() ? "mobile" : "desktop",
       seq: [],
       t: null,
       idx: 0,
@@ -2135,6 +2153,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       runId: 0,
       start(immediate = false) {
         this.stop();
+        this.mode = isMobile() ? "mobile" : "desktop";
         const runId = ++this.runId;
         if (!this.seq.length) return;
 
@@ -2157,7 +2176,7 @@ document.addEventListener("DOMContentLoaded", async function () {
               showNext(gap);
             };
             try {
-              this.el = renderer(item.cfg, "mobile", queueNext);
+              this.el = renderer(item.cfg, this.mode, queueNext);
               const visibleMs = Math.max(
                 1,
                 displaySecondsFrom(item.cfg.durationSeconds, item.cfg.duration, item.cfg.visibleSeconds)
@@ -2404,13 +2423,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         fontWeight: it.fontWeight,
         baseFontSize: Number(it.fontSize ?? it.rounded ?? 0) || null,
         cornerRadius: Number(it.cornerRadius ?? POPUP_CARD_RADIUS),
-        visibleSeconds: displaySecondsFrom(
-          it.durationSeconds,
-          it.visibleSeconds,
-          it.duration
-        ),
-        alternateSeconds: Number(it.alternateSeconds || 4),
-        firstDelaySeconds: Number(it.firstDelaySeconds ?? it.delaySeconds ?? 0),
+        ...timingFromConfig(it),
         progressColor: it.progressColor || it.numberColor || it.titleColor || it.textColor || it.msgColor,
         bgColor: it.bgColor,
         bgAlt: it.bgAlt,
@@ -2454,11 +2467,6 @@ document.addEventListener("DOMContentLoaded", async function () {
             uploadedImage: iconSrc,
             productUrl: safe(it.ctaUrl, "#"),
             mobilePosition: normMB(mbPos, defaultMB),
-            durationSeconds: displaySecondsFrom(
-              it.durationSeconds,
-              it.visibleSeconds,
-              it.duration
-            ),
             ...COMMON,
           });
         }
@@ -2538,11 +2546,6 @@ document.addEventListener("DOMContentLoaded", async function () {
                 pickSmart(mbPosArr, 0, defaultMB),
                 defaultMB
               ),
-              durationSeconds: displaySecondsFrom(
-                it.durationSeconds,
-                it.visibleSeconds,
-                it.duration
-              ),
 
               // raw locations JSON so renderer can still use it if needed
               rawLocations: it.locationsJson,
@@ -2579,13 +2582,7 @@ document.addEventListener("DOMContentLoaded", async function () {
               baseFontSize:
                 Number(it.fontSize ?? it.rounded ?? 0) || null,
               cornerRadius: Number(it.cornerRadius ?? POPUP_CARD_RADIUS),
-              visibleSeconds: displaySecondsFrom(
-                it.durationSeconds,
-                it.visibleSeconds,
-                it.duration
-              ),
-              alternateSeconds: Number(it.alternateSeconds || 4),
-              firstDelaySeconds: Number(it.firstDelaySeconds ?? it.delaySeconds ?? 0),
+              ...timingFromConfig(it),
             };
             recentConfigs.push(cfg);
           }
@@ -2616,13 +2613,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         fontWeight: it.fontWeight,
         baseFontSize: Number(it.fontSize ?? it.rounded ?? 0) || null,
         cornerRadius: Number(it.cornerRadius ?? POPUP_CARD_RADIUS),
-        visibleSeconds: displaySecondsFrom(
-          it.durationSeconds,
-          it.visibleSeconds,
-          it.duration
-        ),
-        alternateSeconds: Number(it.alternateSeconds || 4),
-        firstDelaySeconds: Number(it.firstDelaySeconds ?? it.delaySeconds ?? 0),
+        ...timingFromConfig(it),
       };
       const includeCurrent = it.includeCurrentProduct !== false;
       const hideFlags = flagsFromNamesJson(it.namesJson);
@@ -2661,11 +2652,6 @@ document.addEventListener("DOMContentLoaded", async function () {
               mobilePosition: normMB(
                 pickSmart(mbPosArr, 0, defaultMB),
                 defaultMB
-              ),
-              durationSeconds: displaySecondsFrom(
-                it.durationSeconds,
-                it.visibleSeconds,
-                it.duration
               ),
 
               // raw locations for fallback
@@ -2733,11 +2719,6 @@ document.addEventListener("DOMContentLoaded", async function () {
             mobilePosition: normMB(
               pickSmart(mbPosArr, i, defaultMB),
               defaultMB
-            ),
-            durationSeconds: displaySecondsFrom(
-              it.durationSeconds,
-              it.visibleSeconds,
-              it.duration
             ),
 
             // raw locations for fallback
@@ -3715,11 +3696,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             uploadedImage: iconSrc,
             productUrl: safe(it.ctaUrl, "#"),
             mobilePosition: normMB(mbPos, defaultMB),
-            durationSeconds: displaySecondsFrom(
-              it.durationSeconds,
-              it.visibleSeconds,
-              it.duration
-            ),
+            ...timingFromConfig(it),
 
             positionDesktop: it.position,
             mobileSize: it.mobileSize,
@@ -3739,8 +3716,6 @@ document.addEventListener("DOMContentLoaded", async function () {
             progressColor: it.numberColor || it.textColor,
             imageAppearance: it.imageAppearance,
             cornerRadius: Number(it.rounded ?? POPUP_CARD_RADIUS),
-            firstDelaySeconds: Number(it.firstDelaySeconds ?? 0),
-            alternateSeconds: Number(it.alternateSeconds || 0),
           });
         }
       }
@@ -3785,13 +3760,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           priceColor: safe(it.priceColor, "#fff"),
           starColor: safe(it.starColor, "#f5a623"),
           rounded: Number(it.rounded ?? POPUP_CARD_RADIUS),
-          firstDelaySeconds: Number(it.firstDelaySeconds ?? 0),
-          durationSeconds: displaySecondsFrom(
-            it.durationSeconds,
-            it.visibleSeconds,
-            it.duration
-          ),
-          alternateSeconds: Number(it.alternateSeconds ?? 4),
+          ...timingFromConfig(it),
           intervalUnit: safe(it.intervalUnit, "seconds"),
           fontWeight: Number.isFinite(Number(it.fontWeight))
             ? Number(it.fontWeight)
@@ -3950,11 +3919,6 @@ document.addEventListener("DOMContentLoaded", async function () {
                   pickSmart(mbPosArr, 0, defaultMB),
                   defaultMB
                 ),
-                durationSeconds: displaySecondsFrom(
-                  it.durationSeconds,
-                  it.visibleSeconds,
-                  it.duration
-                ),
 
                 rawLocations: it.locationsJson,
                 ...hideFlags,
@@ -4019,11 +3983,6 @@ document.addEventListener("DOMContentLoaded", async function () {
               mobilePosition: normMB(
                 pickSmart(mbPosArr, i, defaultMB),
                 defaultMB
-              ),
-              durationSeconds: displaySecondsFrom(
-                it.durationSeconds,
-                it.visibleSeconds,
-                it.duration
               ),
 
               rawLocations: it.locationsJson,
@@ -4200,13 +4159,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           ratingSource: String(row.ratingSource || "judge_me").toLowerCase(),
           showClose: toBool(row.showClose, true),
           directProductPage: toBool(row.directProductPage, true),
-          durationSeconds: displaySecondsFrom(
-            row.duration,
-            row.durationSeconds,
-            row.visibleSeconds
-          ),
-          firstDelaySeconds: toNum(row.delay, 0),
-          alternateSeconds: unitToSeconds(row.interval, row.intervalUnit),
+          ...timingFromConfig(row),
           randomize: toBool(row.randomize, false),
           cornerRadius: POPUP_CARD_RADIUS,
           imageStyle,
@@ -4489,16 +4442,22 @@ document.addEventListener("DOMContentLoaded", async function () {
     const activeStreams = streamDefs.filter(
       (s) => s.stream.seqDesktop.length || s.stream.seqMobile.length
     );
-    const activeMobile = streamDefs.filter((s) => s.stream.seqMobile.length);
+    const activeQueues = () =>
+      streamDefs.filter((s) =>
+        isMobile() ? s.stream.seqMobile.length : s.stream.seqDesktop.length
+      );
 
     const buildCombinedSeq = () =>
       interleaveMany(
-        activeMobile.map((s) =>
-          s.stream.seqMobile.map((cfg) => ({ type: s.type, cfg }))
+        activeQueues().map((s) =>
+          (isMobile() ? s.stream.seqMobile : s.stream.seqDesktop).map((cfg) => ({
+            type: s.type,
+            cfg,
+          }))
         )
       );
 
-    const shouldCombine = () => isMobile() && activeMobile.length > 1;
+    const shouldCombine = () => activeQueues().length > 1;
 
     function stopAll() {
       try {

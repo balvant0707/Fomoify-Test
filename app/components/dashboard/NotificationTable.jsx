@@ -56,11 +56,31 @@ function pretty(str) {
 }
 
 function showTypeLabel(val) {
-  const found = pageOptions.find((o) => o.value === val);
+  const raw = String(val || "").trim();
+  const normalized = raw.toLowerCase();
+  const aliases = {
+    all: "All Pages",
+    allpage: "All Pages",
+    "all pages": "All Pages",
+    home: "Home Page",
+    product: "Product Page",
+    collection: "Collection Page",
+    pages: "Pages",
+    cart: "Cart Page",
+  };
+  if (aliases[normalized]) return aliases[normalized];
+  if (normalized.includes("product") && normalized.includes("specific")) {
+    return "Product Page (specific)";
+  }
+  if (normalized.includes("collection") && normalized.includes("specific")) {
+    return "Collection Page (specific)";
+  }
+  if (normalized === "product (all)") return "Product Page (all)";
+  if (normalized === "collection (all)") return "Collection Page (all)";
+  const found = pageOptions.find((o) => o.value === normalized);
   if (found) return found.label;
-  // Already a human-readable label (multi-page or announcement block scope)
-  if (!val) return "All Pages";
-  return String(val);
+  if (!raw) return "All Pages";
+  return raw;
 }
 
 function formatLines(val) {

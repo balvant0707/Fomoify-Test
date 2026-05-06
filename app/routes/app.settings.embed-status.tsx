@@ -52,8 +52,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     Boolean(embedContext.appEmbedFound);
   const hasFreshPingSignal =
     pingStatus?.isFresh === true || pingStatus?.isOn === true;
-  const isEmbedOn = hasThemeEmbedCheck
-    ? hasThemeEmbedSignal && Boolean(embedContext.appEmbedEnabled)
+  const isEmbedOn = hasThemeEmbedSignal
+    ? Boolean(embedContext.appEmbedEnabled)
     : hasFreshPingSignal;
   const hasReliableStatus =
     hasThemeEmbedCheck || hasFreshPingSignal;
@@ -78,6 +78,7 @@ export default function AppEmbedStatusSettingsPage() {
   const app = useAppBridge();
   const revalidator = useRevalidator();
   const isRefreshing = revalidator.state !== "idle";
+  const statusSource = hasThemeEmbedSignal ? "theme-confirmed" : "storefront ping";
 
   const openAppEmbeds = () => {
     const url = `https://admin.shopify.com/store/${storeHandle}/themes/current/editor?context=apps`;
@@ -104,7 +105,7 @@ export default function AppEmbedStatusSettingsPage() {
                 }
               >
                 {hasReliableStatus
-                  ? `App embed: ${isEmbedOn ? "ON" : "OFF"}`
+                  ? `App embed: ${isEmbedOn ? "ON" : "OFF"} (${statusSource})`
                   : "App embed: CHECKING"}
               </Badge>
             </InlineStack>
@@ -116,8 +117,9 @@ export default function AppEmbedStatusSettingsPage() {
             )}
             {hasReliableStatus && !hasThemeEmbedSignal && (
               <Text as="p" tone="subdued">
-                Theme-based embed check unavailable right now. Using storefront
-                ping status.
+                Theme-based embed confirmation is unavailable. The current
+                status is based on a recent storefront ping, so open the theme
+                editor to confirm the app embed is enabled on the active theme.
               </Text>
             )}
 

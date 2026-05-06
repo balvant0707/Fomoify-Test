@@ -151,10 +151,21 @@ const deriveShowType = (row, key) => {
     return scope === "specific" ? "Product (specific)" : "Product (all)";
   }
 
+  const legacyShowType = String(row.showType || "").trim().toLowerCase();
+  if (legacyShowType && legacyShowType !== "allpage" && legacyShowType !== "all pages") {
+    return row.showType;
+  }
+
   const pages = [];
   if (row.showHome) pages.push("Home");
-  if (row.showProduct) pages.push("Product");
-  if (row.showCollection || row.showCollectionList) pages.push("Collection");
+  if (row.showProduct) {
+    const scope = String(row.productScope || "all").toLowerCase();
+    pages.push(scope === "specific" ? "Product (specific)" : "Product");
+  }
+  if (row.showCollection || row.showCollectionList) {
+    const scope = String(row.collectionScope || "all").toLowerCase();
+    pages.push(scope === "specific" ? "Collection (specific)" : "Collection");
+  }
   if (row.showCart) pages.push("Cart");
 
   if (pages.length === 0 || pages.length >= 4) return "All Pages";

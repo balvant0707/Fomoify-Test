@@ -200,10 +200,8 @@
     let count = computeCount();
 
     const buildText = (n) => {
-      const prefix = record.prefixText ? String(record.prefixText) + " " : "";
-      const suffix = record.suffixText ? " " + String(record.suffixText) : "";
       const body = String(record.template || "{count} people are viewing this product").replace("{count}", n);
-      return prefix + body + suffix;
+      return body;
     };
 
     const icon = iconFor(record.iconKey);

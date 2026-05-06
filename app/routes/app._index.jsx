@@ -676,8 +676,8 @@ export default function AppIndex() {
   const hasFreshPingSignal =
     embedPing?.isFresh === true || embedPing?.isOn === true;
   const isEmbedActive =
-    hasThemeEmbedCheck
-      ? hasThemeEmbedSignal && Boolean(embedContextState.appEmbedEnabled)
+    hasThemeEmbedSignal
+      ? Boolean(embedContextState.appEmbedEnabled)
       : hasFreshPingSignal;
   const embedBadgeText = `App embed: ${isEmbedActive ? "ON" : "OFF"}`;
   const whatsappSupportUrl = `https://wa.me/?text=${encodeURIComponent(
