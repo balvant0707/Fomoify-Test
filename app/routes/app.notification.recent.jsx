@@ -620,7 +620,12 @@ async function persistCustomerProductHandles(prismaClient, shop, orders) {
     if (!prismaClient) throw new Error("Prisma not available");
     const table =
       prismaClient.customerproducthandle || prismaClient.customerProductHandle;
-    if (!table) throw new Error("Prisma model missing: customerProductHandle");
+    if (!table) {
+      console.warn(
+        "[persistCustomerProductHandles] skipped: Prisma model missing customerproducthandle"
+      );
+      return { inserted: 0, total: 0, skipped: true };
+    }
     const rows = flattenCustomerProductRows(shop, orders);
     if (!rows.length) return { inserted: 0, total: 0 };
     const CHUNK = 200;

@@ -388,6 +388,21 @@ model recentpopupconfig {
   @@index([shop], map: "RecentPopupConfig_shop_idx")
 }
 
+model customerproducthandle {
+  id             Int      @id @default(autoincrement())
+  shop           String   @db.VarChar(255)
+  orderId        String   @db.VarChar(128)
+  productHandle  String   @db.VarChar(255)
+  customerName   String?  @db.VarChar(255)
+  orderCreatedAt DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([shop, orderId, productHandle], map: "CustomerProductHandle_shop_orderId_productHandle_key")
+  @@index([shop, orderCreatedAt], map: "CustomerProductHandle_shop_orderCreatedAt_idx")
+  @@index([shop, productHandle], map: "CustomerProductHandle_shop_productHandle_idx")
+}
+
 model flashpopupconfig {
   id             Int      @id @default(autoincrement())
   createdAt      DateTime @default(now())
