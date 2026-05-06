@@ -4102,7 +4102,9 @@ const bootFomoify = async function () {
         if (type === "lowstock") {
           pool = pool.filter((prod) => {
             const qty = Number(prod?.inventoryQty);
-            if (!Number.isFinite(qty)) return false;
+            if (!Number.isFinite(qty)) {
+              return lowStockSource === "manual" || productMatchesCurrent(prod);
+            }
             if (hideOutOfStock && qty <= 0) return false;
             return qty < stockUnder;
           });
@@ -4245,7 +4247,14 @@ const bootFomoify = async function () {
 
           const stockCount =
             type === "lowstock"
-              ? Math.max(0, Math.round(toNum(prod?.inventoryQty, stockUnder)))
+              ? Math.max(
+                  0,
+                  Math.round(
+                    Number.isFinite(Number(prod?.inventoryQty))
+                      ? Number(prod.inventoryQty)
+                      : stockUnder
+                  )
+                )
               : stockUnder > 1
                 ? Math.max(1, stockUnder - randInt(Math.min(3, stockUnder - 1)))
                 : stockUnder;
