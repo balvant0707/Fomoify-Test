@@ -735,7 +735,7 @@ function PreviewCard({
     0,
     Math.min(100, Number(transparency) || 0)
   );
-  const scale = 1 + (normalizedSize / 100) * 0.4;
+  const scale = 0.9 + (normalizedSize / 100) * 0.4;
   const opacity = 1 - (normalizedTransparency / 100) * 0.7;
   const background =
     template === "gradient"
@@ -979,7 +979,7 @@ export default function LowStockPopupPage() {
 
   const [design, setDesign] = useState({
     layout: "landscape",
-    size: 50,
+    size: 15,
     transparent: 10,
     template: "gradient",
     imageAppearance: "cover",
