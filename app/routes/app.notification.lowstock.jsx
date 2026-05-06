@@ -734,7 +734,7 @@ function PreviewCard({
     0,
     Math.min(100, Number(transparency) || 0)
   );
-  const scale = 0.9 + (normalizedSize / 100) * 0.4;
+  const scale = 0.8 + (normalizedSize / 100) * 0.4;
   const opacity = 1 - (normalizedTransparency / 100) * 0.7;
   const background =
     template === "gradient"
