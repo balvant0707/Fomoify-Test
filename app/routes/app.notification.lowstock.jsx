@@ -20,6 +20,7 @@ import {
   RadioButton,
   Toast,
   Loading,
+  RangeSlider,
 } from "@shopify/polaris";
 import { useNavigate, useFetcher, useLocation, useLoaderData } from "@remix-run/react";
 import { json } from "@remix-run/node";
@@ -729,8 +730,13 @@ function PreviewCard({
   const compareFontSize = clampFontSize(textSizeCompare, 12);
   const priceFontSize = clampFontSize(textSizePrice, 12);
   const ratingFontSize = Math.max(8, Math.round(contentFontSize * 1.5));
-  const scale = 0.8 + (size / 100) * 0.4;
-  const opacity = 1 - (transparency / 100) * 0.7;
+  const normalizedSize = Math.max(0, Math.min(100, Number(size) || 0));
+  const normalizedTransparency = Math.max(
+    0,
+    Math.min(100, Number(transparency) || 0)
+  );
+  const scale = 0.8 + (normalizedSize / 100) * 0.4;
+  const opacity = 1 - (normalizedTransparency / 100) * 0.7;
   const background =
     template === "gradient"
       ? `linear-gradient(135deg, ${bgColor} 0%, ${bgAlt} 100%)`
@@ -750,6 +756,7 @@ function PreviewCard({
   const imageOverflow = showProductImage && !isContainMode && !isPortrait;
   const cardStyle = {
     transform: `scale(${scale})`,
+    transformOrigin: "center center",
     opacity,
     background,
     color: textColor,
@@ -1342,33 +1349,37 @@ export default function LowStockPopupPage() {
                               }
                             />
 
-                            <TextField
-                              label="Size"
-                              type="number"
-                              min={0}
-                              max={100}
-                              value={String(design.size)}
-                              onChange={(v) => {
-                                const n = Math.min(100, Math.max(0, Number(v) || 0));
-                                setDesign((d) => ({ ...d, size: n }));
-                              }}
-                              autoComplete="off"
-                              suffix="%"
-                            />
+                            <BlockStack gap="150">
+                              <Text>Size</Text>
+                              <RangeSlider
+                                label="Size"
+                                labelHidden
+                                min={0}
+                                max={100}
+                                step={1}
+                                value={design.size}
+                                onChange={(v) =>
+                                  setDesign((d) => ({ ...d, size: v }))
+                                }
+                                output
+                              />
+                            </BlockStack>
 
-                            <TextField
-                              label="Transparent"
-                              type="number"
-                              min={0}
-                              max={100}
-                              value={String(design.transparent)}
-                              onChange={(v) => {
-                                const n = Math.min(100, Math.max(0, Number(v) || 0));
-                                setDesign((d) => ({ ...d, transparent: n }));
-                              }}
-                              autoComplete="off"
-                              suffix="%"
-                            />
+                            <BlockStack gap="150">
+                              <Text>Transparent</Text>
+                              <RangeSlider
+                                label="Transparent"
+                                labelHidden
+                                min={0}
+                                max={100}
+                                step={1}
+                                value={design.transparent}
+                                onChange={(v) =>
+                                  setDesign((d) => ({ ...d, transparent: v }))
+                                }
+                                output
+                              />
+                            </BlockStack>
 
                             <BlockStack gap="200">
                               <Text as="p">Color template</Text>
