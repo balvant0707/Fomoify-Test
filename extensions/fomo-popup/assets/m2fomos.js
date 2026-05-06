@@ -1052,7 +1052,7 @@ const bootFomoify = async function () {
       ? mt.w
       : isPortrait
         ? "min(calc(100vw - 32px), 340px)"
-        : "min(calc(100vw - 32px), 560px)";
+        : "min(calc(100vw - 32px), 420px)";
     wrap.style.cssText = `
       position:fixed; z-index:9999; box-sizing:border-box;
       width:${wrapWidth}; max-width:calc(100vw - 32px); overflow:${imageOverflow ? "visible" : "hidden"}; cursor:pointer;
@@ -1269,7 +1269,7 @@ const bootFomoify = async function () {
     const showImage = !cfg.hideProductImage;
     const imageOverflow = imageFit === "cover" && !isPortrait && showImage;
     const pad = mode === "mobile" ? mt.pad : 12;
-    const rightPad = 28;
+    const rightPad = 12;
     const iSize = mode === "mobile" ? Math.max(mt.img || 0, 56) : 64;
     const inlineImageSize = iSize;
     const inlineImageWidth = inlineImageSize;
