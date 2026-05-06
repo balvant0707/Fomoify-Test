@@ -44,6 +44,8 @@ const POPUPS = new Set([
   "lowstock",
   "addtocart",
   "review",
+  "visitor-block",
+  "stock-block",
 ]);
 const PUBLIC_STOREFRONT_PATHS = new Set(["session", "embed-status", "popup", "track"]);
 const CACHE_TTL = {

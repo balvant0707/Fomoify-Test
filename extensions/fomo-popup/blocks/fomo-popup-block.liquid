@@ -25,6 +25,40 @@
   const productHandle = String(root.dataset.productHandle || "").trim().toLowerCase();
   const blockType = String(root.dataset.fomoifyBlockType || "visitor").toLowerCase();
   const proxyBase = "/apps/fomo";
+  const visitorIdKey = "fomoify_visitor_id";
+
+  const ensureVisitorId = () => {
+    const makeId = () => `v-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    try {
+      const existing = window.localStorage.getItem(visitorIdKey);
+      if (existing) return existing;
+      const fresh = makeId();
+      window.localStorage.setItem(visitorIdKey, fresh);
+      return fresh;
+    } catch {
+      return makeId();
+    }
+  };
+
+  const trackView = () => {
+    if (!shop || window.Shopify?.designMode) return;
+    const url = new URL(`${proxyBase}/track`, window.location.origin);
+    if (shop) url.searchParams.set("shop", shop);
+    fetch(`${url.pathname}${url.search}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      keepalive: true,
+      body: JSON.stringify({
+        eventType: "view",
+        popupType: "visitor-block",
+        visitorId: ensureVisitorId(),
+        productHandle,
+        pagePath: window.location.pathname || "/",
+        sourceUrl: window.location.href || "",
+      }),
+    }).catch(() => {});
+  };
 
   const escapeHtml = (value) =>
     String(value ?? "")
@@ -268,6 +302,7 @@
       }
       root.innerHTML = result.html;
       root.hidden = false;
+      trackView();
 
       // "rotating" behavior auto-updates the count on an interval
       if (result.behavior === "rotating" && result.updateInterval > 0) {

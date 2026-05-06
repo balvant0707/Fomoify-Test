@@ -133,8 +133,6 @@ export default function App() {
       <NavMenu>
         <a href={appUrl("/app")} rel="home">Home</a>
         <a href={appUrl("/app/notification")}>Notification</a>
-        <a href={appUrl("/app/visitor-announcement")}>Visitor Announcement</a>
-        <a href={appUrl("/app/stock-announcement")}>Stock Announcement</a>
         <a href={appUrl("/app/analytics")}>Analytics</a>
         <a href={appUrl("/app/integrations")}>Integrations</a>
       </NavMenu>

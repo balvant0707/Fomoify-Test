@@ -1,5 +1,5 @@
 // app/routes/app._index.jsx
-import { defer, json, redirect } from "@remix-run/node";
+import { json, redirect } from "@remix-run/node";
 import {
   useLoaderData,
   useFetcher,
@@ -340,22 +340,22 @@ export const loader = async ({ request }) => {
     "";
   const extId = process.env.SHOPIFY_THEME_EXTENSION_ID || "";
 
-  // Deferred: starts fetch immediately but does NOT block the page render.
-  // Resolves to { themeId, appEmbedEnabled, appEmbedFound, appEmbedChecked }
-  const embedContextPromise = shop
+  // Resolve before first render so the dashboard badge is immediately ON/OFF.
+  const embedContextState = shop
     ? getAppEmbedContext({ admin, shop, apiKey, extId, embedHandle: APP_EMBED_HANDLE })
     : Promise.resolve({ themeId: null, appEmbedEnabled: false, appEmbedFound: false, appEmbedChecked: false });
 
-  const embedPingStatusPromise = getEmbedPingStatus(shop);
+  const embedContext = await embedContextState;
+  const embedPingStatus = await getEmbedPingStatus(shop);
   const dashboardReviewPopupStatus = await getDashboardReviewPopupStatus(shop);
 
-  return defer({
+  return json({
     slug,
     shopDomain,
     apiKey,
     dashboardReviewPopupStatus,
-    embedPingStatus: embedPingStatusPromise,
-    embedContext: embedContextPromise,
+    embedPingStatus,
+    embedContext,
   });
 };
 
@@ -638,17 +638,19 @@ export default function AppIndex() {
   const revalidator = useRevalidator();
   const navigate = useNavigate();
   const location = useLocation();
-  const [resolvedThemeId, setResolvedThemeId] = useState(null);
+  const [resolvedThemeId, setResolvedThemeId] = useState(
+    embedContext?.themeId ?? null
+  );
   const [embedContextState, setEmbedContextState] = useState({
-    appEmbedEnabled: false,
-    appEmbedFound: false,
-    appEmbedChecked: false,
+    appEmbedEnabled: Boolean(embedContext?.appEmbedEnabled),
+    appEmbedFound: Boolean(embedContext?.appEmbedFound),
+    appEmbedChecked: Boolean(embedContext?.appEmbedChecked),
   });
   const [embedPing, setEmbedPing] = useState({
-    isOn: false,
-    isFresh: false,
-    lastPingAt: null,
-    checkedAt: null,
+    isOn: Boolean(embedPingStatus?.isOn),
+    isFresh: Boolean(embedPingStatus?.isFresh ?? embedPingStatus?.isOn),
+    lastPingAt: embedPingStatus?.lastPingAt || null,
+    checkedAt: embedPingStatus?.checkedAt || null,
   });
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
