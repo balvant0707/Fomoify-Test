@@ -679,15 +679,8 @@ export default function AppIndex() {
     hasThemeEmbedSignal
       ? Boolean(embedContextState.appEmbedEnabled)
       : hasFreshPingSignal;
-  const hasReliableEmbedStatus = hasThemeEmbedSignal || hasFreshPingSignal;
-  const embedStatusTone = isEmbedActive
-    ? "on"
-    : hasReliableEmbedStatus
-    ? "off"
-    : "checking";
-  const embedBadgeText = hasReliableEmbedStatus
-    ? `App embed: ${isEmbedActive ? "ON" : "OFF"}`
-    : "App embed: CHECKING";
+  const embedStatusTone = isEmbedActive ? "on" : "off";
+  const embedBadgeText = `App embed: ${isEmbedActive ? "ON" : "OFF"}`;
   const whatsappSupportUrl = `https://wa.me/?text=${encodeURIComponent(
     `${WHATSAPP_SUPPORT_MESSAGE}${shopDomain ? ` Store: ${shopDomain}` : ""}`
   )}`;

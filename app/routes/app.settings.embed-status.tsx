@@ -56,15 +56,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const isEmbedOn = hasThemeEmbedSignal
     ? Boolean(embedContext.appEmbedEnabled)
     : hasFreshPingSignal;
-  const hasReliableStatus =
-    hasThemeEmbedSignal || hasFreshPingSignal;
 
   return json({
     shop,
     storeHandle,
     apiKey,
     isEmbedOn,
-    hasReliableStatus,
     hasThemeEmbedCheck,
     hasThemeEmbedSignal,
     appEmbedChecked: Boolean(embedContext.appEmbedChecked),
@@ -75,7 +72,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function AppEmbedStatusSettingsPage() {
-  const { storeHandle, apiKey, isEmbedOn, hasReliableStatus, hasThemeEmbedSignal } =
+  const { storeHandle, apiKey, isEmbedOn, hasThemeEmbedSignal } =
     useLoaderData<typeof loader>();
   const app = useAppBridge();
   const revalidator = useRevalidator();
@@ -104,26 +101,12 @@ export default function AppEmbedStatusSettingsPage() {
                 App embed status
               </Text>
               <Badge
-                tone={
-                  hasReliableStatus
-                    ? isEmbedOn
-                      ? "success"
-                      : "critical"
-                    : "attention"
-                }
+                tone={isEmbedOn ? "success" : "critical"}
               >
-                {hasReliableStatus
-                  ? `App embed: ${isEmbedOn ? "ON" : "OFF"} (${statusSource})`
-                  : "App embed: CHECKING"}
+                {`App embed: ${isEmbedOn ? "ON" : "OFF"} (${statusSource})`}
               </Badge>
             </InlineStack>
-            {!hasReliableStatus && (
-              <Text as="p" tone="subdued">
-                Embed status check is in progress. Open storefront once and
-                refresh status.
-              </Text>
-            )}
-            {hasReliableStatus && !hasThemeEmbedSignal && (
+            {!hasThemeEmbedSignal && (
               <Text as="p" tone="subdued">
                 Theme-based embed confirmation is unavailable. The current
                 status is based on a recent storefront ping, so open the theme
@@ -131,7 +114,7 @@ export default function AppEmbedStatusSettingsPage() {
               </Text>
             )}
 
-            {hasReliableStatus && !isEmbedOn && (
+            {!isEmbedOn && (
               <Banner tone="warning">
                 <p>{DISABLED_MESSAGE}</p>
               </Banner>
