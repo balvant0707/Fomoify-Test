@@ -1026,7 +1026,8 @@ function PreviewCard({
           </div>
         )}
         {showPriceTag && (
-          <InlineStack gap="200" blockAlign="center">
+          <div style={{ display: "flex", justifyContent: isPortrait ? "center" : "flex-start" }}>
+            <InlineStack gap="200" blockAlign="center">
             <span
               style={{
                 background: priceTagBg,
@@ -1048,7 +1049,8 @@ function PreviewCard({
             >
               {product?.compareAt || "Rs. 349.00"}
             </span>
-          </InlineStack>
+            </InlineStack>
+          </div>
         )}
         <div
           style={{

@@ -1709,7 +1709,7 @@ const bootFomoify = async function () {
     imgWrap.appendChild(img);
 
     const body = document.createElement("div");
-    body.style.cssText = `flex:1;min-width:0;pointer-events:none;display:grid;gap:${portraitVisitor ? 8 : 6}px;${portraitVisitor ? "width:100%;" : ""}${isPortrait ? "text-align:center;" : ""}`;
+    body.style.cssText = `flex:1;min-width:0;pointer-events:none;display:grid;gap:${portraitVisitor ? 8 : 6}px;${isPortrait ? "width:100%;text-align:center;justify-items:center;" : ""}`;
 
     if (cfg.showRating) {
       const rating = Math.max(
@@ -1996,14 +1996,14 @@ const bootFomoify = async function () {
           brand.style.cssText = "opacity:.88;font-size:0.95em;white-space:nowrap;";
           footer.appendChild(brand);
         } else {
-          footer.style.justifyContent = "flex-start";
+          footer.style.justifyContent = portraitVisitor ? "center" : "flex-start";
         }
         body.appendChild(footer);
       }
     } else if (timestampText) {
       const ts = document.createElement("div");
       ts.textContent = timestampText;
-      ts.style.cssText = `font-size:${Math.max(10, fontSize - 2)}px;color:${cfg.timestampColor || "rgba(0,0,0,0.6)"};margin-top:${priceLineRendered ? "2px" : "0"};`;
+      ts.style.cssText = `font-size:${Math.max(10, fontSize - 2)}px;color:${cfg.timestampColor || "rgba(0,0,0,0.6)"};margin-top:${priceLineRendered ? "2px" : "0"};${isPortrait ? "text-align:center;" : ""}`;
       body.appendChild(ts);
     }
 
