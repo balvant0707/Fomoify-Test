@@ -639,13 +639,11 @@ export default function AppIndex() {
   const navigate = useNavigate();
   const location = useLocation();
   const [resolvedThemeId, setResolvedThemeId] = useState(null);
-  const [isEmbedContextLoading, setIsEmbedContextLoading] = useState(true);
   const [embedContextState, setEmbedContextState] = useState({
     appEmbedEnabled: false,
     appEmbedFound: false,
     appEmbedChecked: false,
   });
-  const [isEmbedPingLoading, setIsEmbedPingLoading] = useState(true);
   const [embedPing, setEmbedPing] = useState({
     isOn: false,
     isFresh: false,
@@ -677,16 +675,11 @@ export default function AppIndex() {
     hasThemeEmbedCheck && embedContextState.appEmbedFound === true;
   const hasFreshPingSignal =
     embedPing?.isFresh === true || embedPing?.isOn === true;
-  const hasReliableEmbedStatus = hasThemeEmbedCheck || hasFreshPingSignal;
-  const isEmbedStatusLoading =
-    isEmbedContextLoading || isEmbedPingLoading || !hasReliableEmbedStatus;
   const isEmbedActive =
     hasThemeEmbedCheck
       ? hasThemeEmbedSignal && Boolean(embedContextState.appEmbedEnabled)
       : hasFreshPingSignal;
-  const embedBadgeText = isEmbedStatusLoading
-    ? "App embed: CHECKING"
-    : `App embed: ${isEmbedActive ? "ON" : "OFF"}`;
+  const embedBadgeText = `App embed: ${isEmbedActive ? "ON" : "OFF"}`;
   const whatsappSupportUrl = `https://wa.me/?text=${encodeURIComponent(
     `${WHATSAPP_SUPPORT_MESSAGE}${shopDomain ? ` Store: ${shopDomain}` : ""}`
   )}`;
@@ -696,7 +689,6 @@ export default function AppIndex() {
 
   useEffect(() => {
     let active = true;
-    setIsEmbedContextLoading(true);
     Promise.resolve(embedContext)
       .then((ctx) => {
         if (!active) return;
@@ -710,9 +702,6 @@ export default function AppIndex() {
       .catch(() => {
         if (!active) return;
         setEmbedContextState({ appEmbedEnabled: false, appEmbedFound: false, appEmbedChecked: false });
-      })
-      .finally(() => {
-        if (active) setIsEmbedContextLoading(false);
       });
     return () => {
       active = false;
@@ -721,7 +710,6 @@ export default function AppIndex() {
 
   useEffect(() => {
     let active = true;
-    setIsEmbedPingLoading(true);
     Promise.resolve(embedPingStatus)
       .then((state) => {
         if (!active) return;
@@ -740,9 +728,6 @@ export default function AppIndex() {
           lastPingAt: null,
           checkedAt: null,
         });
-      })
-      .finally(() => {
-        if (active) setIsEmbedPingLoading(false);
       });
     return () => {
       active = false;
@@ -961,7 +946,7 @@ export default function AppIndex() {
           <button
             type="button"
             className={`dashboard-embed-status dashboard-embed-status--${
-              isEmbedStatusLoading ? "checking" : isEmbedActive ? "on" : "off"
+              isEmbedActive ? "on" : "off"
             }`}
             onClick={() => openThemeEditor(resolvedThemeId, "activate")}
           >

@@ -163,6 +163,22 @@ const CARD_DATA = [
     path: "/app/notification/review",
     imageName: "Review notification.png",
   },
+  {
+    key: "visitor-block",
+    title: "Visitor Announcement Bar",
+    desc: "Show visitor count inside product information on all or selected products.",
+    path: "/app/visitor-announcement",
+    managePath: "/app/notification/manage?type=visitor-block",
+    imageName: "Visitor Popup - new.png",
+  },
+  {
+    key: "stock-block",
+    title: "Stock Announcement Bar",
+    desc: "Show stock status inside product information on all or selected products.",
+    path: "/app/stock-announcement",
+    managePath: "/app/notification/manage?type=stock-block",
+    imageName: "low stock popup.png",
+  },
 ];
 
 export default function NotificationDashboardIndex() {
@@ -179,11 +195,11 @@ export default function NotificationDashboardIndex() {
   );
 
   const goManage = useCallback(
-    (key) => {
+    (key, path = "/app/notification/manage") => {
       if (loadingKey) return;
       const loadingId = `${key}-manage`;
       setLoadingKey(loadingId);
-      setTimeout(() => navigate("/app/notification/manage"), 450);
+      setTimeout(() => navigate(path), 450);
     },
     [navigate, loadingKey]
   );
@@ -203,7 +219,7 @@ export default function NotificationDashboardIndex() {
                 desc={card.desc}
                 imageName={card.imageName}
                 onCreate={() => go(card.path, `${card.key}-create`)}
-                onManage={() => goManage(card.key)}
+                onManage={() => goManage(card.key, card.managePath)}
                 loading={
                   loadingKey === `${card.key}-create` ||
                   loadingKey === `${card.key}-manage`
