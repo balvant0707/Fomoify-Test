@@ -399,6 +399,41 @@ const bootFomoify = async function () {
   };
   const hasMoneySymbol = (value) =>
     /[^\d\s,.-]/.test(String(value || ""));
+  const activeCurrencyCode = () =>
+    String(
+      window.Shopify?.currency?.active ||
+        window.Shopify?.currency?.current ||
+        ROOT?.dataset.shopCurrency ||
+        ""
+    ).toUpperCase();
+  const activeMoneyFormat = () =>
+    String(
+      window.Shopify?.money_format ||
+        window.Shopify?.moneyFormat ||
+        ROOT?.dataset.moneyFormat ||
+        ""
+    ).trim();
+  const formatStoreMoneyMajor = (amountMajor) => {
+    const n = Number(amountMajor);
+    if (!Number.isFinite(n)) return "";
+    const cents = Math.round(n * 100);
+    const activeCurrency = activeCurrencyCode();
+    if (window.Shopify && typeof window.Shopify.formatMoney === "function") {
+      const fmt = activeMoneyFormat() || "${{amount}}";
+      const rendered = String(window.Shopify.formatMoney(cents, fmt) || "").trim();
+      if (hasMoneySymbol(rendered)) return rendered;
+      return formatCurrencyByCode(n, activeCurrency) || rendered;
+    }
+    return formatCurrencyByCode(n, activeCurrency) || n.toFixed(2);
+  };
+  const ensureMoneySymbol = (value) => {
+    const raw = String(value ?? "").trim();
+    if (!raw) return "";
+    if (hasMoneySymbol(raw)) return raw;
+    const n = parseMoneyValue(raw);
+    if (!Number.isFinite(n)) return raw;
+    return formatStoreMoneyMajor(n) || raw;
+  };
   const alignCompareCurrency = (priceText, compareText) => {
     const price = String(priceText || "").trim();
     const compare = String(compareText || "").trim();
@@ -423,11 +458,9 @@ const bootFomoify = async function () {
     const n = Number(cents);
     if (!Number.isFinite(n)) return String(cents || "");
     const major = n / 100;
-    const activeCurrency = String(
-      window.Shopify?.currency?.active || window.Shopify?.currency?.current || ""
-    ).toUpperCase();
+    const activeCurrency = activeCurrencyCode();
     if (window.Shopify && typeof window.Shopify.formatMoney === "function") {
-      const fmt = window.Shopify.money_format || "${{amount}}";
+      const fmt = activeMoneyFormat() || "${{amount}}";
       const rendered = String(window.Shopify.formatMoney(n, fmt) || "").trim();
       if (hasMoneySymbol(rendered)) return rendered;
       return formatCurrencyByCode(major, activeCurrency) || rendered;
@@ -1401,12 +1434,15 @@ const bootFomoify = async function () {
     textFlow.innerHTML = `${leadingHtml}${leadingHtml ? " " : ""}${boughtTxt}`;
     body.appendChild(textFlow);
 
-    const priceText = safe(cfg.price, "").trim();
+    const priceText = ensureMoneySymbol(safe(cfg.price, "").trim());
     const compareCandidateRaw = safe(
       cfg.compareAt || cfg.compareAtPrice,
       ""
     ).trim();
-    const compareCandidate = alignCompareCurrency(priceText, compareCandidateRaw);
+    const compareCandidate = alignCompareCurrency(
+      priceText,
+      ensureMoneySymbol(compareCandidateRaw)
+    );
     const compareText = shouldShowComparePrice(priceText, compareCandidate)
       ? compareCandidate
       : "";
@@ -1835,10 +1871,10 @@ const bootFomoify = async function () {
       safe(cfg.timestamp || cfg.timeText || cfg.timeAbsolute, "").trim();
 
     const appendPriceLine = () => {
-      const priceText = safe(cfg.price, "").trim();
+      const priceText = ensureMoneySymbol(safe(cfg.price, "").trim());
       const compareCandidate = alignCompareCurrency(
         priceText,
-        safe(cfg.compareAt || cfg.compareAtPrice, "").trim()
+        ensureMoneySymbol(safe(cfg.compareAt || cfg.compareAtPrice, "").trim())
       );
       const compareText = shouldShowComparePrice(priceText, compareCandidate)
         ? compareCandidate
