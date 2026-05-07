@@ -308,6 +308,7 @@ export async function saveStockAnnouncement(shop, form) {
     hideOutOfStock:      toBool(form?.hideOutOfStock, false),
     inStockText:         toStr(form?.inStockText),
     quantityText:        toStr(form?.quantityText),
+    lowStockText:        toStr(form?.lowStockText),
     outOfStockText:      toStr(form?.outOfStockText),
     inStockDotColor:     toStr(form?.inStockDotColor),
     lowStockDotColor:    toStr(form?.lowStockDotColor),

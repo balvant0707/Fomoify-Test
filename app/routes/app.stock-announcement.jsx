@@ -397,6 +397,7 @@ export default function StockBlockConfiguration() {
   const [hideOutOfStock, setHideOutOfStock] = useState(false);
   const [inStockText, setInStockText] = useState("In stock");
   const [quantityText, setQuantityText] = useState("Stock: {count} available");
+  const [lowStockText, setLowStockText] = useState("Only {count} left in stock");
   const [outOfStockText, setOutOfStockText] = useState("Out of stock");
   const [inStockDotColor, setInStockDotColor] = useState("#42D66B");
   const [lowStockDotColor, setLowStockDotColor] = useState("#F59E0B");
@@ -430,6 +431,7 @@ export default function StockBlockConfiguration() {
     if (saved.hideOutOfStock != null) setHideOutOfStock(saved.hideOutOfStock);
     if (saved.inStockText != null) setInStockText(saved.inStockText);
     if (saved.quantityText != null) setQuantityText(saved.quantityText);
+    if (saved.lowStockText != null) setLowStockText(saved.lowStockText);
     if (saved.outOfStockText != null) setOutOfStockText(saved.outOfStockText);
     if (saved.inStockDotColor != null) setInStockDotColor(saved.inStockDotColor);
     if (saved.lowStockDotColor != null) setLowStockDotColor(saved.lowStockDotColor);
@@ -458,15 +460,18 @@ export default function StockBlockConfiguration() {
 
   const previewStockCount = Math.max(0, Number(productQuantity) || 0);
   const isPreviewOut = previewStockCount <= 0;
+  const lowStockLimit = Math.max(0, Number(lowStockThreshold) || 0);
+  const isPreviewLowStock = !isPreviewOut && lowStockLimit > 0 && previewStockCount < lowStockLimit;
   const stockText = isPreviewOut
     ? outOfStockText
+    : isPreviewLowStock
+      ? lowStockText.replace("{count}", previewStockCount)
     : showProductQuantity
       ? quantityText.replace("{count}", previewStockCount)
       : inStockText;
   const stockDot = (() => {
     if (isPreviewOut) return outStockDotColor;
-    const threshold = Math.max(0, Number(lowStockThreshold) || 0);
-    if (threshold > 0 && previewStockCount <= threshold) return lowStockDotColor;
+    if (isPreviewLowStock) return lowStockDotColor;
     return inStockDotColor;
   })();
   const dotAnimationClass =
@@ -490,6 +495,7 @@ export default function StockBlockConfiguration() {
         hideOutOfStock,
         inStockText,
         quantityText,
+        lowStockText,
         outOfStockText,
         inStockDotColor,
         lowStockDotColor,
@@ -592,11 +598,14 @@ export default function StockBlockConfiguration() {
                 </div>
                 <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
                   <TextField label="Quantity text" value={quantityText} onChange={setQuantityText} autoComplete="off" />
+                  <TextField label="Low-stock text" value={lowStockText} onChange={setLowStockText} autoComplete="off" />
+                </InlineGrid>
+                <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
                   <TextField label="Out-of-stock text" value={outOfStockText} onChange={setOutOfStockText} autoComplete="off" />
+                  <NumberField label="Low stock threshold" value={lowStockThreshold} onChange={setLowStockThreshold} min={0} max={999} />
                 </InlineGrid>
                 <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
                   <TextField label="Custom CSS class" value={customClass} onChange={setCustomClass} autoComplete="off" />
-                  <NumberField label="Low stock threshold" value={lowStockThreshold} onChange={setLowStockThreshold} min={0} max={999} />
                 </InlineGrid>
                 <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
                   <Select label="Dot animation" options={dotAnimationOptions} value={dotAnimationStyle} onChange={setDotAnimationStyle} />

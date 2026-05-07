@@ -498,6 +498,7 @@ model stockannouncementconfig {
   hideOutOfStock       Boolean  @default(false)
   inStockText          String?  @db.LongText
   quantityText         String?  @db.LongText
+  lowStockText         String?  @db.LongText
   outOfStockText       String?  @db.LongText
   inStockDotColor      String?
   lowStockDotColor     String?

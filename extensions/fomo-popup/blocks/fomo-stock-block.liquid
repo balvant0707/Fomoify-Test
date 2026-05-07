@@ -198,9 +198,12 @@
     const count = Number.isFinite(inventory) ? inventory : fallbackQuantity;
     const isOut = count <= 0;
     const threshold = Math.max(0, toNumber(record.lowStockThreshold, 0));
+    const isLowStock = !isOut && threshold > 0 && count < threshold;
 
     const text = isOut
       ? String(record.outOfStockText || "Out of stock")
+      : isLowStock
+        ? String(record.lowStockText || "Only {count} left in stock").replace("{count}", count)
       : showQuantity
         ? String(record.quantityText || "Stock: {count} available").replace("{count}", count)
         : String(record.inStockText || "In stock");
@@ -208,7 +211,7 @@
     let dotColor;
     if (isOut) {
       dotColor = record.outStockDotColor || "#EF4444";
-    } else if (threshold > 0 && count <= threshold) {
+    } else if (isLowStock) {
       dotColor = record.lowStockDotColor || "#F59E0B";
     } else {
       dotColor = record.inStockDotColor || "#42D66B";

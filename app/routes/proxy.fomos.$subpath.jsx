@@ -400,6 +400,7 @@ const TABLE_SELECTS = {
     hideOutOfStock: true,
     inStockText: true,
     quantityText: true,
+    lowStockText: true,
     outOfStockText: true,
     inStockDotColor: true,
     lowStockDotColor: true,
