@@ -592,9 +592,7 @@ const bootFomoify = async function () {
       if (cached) return cached;
     }
     try {
-      const r = await fetchWithProxyFallback(url, {
-        headers: { "Content-Type": "application/json" },
-      });
+      const r = await fetchWithProxyFallback(url, {});
       if (!r) return null;
       if (!r.ok) return null;
       const data = await r.json();
