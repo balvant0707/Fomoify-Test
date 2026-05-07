@@ -33,12 +33,17 @@ import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import { saveVisitorPopup } from "../models/popup-config.server";
 import prisma from "../db.server";
+import { PopupPreviewPanel } from "../components/notification/PopupPreviewPanel";
+import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
 const JUDGE_ME_INTEGRATION_KEY = "integration_judge_me";
 
 export async function loader({ request }) {
   const { admin, session } = await authenticate.admin(request);
   const shop = session?.shop;
+  const reqUrl = new URL(request.url);
+  const editIdNum = Number(reqUrl.searchParams.get("editId") || reqUrl.searchParams.get("id"));
+  const editId = Number.isInteger(editIdNum) && editIdNum > 0 ? editIdNum : null;
 
   const parseJsonLoose = (raw) => {
     if (raw === undefined || raw === null) return null;
@@ -171,19 +176,21 @@ export async function loader({ request }) {
     const model = prisma?.visitorpopupconfig || prisma?.visitorPopupConfig || null;
     const source =
       shop && model?.findFirst
-        ? await model.findFirst({
-            where: { shop },
-            orderBy: { id: "desc" },
-          })
+        ? await model.findFirst(
+            editId
+              ? { where: { id: editId, shop } }
+              : { where: { shop }, orderBy: { id: "desc" } }
+          )
         : null;
 
     if (source) {
       const { dataProducts, visibilityProducts } = parseProductSelections(source);
       saved = {
+        id: source.id,
         design: {
           notiType: toStr(source.notiType, "visitor_list"),
           layout: toStr(source.layout, "landscape"),
-          size: toNum(source.size, 30),
+          size: toNum(source.size, 40),
           transparent: toNum(source.transparent, 10),
           template: toStr(source.template, "solid"),
           imageAppearance: toStr(source.imageAppearance, "cover"),
@@ -197,9 +204,9 @@ export async function loader({ request }) {
           starColor: toStr(source.starColor, "#FFD240"),
         },
         textSize: {
-          content: toStr(source.textSizeContent, "14"),
-          compareAt: toStr(source.textSizeCompareAt, "13"),
-          price: toStr(source.textSizePrice, "13"),
+          content: toStr(source.textSizeContent, "12"),
+          compareAt: toStr(source.textSizeCompareAt, "10"),
+          price: toStr(source.textSizePrice, "10"),
         },
         content: {
           message: toStr(
@@ -236,7 +243,7 @@ export async function loader({ request }) {
           delay: toStr(source.delay, "1"),
           duration: toStr(source.duration, "10"),
           interval: toStr(source.interval, "1"),
-          intervalUnit: toStr(source.intervalUnit, "mins"),
+          intervalUnit: normalizeIntervalUnit(source.intervalUnit),
           randomize: toBool(source.randomize, false),
         },
         selectedDataProducts: dataProducts,
@@ -267,7 +274,12 @@ export async function loader({ request }) {
 }
 
 export async function action({ request }) {
-  const { session } = await authenticate.admin(request);
+  let session;
+  try {
+    ({ session } = await authenticate.admin(request));
+  } catch {
+    return json({ success: false, error: "Auth temporarily unavailable." }, { status: 503 });
+  }
   const shop = session?.shop;
   if (!shop) return json({ success: false, error: "Unauthorized" }, { status: 401 });
 
@@ -281,6 +293,19 @@ export async function action({ request }) {
   const { form } = body || {};
   if (!form) {
     return json({ success: false, error: "Missing form" }, { status: 400 });
+  }
+
+  if (
+    !Array.isArray(form.selectedDataProducts) ||
+    form.selectedDataProducts.length === 0
+  ) {
+    return json(
+      {
+        success: false,
+        error: "Please select at least 1 product in Data before saving.",
+      },
+      { status: 400 }
+    );
   }
 
   console.log("[Visitor Popup] form payload:", JSON.stringify(form, null, 2));
@@ -316,10 +341,13 @@ const POSITIONS = [
   { label: "Top left", value: "top-left" },
 ];
 const TIME_UNITS = [
-  { label: "seconds", value: "seconds" },
-  { label: "mins", value: "mins" },
-  { label: "hours", value: "hours" },
+  { label: "Seconds", value: "seconds" },
+  { label: "Minutes", value: "minutes" },
 ];
+const normalizeIntervalUnit = (value) => {
+  const unit = String(value || "seconds").trim().toLowerCase();
+  return unit.startsWith("min") ? "minutes" : "seconds";
+};
 
 const TOKEN_OPTIONS = [
   "full_name",
@@ -392,6 +420,26 @@ const VISITOR_STYLES = `
   flex: 1;
   min-width: 320px;
 }
+.visitor-preview .popup-preview-panel__header {
+  border-bottom: 0;
+}
+.visitor-preview .popup-preview-panel__surface {
+  min-height: 300px;
+  padding: 0 0 0 30px;
+  align-items: center;
+}
+.visitor-preview.is-layout-portrait .popup-preview-panel__surface {
+  padding: 0 !important;
+}
+.visitor-preview.is-fit-image .popup-preview-panel__surface {
+  padding: 0;
+}
+.visitor-preview.is-fit-image .popup-preview-panel {
+  padding-right: var(--p-space-400);
+}
+.visitor-preview .popup-preview-panel__content {
+  max-width: 100%;
+}
 .visitor-preview-box {
   border: 1px solid #e5e7eb;
   border-radius: 16px;
@@ -448,6 +496,13 @@ const VISITOR_STYLES = `
   .visitor-form,
   .visitor-preview {
     min-width: 0;
+  }
+  .visitor-preview .popup-preview-panel__surface {
+    min-height: 360px;
+    padding: 40px 12px 32px;
+  }
+  .visitor-preview.is-fit-image .popup-preview-panel__surface {
+    padding: 0;
   }
 }
 `;
@@ -679,6 +734,15 @@ function PreviewCard({
   productNameLimit,
   previewCustomer,
 }) {
+  const clampFontSize = (value, fallback) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.max(6, Math.min(72, n)) : fallback;
+  };
+  const contentFontSize = clampFontSize(textSizeContent, 12);
+  const compareFontSize = clampFontSize(textSizeCompare, 10);
+  const priceFontSize = clampFontSize(textSizePrice, 10);
+  const metaFontSize = Math.max(6, Math.round(contentFontSize * 0.9));
+  const ratingFontSize = Math.max(8, Math.round(contentFontSize * 1.5));
   const scale = 0.8 + (size / 100) * 0.4;
   const opacity = 1 - (transparency / 100) * 0.7;
   const background =
@@ -695,12 +759,14 @@ function PreviewCard({
     imageModeRaw === "contaion" ||
     imageModeRaw.includes("contain") ||
     imageModeRaw.includes("fit");
-  const imageFit = isContainMode ? "contain" : "cover";
+  const imageFit = "cover";
   const portraitVisitor = isPortrait;
-  const avatarSize = isPortrait ? 72 : 64;
+  const portraitImageSize = 120;
+  const avatarSize = isPortrait ? portraitImageSize : 64;
   const avatarOffset = Math.round(avatarSize * 0.62);
-  const pad = 16;
-  const imageOverflow = showProductImage && !isContainMode && !isPortrait;
+  const pad = 10;
+  const showImageSlot = Boolean(showProductImage);
+  const imageOverflow = showImageSlot && !isContainMode && !isPortrait;
   const rawName = product?.title || "Your product will show here";
   const safeName = formatProductName(rawName, productNameMode, productNameLimit);
   const templateContent = String(
@@ -750,6 +816,11 @@ function PreviewCard({
     tokenValues
   );
   const contentNode = (() => {
+    const textSpanStyle = {
+      fontSize: contentFontSize,
+      lineHeight: 1.35,
+      color: textColor,
+    };
     const normalized = {};
     Object.entries(tokenValues).forEach(([k, v]) => {
       normalized[String(k || "").trim().toLowerCase()] = v;
@@ -767,7 +838,13 @@ function PreviewCard({
       if (key === "product_name" && before) {
         before = before.replace(/\s+$/, "");
       }
-      if (before) out.push(<span key={`t-${idx++}`}>{before}</span>);
+      if (before) {
+        out.push(
+          <span key={`t-${idx++}`} style={textSpanStyle}>
+            {before}
+          </span>
+        );
+      }
       if (key === "product_name") {
         out.push(<br key={`br-${idx++}`} />);
       }
@@ -778,8 +855,8 @@ function PreviewCard({
           : String(rawVal);
       const tokenStyle =
         key === "product_name"
-          ? { fontWeight: 700, textDecoration: "underline" }
-          : { fontWeight: 700 };
+          ? { fontWeight: 700,fontSize: contentFontSize, lineHeight: 1.35,textDecoration: "none", color: textColor }
+          : { fontWeight: 700,fontSize: contentFontSize, lineHeight: 1.35,textDecoration: "none", color: textColor };
       out.push(
         <span key={`v-${idx++}`} style={tokenStyle}>
           {valueText}
@@ -787,9 +864,15 @@ function PreviewCard({
       );
       last = m.index + m[0].length;
     }
-    if (!found) return resolvedContent;
+    if (!found) return <span style={textSpanStyle}>{resolvedContent}</span>;
     const tail = templateContent.slice(last);
-    if (tail) out.push(<span key={`t-${idx++}`}>{tail}</span>);
+    if (tail) {
+      out.push(
+        <span key={`t-${idx++}`} style={textSpanStyle}>
+          {tail}
+        </span>
+      );
+    }
     return out;
   })();
   const cardStyle = {
@@ -797,16 +880,15 @@ function PreviewCard({
     opacity,
     background,
     color: textColor,
-    borderRadius: 18,
+    borderRadius: 10,
     boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
-    border: "1px solid rgba(0,0,0,0.06)",
     padding: pad,
     paddingLeft: imageOverflow ? pad + avatarOffset : pad,
     display: "flex",
     position: "relative",
     flexDirection: isPortrait ? "column" : "row",
     gap: isPortrait ? 14 : imageOverflow ? 14 : 12,
-    alignItems: "flex-start",
+    alignItems: "center",
     maxWidth: layout === "portrait" ? 360 : 460,
   };
 
@@ -818,14 +900,14 @@ function PreviewCard({
           aria-label="Close"
           style={{
             position: "absolute",
-            top: 8,
-            right: 8,
+            top: 0,
+            right: 5,
             border: "none",
             background: "transparent",
             color: textColor,
             display: "grid",
             placeItems: "center",
-            fontSize: 20,
+            fontSize: 16,
             lineHeight: 1,
             padding: 0,
             cursor: "pointer",
@@ -834,17 +916,17 @@ function PreviewCard({
           x
         </button>
       )}
-      {showProductImage &&
+      {showImageSlot &&
         (imageOverflow ? (
           <div
             style={{
               position: "absolute",
-              left: "8px",
+              left: "0px",
               top: "50%",
               transform: "translate(-50%, -50%)",
               width: avatarSize,
               height: avatarSize,
-              borderRadius: Math.round(avatarSize * 0.22),
+              borderRadius: 4,
               overflow: "hidden",
               background: "#f3f4f6",
               flexShrink: 0,
@@ -852,6 +934,7 @@ function PreviewCard({
               placeItems: "center",
               boxShadow: "0 8px 18px rgba(0,0,0,0.18)",
               border: "2px solid rgba(255,255,255,0.75)",
+              alignSelf: "center !important",
             }}
           >
             {product?.image ? (
@@ -861,13 +944,21 @@ function PreviewCard({
                 style={{
                   width: "100%",
                   height: "100%",
-                  objectFit: "cover",
+                  objectFit: imageFit,
                 }}
                 loading="lazy"
                 decoding="async"
               />
             ) : (
-              <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+              <div
+                aria-hidden="true"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  background:
+                    "linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%)",
+                }}
+              />
             )}
           </div>
         ) : (
@@ -875,7 +966,7 @@ function PreviewCard({
             style={{
               width: avatarSize,
               height: avatarSize,
-              borderRadius: Math.round(avatarSize * 0.22),
+              borderRadius: 4,
               overflow: "hidden",
               background: portraitVisitor ? "#ffffff" : "#f3f4f6",
               flexShrink: 0,
@@ -885,7 +976,7 @@ function PreviewCard({
                 ? "0 10px 22px rgba(0,0,0,0.14)"
                 : "0 6px 14px rgba(0,0,0,0.12)",
               border: "1px solid rgba(15,23,42,0.08)",
-              alignSelf: isPortrait ? "center" : "flex-start",
+              alignSelf: "center",
               margin: portraitVisitor ? "2px auto 2px" : undefined,
             }}
           >
@@ -902,7 +993,15 @@ function PreviewCard({
                 decoding="async"
               />
             ) : (
-              <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+              <div
+                aria-hidden="true"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  background:
+                    "linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%)",
+                }}
+              />
             )}
           </div>
         ))}
@@ -914,44 +1013,47 @@ function PreviewCard({
           minWidth: 0,
           flex: 1,
           width: portraitVisitor ? "100%" : undefined,
+          textAlign: isPortrait ? "center" : undefined,
         }}
       >
         {showRating && (
           <div
             style={{
               color: starColor,
-              fontSize: portraitVisitor ? 18 : 12,
+              fontSize: ratingFontSize,
               lineHeight: 1,
             }}
           >
             {"★".repeat(Math.max(0, Math.min(5, product?.rating || 4)))}
-            <span style={{ color: "#9ca3af" }}>
+            <span style={{ color: starColor, opacity: 0.28,fontSize: ratingFontSize }}>
               {"★".repeat(Math.max(0, 5 - (product?.rating || 4)))}
             </span>
           </div>
         )}
-        <div style={{ fontSize: textSizeContent, fontWeight: 400 }}>
+        <div style={{ fontSize: contentFontSize, fontWeight: 400 }}>
           {contentNode}
         </div>
         {!hasProductToken && (
           <div
             style={{
-              fontSize: textSizeContent,
+              fontSize: contentFontSize,
               fontWeight: 600,
               textDecoration: "underline",
               lineHeight: 1.4,
+              color: textColor,
             }}
           >
             {safeName}
           </div>
         )}
         {showPriceTag && (
-          <InlineStack gap="200" blockAlign="center">
+          <div style={{ display: "flex", justifyContent: isPortrait ? "center" : "flex-start" }}>
+            <InlineStack gap="200" blockAlign="center">
             <span
               style={{
                 background: priceTagBg,
                 color: priceColor,
-                fontSize: textSizePrice,
+                fontSize: priceFontSize,
                 padding: "2px 8px",
                 borderRadius: 6,
                 fontWeight: 600,
@@ -962,21 +1064,22 @@ function PreviewCard({
             <span
               style={{
                 color: priceTagAlt,
-                fontSize: textSizeCompare,
+                fontSize: compareFontSize,
                 textDecoration: "line-through",
               }}
             >
               {product?.compareAt || "Rs. 349.00"}
             </span>
-          </InlineStack>
+            </InlineStack>
+          </div>
         )}
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
+            justifyContent: isPortrait ? "center" : "space-between",
             gap: 12,
-            fontSize: 12,
+            fontSize: metaFontSize,
             color: timestampColor,
           }}
         >
@@ -990,16 +1093,25 @@ export default function VisitorPopupPage() {
   const { customerCount, saved, judgeMeConnected, previewCustomer } = useLoaderData();
   const navigate = useNavigate();
   const location = useLocation();
-  const notificationUrl = `/app/notification${location.search || ""}`;
-  const notificationManageUrl = `/app/notification/manage${location.search || ""}`;
+  const navigationSearch = (() => {
+    const sp = new URLSearchParams(location.search);
+    sp.delete("editId");
+    sp.delete("id");
+    sp.delete("mode");
+    const qs = sp.toString();
+    return qs ? `?${qs}` : "";
+  })();
+  const notificationUrl = `/app/notification${navigationSearch}`;
+  const notificationManageUrl = `/app/notification/manage${navigationSearch}`;
   const [activeSection, setActiveSection] = useState("layout");
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ active: false, error: false, msg: "" });
+  const [dataProductError, setDataProductError] = useState(false);
 
   const [design, setDesign] = useState({
     notiType: "visitor_list",
     layout: "landscape",
-    size: 30,
+    size: 50,
     transparent: 10,
     template: "solid",
     imageAppearance: "cover",
@@ -1015,8 +1127,8 @@ export default function VisitorPopupPage() {
 
   const [textSize, setTextSize] = useState({
     content: "14",
-    compareAt: "13",
-    price: "13",
+    compareAt: "12",
+    price: "12",
   });
 
   const [content, setContent] = useState({
@@ -1056,7 +1168,7 @@ export default function VisitorPopupPage() {
     delay: "1",
     duration: "10",
     interval: "1",
-    intervalUnit: "mins",
+    intervalUnit: "minutes",
     randomize: false,
   });
 
@@ -1069,13 +1181,18 @@ export default function VisitorPopupPage() {
   const [collectionSearch, setCollectionSearch] = useState("");
   const [page, setPage] = useState(1);
   const [collectionPage, setCollectionPage] = useState(1);
-  const [hasLoadedProducts, setHasLoadedProducts] = useState(false);
   const [hasLoadedCollections, setHasLoadedCollections] = useState(false);
 
   const [selectedDataProducts, setSelectedDataProducts] = useState([]);
   const [selectedVisibilityProducts, setSelectedVisibilityProducts] = useState([]);
   const [selectedCollections, setSelectedCollections] = useState([]);
   const [pickerMode, setPickerMode] = useState("data");
+
+  useEffect(() => {
+    if (selectedDataProducts.length > 0) {
+      setDataProductError(false);
+    }
+  }, [selectedDataProducts.length]);
 
   useEffect(() => {
     if (!saved) return;
@@ -1105,14 +1222,6 @@ export default function VisitorPopupPage() {
       Array.isArray(saved.selectedCollections) ? saved.selectedCollections : []
     );
   }, [saved]);
-
-  useEffect(() => {
-    if (hasLoadedProducts) return;
-    const params = new URLSearchParams();
-    params.set("page", "1");
-    productFetcher.load(`/app/products-picker?${params.toString()}`);
-    setHasLoadedProducts(true);
-  }, [hasLoadedProducts, productFetcher]);
 
   useEffect(() => {
     if (!pickerOpen) return;
@@ -1145,7 +1254,7 @@ export default function VisitorPopupPage() {
       id: item.id,
       title: item.title,
       handle: item.handle || null,
-      image: item.featuredImage || null,
+      image: item.image || item.featuredImage || null,
       status: item.status,
       price: item.price || null,
       compareAt: item.compareAt || null,
@@ -1259,6 +1368,17 @@ export default function VisitorPopupPage() {
   const save = async () => {
     setSaving(true);
     try {
+      if (selectedDataProducts.length === 0) {
+        setDataProductError(true);
+        setActiveSection("layout");
+        setToast({
+          active: true,
+          error: true,
+          msg: "Please select at least 1 product in Data before saving.",
+        });
+        setSaving(false);
+        return;
+      }
       if (
         visibility.productScope === "specific" &&
         selectedVisibilityProducts.length === 0
@@ -1273,6 +1393,7 @@ export default function VisitorPopupPage() {
       }
       const endpoint = `${location.pathname}${location.search || ""}`;
       const form = {
+        editId: saved?.id ?? null,
         enabled: true,
         design,
         textSize,
@@ -1330,6 +1451,7 @@ export default function VisitorPopupPage() {
         backAction={{ content: "Back", onAction: () => navigate(notificationUrl) }}
         primaryAction={{ content: "Save", onAction: save, loading: saving }}
       >
+        <NotificationPageStyles />
         <style>{VISITOR_STYLES}</style>
         <div className="visitor-shell">
           <div className="visitor-sidebar">
@@ -1347,7 +1469,7 @@ export default function VisitorPopupPage() {
           </div>
           <div className="visitor-main">
             <div className="visitor-columns">
-              <div className="visitor-form">
+              <div className="visitor-form notification-page">
                 <BlockStack gap="400">
                   {activeSection === "layout" && (
                     <>
@@ -1705,6 +1827,11 @@ export default function VisitorPopupPage() {
                         {selectedDataProducts.length} products selected
                       </Text>
                     </InlineStack>
+                    {dataProductError && selectedDataProducts.length === 0 && (
+                      <Text as="p" tone="critical">
+                        Please select at least 1 product before saving.
+                      </Text>
+                    )}
                     <BlockStack gap="150">
                       <Checkbox
                         label="Notification direct to specific product page"
@@ -2024,6 +2151,9 @@ export default function VisitorPopupPage() {
                     </Text>
                     <TextField
                       label="Delay before first notification"
+                      type="number"
+                      min={0}
+                      step={1}
                       value={behavior.delay}
                       onChange={(v) =>
                         setBehavior((b) => ({ ...b, delay: v }))
@@ -2033,6 +2163,9 @@ export default function VisitorPopupPage() {
                     />
                     <TextField
                       label="Display duration"
+                      type="number"
+                      min={1}
+                      step={1}
                       value={behavior.duration}
                       onChange={(v) =>
                         setBehavior((b) => ({ ...b, duration: v }))
@@ -2044,6 +2177,9 @@ export default function VisitorPopupPage() {
                       <Box width="50%">
                         <TextField
                           label="Interval time"
+                          type="number"
+                          min={0}
+                          step={1}
                           value={behavior.interval}
                           onChange={(v) =>
                             setBehavior((b) => ({ ...b, interval: v }))
@@ -2053,8 +2189,7 @@ export default function VisitorPopupPage() {
                       </Box>
                       <Box width="50%">
                         <Select
-                          label=" "
-                          labelHidden
+                          label="Unit"
                           options={TIME_UNITS}
                           value={behavior.intervalUnit}
                           onChange={(v) =>
@@ -2080,62 +2215,56 @@ export default function VisitorPopupPage() {
                   )}
                 </BlockStack>
               </div>
-              <div className="visitor-preview">
-            <Card>
-              <Box padding="4">
-                <BlockStack gap="300">
-                  <Text as="h3" variant="headingMd">
-                    Preview
-                  </Text>
-                  <div className="visitor-preview-box">
-                    {previewMessage ? (
-                      <div style={{ textAlign: "center" }}>
-                        <Text as="p" tone="subdued">
-                          {previewMessage}
-                        </Text>
-                      </div>
-                    ) : (
-                      <PreviewCard
-                        layout={design.layout}
-                        size={design.size}
-                        transparency={design.transparent}
-                        bgColor={normalizeHex(design.bgColor, "#FFFFFF")}
-                        bgAlt={normalizeHex(design.bgAlt, "#F3F4F6")}
-                        textColor={normalizeHex(design.textColor, "#111111")}
-                        timestampColor={normalizeHex(
-                          design.timestampColor,
-                          "#696969"
-                        )}
-                        priceTagBg={normalizeHex(design.priceTagBg, "#593E3F")}
-                        priceTagAlt={normalizeHex(
-                          design.priceTagAlt,
-                          "#E66465"
-                        )}
-                        priceColor={normalizeHex(design.priceColor, "#FFFFFF")}
-                        starColor={normalizeHex(design.starColor, "#FFD240")}
-                        imageAppearance={design.imageAppearance}
-                        textSizeContent={Number(textSize.content) || 14}
-                        textSizeCompare={Number(textSize.compareAt) || 13}
-                        textSizePrice={Number(textSize.price) || 13}
-                        contentText={content.message}
-                        timestampText={content.timestamp}
-                        avgTime={content.avgTime}
-                        avgUnit={content.avgUnit}
-                        showProductImage={data.showProductImage}
-                        showPriceTag={data.showPriceTag}
-                        showRating={data.showRating}
-                        showClose={behavior.showClose}
-                        product={previewProduct}
-                        template={design.template}
-                        productNameMode={productNameMode}
-                        productNameLimit={productNameLimit}
-                        previewCustomer={previewCustomer}
-                      />
+              <div
+                className={[
+                  "visitor-preview",
+                  "is-popup-type-visitor",
+                  `is-layout-${design.layout || "landscape"}`,
+                  design.imageAppearance === "contain" ? "is-fit-image" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                <PopupPreviewPanel
+                  title="Preview"
+                >
+                  <PreviewCard
+                    layout={design.layout}
+                    size={design.size}
+                    transparency={design.transparent}
+                    bgColor={normalizeHex(design.bgColor, "#FFFFFF")}
+                    bgAlt={normalizeHex(design.bgAlt, "#F3F4F6")}
+                    textColor={normalizeHex(design.textColor, "#111111")}
+                    timestampColor={normalizeHex(
+                      design.timestampColor,
+                      "#696969"
                     )}
-                  </div>
-                </BlockStack>
-              </Box>
-            </Card>
+                    priceTagBg={normalizeHex(design.priceTagBg, "#593E3F")}
+                    priceTagAlt={normalizeHex(
+                      design.priceTagAlt,
+                      "#E66465"
+                    )}
+                    priceColor={normalizeHex(design.priceColor, "#FFFFFF")}
+                    starColor={normalizeHex(design.starColor, "#FFD240")}
+                    imageAppearance={design.imageAppearance}
+                    textSizeContent={Number(textSize.content) || 12}
+                    textSizeCompare={Number(textSize.compareAt) || 10}
+                    textSizePrice={Number(textSize.price) || 10}
+                    contentText={content.message}
+                    timestampText={content.timestamp}
+                    avgTime={content.avgTime}
+                    avgUnit={content.avgUnit}
+                    showProductImage={data.showProductImage}
+                    showPriceTag={data.showPriceTag}
+                    showRating={data.showRating}
+                    showClose={behavior.showClose}
+                    product={previewProduct}
+                    template={design.template}
+                    productNameMode={productNameMode}
+                    productNameLimit={productNameLimit}
+                    previewCustomer={previewCustomer}
+                  />
+                </PopupPreviewPanel>
               </div>
             </div>
             <div className="visitor-help">
@@ -2225,25 +2354,6 @@ export default function VisitorPopupPage() {
               })}
             </IndexTable>
 
-            <InlineStack gap="200" align="space-between" blockAlign="center">
-              <Text tone="subdued">
-                {selectedProductCount} products selected
-              </Text>
-              <InlineStack gap="200">
-                <Button
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  Previous
-                </Button>
-                <Button
-                  disabled={!hasNextPage}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Next
-                </Button>
-              </InlineStack>
-            </InlineStack>
           </BlockStack>
         </Modal.Section>
       </Modal>

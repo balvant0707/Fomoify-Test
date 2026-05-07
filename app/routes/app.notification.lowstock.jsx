@@ -11,22 +11,23 @@ import {
   BlockStack,
   InlineStack,
   Text,
-  RangeSlider,
   Frame,
   Modal,
   IndexTable,
-  Thumbnail,
   Badge,
   Checkbox,
   RadioButton,
   Toast,
   Loading,
+  RangeSlider,
 } from "@shopify/polaris";
 import { useNavigate, useFetcher, useLocation, useLoaderData } from "@remix-run/react";
 import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import { saveLowStockPopup } from "../models/popup-config.server";
 import prisma from "../db.server";
+import { PopupPreviewPanel } from "../components/notification/PopupPreviewPanel";
+import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
 const errorText = (value, fallback = "Save failed") => {
   if (typeof value === "string" && value.trim()) return value;
@@ -87,6 +88,9 @@ async function saveWithRetry(shop, form, retries = 2) {
 export async function loader({ request }) {
   const { session } = await authenticate.admin(request);
   const shop = session?.shop;
+  const reqUrl = new URL(request.url);
+  const editIdNum = Number(reqUrl.searchParams.get("editId") || reqUrl.searchParams.get("id"));
+  const editId = Number.isInteger(editIdNum) && editIdNum > 0 ? editIdNum : null;
 
   const parseJsonLoose = (raw) => {
     if (raw === undefined || raw === null) return null;
@@ -155,10 +159,9 @@ export async function loader({ request }) {
     const model = prisma?.lowstockpopupconfig || prisma?.lowStockPopupConfig || null;
     let source = null;
     if (shop && model?.findFirst) {
-      const findArgs = {
-        where: { shop },
-        orderBy: { id: "desc" },
-      };
+      const findArgs = editId
+        ? { where: { id: editId, shop } }
+        : { where: { shop }, orderBy: { id: "desc" } };
       try {
         source = await model.findFirst(findArgs);
       } catch (error) {
@@ -218,9 +221,10 @@ export async function loader({ request }) {
     if (source) {
       const { dataProducts, visibilityProducts } = parseProductSelections(source);
       saved = {
+        id: source.id,
         design: {
           layout: toStr(source.layout, "landscape"),
-          size: toNum(source.size, 60),
+          size: toNum(source.size, 50),
           transparent: toNum(source.transparent, 10),
           template: toStr(source.template, "gradient"),
           imageAppearance: toStr(source.imageAppearance, "cover"),
@@ -234,9 +238,9 @@ export async function loader({ request }) {
           starColor: toStr(source.starColor, "#F06663"),
         },
         textSize: {
-          content: toStr(source.textSizeContent, "14"),
-          compareAt: toStr(source.textSizeCompareAt, "12"),
-          price: toStr(source.textSizePrice, "12"),
+          content: toStr(source.textSizeContent, "12"),
+          compareAt: toStr(source.textSizeCompareAt, "10"),
+          price: toStr(source.textSizePrice, "10"),
         },
         content: {
           message: toStr(
@@ -271,7 +275,7 @@ export async function loader({ request }) {
           delay: toStr(source.delay, "1"),
           duration: toStr(source.duration, "10"),
           interval: toStr(source.interval, "5"),
-          intervalUnit: toStr(source.intervalUnit, "seconds"),
+          intervalUnit: normalizeIntervalUnit(source.intervalUnit),
           randomize: toBool(source.randomize, true),
         },
         selectedDataProducts: dataProducts,
@@ -352,10 +356,13 @@ const POSITIONS = [
   { label: "Top left", value: "top-left" },
 ];
 const TIME_UNITS = [
-  { label: "seconds", value: "seconds" },
-  { label: "mins", value: "mins" },
-  { label: "hours", value: "hours" },
+  { label: "Seconds", value: "seconds" },
+  { label: "Minutes", value: "minutes" },
 ];
+const normalizeIntervalUnit = (value) => {
+  const unit = String(value || "seconds").trim().toLowerCase();
+  return unit.startsWith("min") ? "minutes" : "seconds";
+};
 
 const CONTENT_TOKENS = [
   "full_name",
@@ -433,6 +440,26 @@ const LOW_STOCK_STYLES = `
   flex: 1;
   min-width: 320px;
 }
+.lowstock-preview .popup-preview-panel__header {
+  border-bottom: 0;
+}
+.lowstock-preview .popup-preview-panel__surface {
+  min-height: 300px;
+  padding: 0 0 0 30px;
+  align-items: center;
+}
+.lowstock-preview.is-layout-portrait .popup-preview-panel__surface {
+  padding: 0 !important;
+}
+.lowstock-preview.is-fit-image .popup-preview-panel__surface {
+  padding: 0;
+}
+.lowstock-preview.is-fit-image .popup-preview-panel {
+  padding-right: var(--p-space-400);
+}
+.lowstock-preview .popup-preview-panel__content {
+  max-width: 100%;
+}
 .lowstock-preview-box {
   border: 1px solid #e5e7eb;
   border-radius: 16px;
@@ -489,6 +516,13 @@ const LOW_STOCK_STYLES = `
   .lowstock-form,
   .lowstock-preview {
     min-width: 0;
+  }
+  .lowstock-preview .popup-preview-panel__surface {
+    min-height: 360px;
+    padding: 40px 12px 32px;
+  }
+  .lowstock-preview.is-fit-image .popup-preview-panel__surface {
+    padding: 0;
   }
 }
 `;
@@ -690,35 +724,53 @@ function PreviewCard({
   productNameMode,
   productNameLimit,
 }) {
-  const scale = 0.8 + (size / 100) * 0.4;
-  const opacity = 1 - (transparency / 100) * 0.7;
+  const clampFontSize = (value, fallback) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.max(6, Math.min(72, n)) : fallback;
+  };
+  const contentFontSize = clampFontSize(textSizeContent, 14);
+  const compareFontSize = clampFontSize(textSizeCompare, 12);
+  const priceFontSize = clampFontSize(textSizePrice, 12);
+  const ratingFontSize = Math.max(8, Math.round(contentFontSize * 1.5));
+  const normalizedSize = Math.max(0, Math.min(100, Number(size) || 0));
+  const normalizedTransparency = Math.max(
+    0,
+    Math.min(100, Number(transparency) || 0)
+  );
+  const scale = 0.8 + (normalizedSize / 100) * 0.4;
+  const opacity = 1 - (normalizedTransparency / 100) * 0.7;
   const background =
     template === "gradient"
       ? `linear-gradient(135deg, ${bgColor} 0%, ${bgAlt} 100%)`
       : bgColor;
 
   const isPortrait = layout === "portrait";
-  const imageMode = imageAppearance || "cover";
-  const imageFit = imageMode === "contain" ? "contain" : "cover";
-  const avatarSize = isPortrait ? 56 : 64;
+  const imageMode = String(imageAppearance || "cover").toLowerCase().trim();
+  const isContainMode =
+    imageMode === "contain" ||
+    imageMode.includes("contain") ||
+    imageMode.includes("fit");
+  const imageFit = "cover";
+  const portraitImageSize = 120;
+  const avatarSize = isPortrait ? portraitImageSize : 64;
   const avatarOffset = Math.round(avatarSize * 0.45);
   const pad = 16;
-  const imageOverflow = showProductImage && imageMode === "cover" && !isPortrait;
+  const imageOverflow = showProductImage && !isContainMode && !isPortrait;
   const cardStyle = {
     transform: `scale(${scale})`,
+    transformOrigin: "center center",
     opacity,
     background,
     color: textColor,
-    borderRadius: 18,
+    borderRadius: 10,
     boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
-    border: "1px solid rgba(0,0,0,0.06)",
     padding: pad,
     paddingLeft: imageOverflow ? pad + avatarOffset : pad,
     display: "flex",
     position: "relative",
     flexDirection: isPortrait ? "column" : "row",
     gap: 12,
-    alignItems: "flex-start",
+    alignItems: isPortrait ? "center" : "flex-start",
     maxWidth: isPortrait ? 320 : 460,
   };
 
@@ -745,7 +797,7 @@ function PreviewCard({
       return (
         <span
           key={`product-${idx}`}
-          style={{ fontWeight: 600, textDecoration: "underline" }}
+          style={{ fontWeight: 700,fontSize: contentFontSize, lineHeight: 1.35,textDecoration: "none",letterSpacing : "-0.02em", color: textColor }}
         >
           {safeName}
         </span>
@@ -755,13 +807,13 @@ function PreviewCard({
       return (
         <span
           key={`count-${idx}`}
-          style={{ color: numberColor, fontWeight: 700 }}
+          style={{ color: numberColor, fontWeight: 700,fontSize: contentFontSize, lineHeight: 1.35,letterSpacing : "-0.02em" }}
         >
           {safeCount}
         </span>
       );
     }
-    return <span key={`text-${idx}`}>{part}</span>;
+    return <span style={{ color: textColor, fontWeight: 500,fontSize: Math.max(6, contentFontSize - 1), lineHeight: 1.35,letterSpacing : "-0.02em"}} key={`text-${idx}`}>{part}</span>;
   });
 
   return (
@@ -772,14 +824,14 @@ function PreviewCard({
           aria-label="Close"
           style={{
             position: "absolute",
-            top: 8,
-            right: 8,
+            top: 0,
+            right: 10,
             border: "none",
             background: "transparent",
             color: textColor,
             display: "grid",
             placeItems: "center",
-            fontSize: 20,
+            fontSize: 18,
             lineHeight: 1,
             padding: 0,
             cursor: "pointer",
@@ -793,12 +845,12 @@ function PreviewCard({
           <div
             style={{
               position: "absolute",
-              left: "8px",
+              left: "0",
               top: "50%",
               transform: "translate(-50%, -50%)",
               width: avatarSize,
               height: avatarSize,
-              borderRadius: Math.round(avatarSize * 0.22),
+              borderRadius: 4,
               overflow: "hidden",
               background: "#f3f4f6",
               flexShrink: 0,
@@ -815,13 +867,13 @@ function PreviewCard({
                 style={{
                   width: "100%",
                   height: "100%",
-                  objectFit: "cover",
+                  objectFit: imageFit,
                 }}
                 loading="lazy"
                 decoding="async"
               />
             ) : (
-              <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+              <span style={{ fontSize: 12, color: textColor }}>IMG</span>
             )}
           </div>
         ) : (
@@ -829,7 +881,7 @@ function PreviewCard({
             style={{
               width: avatarSize,
               height: avatarSize,
-              borderRadius: Math.round(avatarSize * 0.22),
+              borderRadius: 4,
               overflow: "hidden",
               background: "#f3f4f6",
               flexShrink: 0,
@@ -853,30 +905,38 @@ function PreviewCard({
                 decoding="async"
               />
             ) : (
-              <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+              <span style={{ fontSize: 12, color: textColor }}>IMG</span>
             )}
           </div>
         ))}
 
-      <div style={{ display: "grid", gap: 6, minWidth: 0, flex: 1 }}>
+      <div style={{ display: "grid", gap: 6, minWidth: 0, flex: 1, textAlign: isPortrait ? "center" : undefined }}>
         {showRating && (
-          <div style={{ color: starColor, fontSize: 12 }}>
-            {"*****".slice(0, product?.rating || 4)}
-            <span style={{ color: "#d1d5db" }}>
-              {"*****".slice(0, 5 - (product?.rating || 4))}
+          <div
+            style={{
+              color: starColor,
+              fontSize: ratingFontSize,
+              letterSpacing: 0,
+              lineHeight: 1,
+            }}
+          >
+            {"★".repeat(Math.max(0, Math.min(5, product?.rating || 4)))}
+            <span style={{ color: starColor, opacity: 0.28 ,fontSize: ratingFontSize,}}>
+              {"★".repeat(Math.max(0, 5 - (product?.rating || 4)))}
             </span>
           </div>
         )}
-        <div style={{ fontSize: textSizeContent, lineHeight: 1.35 }}>
+        <div style={{ fontSize: contentFontSize, lineHeight: 1.35, fontWeight: 500, letterSpacing : "-0.02em", color: textColor }}>
           {contentNode}
         </div>
         {showPriceTag && (
-          <InlineStack gap="200" blockAlign="center">
+          <div style={{ display: "flex", justifyContent: isPortrait ? "center" : "flex-start" }}>
+            <InlineStack gap="200" blockAlign="center">
             <span
               style={{
                 background: priceTagBg,
                 color: priceColor,
-                fontSize: textSizePrice,
+                fontSize: priceFontSize,
                 padding: "2px 8px",
                 borderRadius: 6,
                 fontWeight: 600,
@@ -887,13 +947,14 @@ function PreviewCard({
             <span
               style={{
                 color: priceTagAlt,
-                fontSize: textSizeCompare,
+                fontSize: compareFontSize,
                 textDecoration: "line-through",
               }}
             >
               {product?.compareAt || "Rs. 999.00"}
             </span>
-          </InlineStack>
+            </InlineStack>
+          </div>
         )}
       </div>
     </div>
@@ -904,15 +965,23 @@ export default function LowStockPopupPage() {
   const { saved } = useLoaderData();
   const navigate = useNavigate();
   const location = useLocation();
-  const notificationUrl = `/app/notification${location.search || ""}`;
-  const notificationManageUrl = `/app/notification/manage${location.search || ""}`;
+  const navigationSearch = (() => {
+    const sp = new URLSearchParams(location.search);
+    sp.delete("editId");
+    sp.delete("id");
+    sp.delete("mode");
+    const qs = sp.toString();
+    return qs ? `?${qs}` : "";
+  })();
+  const notificationUrl = `/app/notification${navigationSearch}`;
+  const notificationManageUrl = `/app/notification/manage${navigationSearch}`;
   const [activeSection, setActiveSection] = useState("layout");
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ active: false, error: false, msg: "" });
 
   const [design, setDesign] = useState({
     layout: "landscape",
-    size: 25,
+    size: 15,
     transparent: 10,
     template: "gradient",
     imageAppearance: "cover",
@@ -983,7 +1052,6 @@ export default function LowStockPopupPage() {
   const [collectionSearch, setCollectionSearch] = useState("");
   const [page, setPage] = useState(1);
   const [collectionPage, setCollectionPage] = useState(1);
-  const [hasLoadedProducts, setHasLoadedProducts] = useState(false);
   const [hasLoadedCollections, setHasLoadedCollections] = useState(false);
 
   const [selectedDataProducts, setSelectedDataProducts] = useState([]);
@@ -1025,14 +1093,6 @@ export default function LowStockPopupPage() {
   }, [saved]);
 
   useEffect(() => {
-    if (hasLoadedProducts) return;
-    const params = new URLSearchParams();
-    params.set("page", "1");
-    productFetcher.load(`/app/products-picker?${params.toString()}`);
-    setHasLoadedProducts(true);
-  }, [hasLoadedProducts, productFetcher]);
-
-  useEffect(() => {
     if (!pickerOpen) return;
     const params = new URLSearchParams();
     if (search) params.set("q", search);
@@ -1063,7 +1123,7 @@ export default function LowStockPopupPage() {
       id: item.id,
       title: item.title,
       handle: item.handle || null,
-      image: item.featuredImage || null,
+      image: item.image || item.featuredImage || null,
       status: item.status,
       price: item.price || null,
       compareAt: item.compareAt || null,
@@ -1186,6 +1246,7 @@ export default function LowStockPopupPage() {
     try {
       const endpoint = `${location.pathname}${location.search || ""}`;
       const form = {
+        editId: saved?.id ?? null,
         design,
         textSize,
         content,
@@ -1243,6 +1304,7 @@ export default function LowStockPopupPage() {
         backAction={{ content: "Back", onAction: () => navigate(notificationUrl) }}
         primaryAction={{ content: "Save", onAction: save, loading: saving }}
       >
+        <NotificationPageStyles />
         <style>{LOW_STOCK_STYLES}</style>
         <div className="lowstock-shell">
           <div className="lowstock-sidebar">
@@ -1261,7 +1323,7 @@ export default function LowStockPopupPage() {
 
           <div className="lowstock-main">
             <div className="lowstock-columns">
-              <div className="lowstock-form">
+              <div className="lowstock-form notification-page">
                 <BlockStack gap="400">
                   {activeSection === "layout" && (
                     <>
@@ -1280,27 +1342,35 @@ export default function LowStockPopupPage() {
                               }
                             />
 
-                            <BlockStack gap="200">
+                            <BlockStack gap="150">
                               <Text>Size</Text>
                               <RangeSlider
+                                label="Size"
+                                labelHidden
                                 min={0}
                                 max={100}
+                                step={1}
                                 value={design.size}
                                 onChange={(v) =>
                                   setDesign((d) => ({ ...d, size: v }))
                                 }
+                                output
                               />
                             </BlockStack>
 
-                            <BlockStack gap="200">
+                            <BlockStack gap="150">
                               <Text>Transparent</Text>
                               <RangeSlider
+                                label="Transparent"
+                                labelHidden
                                 min={0}
                                 max={100}
+                                step={1}
                                 value={design.transparent}
                                 onChange={(v) =>
                                   setDesign((d) => ({ ...d, transparent: v }))
                                 }
+                                output
                               />
                             </BlockStack>
 
@@ -1868,6 +1938,9 @@ export default function LowStockPopupPage() {
                             </Text>
                             <TextField
                               label="Delay before first notification"
+                              type="number"
+                              min={0}
+                              step={1}
                               value={behavior.delay}
                               onChange={(v) =>
                                 setBehavior((b) => ({ ...b, delay: v }))
@@ -1877,6 +1950,9 @@ export default function LowStockPopupPage() {
                             />
                             <TextField
                               label="Display duration"
+                              type="number"
+                              min={1}
+                              step={1}
                               value={behavior.duration}
                               onChange={(v) =>
                                 setBehavior((b) => ({ ...b, duration: v }))
@@ -1888,6 +1964,9 @@ export default function LowStockPopupPage() {
                               <Box width="50%">
                                 <TextField
                                   label="Interval time"
+                                  type="number"
+                                  min={0}
+                                  step={1}
                                   value={behavior.interval}
                                   onChange={(v) =>
                                     setBehavior((b) => ({ ...b, interval: v }))
@@ -1897,8 +1976,7 @@ export default function LowStockPopupPage() {
                               </Box>
                               <Box width="50%">
                                 <Select
-                                  label=" "
-                                  labelHidden
+                                  label="Unit"
                                   options={TIME_UNITS}
                                   value={behavior.intervalUnit}
                                   onChange={(v) =>
@@ -1928,71 +2006,65 @@ export default function LowStockPopupPage() {
                 </BlockStack>
               </div>
 
-              <div className="lowstock-preview">
-                <Card>
-                  <Box padding="4">
-                    <BlockStack gap="300">
-                      <Text as="h3" variant="headingMd">
-                        Preview
-                      </Text>
-                      <div className="lowstock-preview-box">
-                        {previewMessage ? (
-                          <div style={{ textAlign: "center" }}>
-                            <Text as="p" tone="subdued">
-                              {previewMessage}
-                            </Text>
-                          </div>
-                        ) : (
-                          <PreviewCard
-                            layout={design.layout}
-                            size={design.size}
-                            transparency={design.transparent}
-                            bgColor={normalizeHex(design.bgColor, "#FFFBD2")}
-                            bgAlt={normalizeHex(design.bgAlt, "#FBCFCF")}
-                            textColor={normalizeHex(
-                              design.textColor,
-                              "#000000"
-                            )}
-                            numberColor={normalizeHex(
-                              design.numberColor,
-                              "#000000"
-                            )}
-                            priceTagBg={normalizeHex(
-                              design.priceTagBg,
-                              "#593E3F"
-                            )}
-                            priceTagAlt={normalizeHex(
-                              design.priceTagAlt,
-                              "#E66465"
-                            )}
-                            priceColor={normalizeHex(
-                              design.priceColor,
-                              "#FFFFFF"
-                            )}
-                            starColor={normalizeHex(
-                              design.starColor,
-                              "#F06663"
-                            )}
-                            imageAppearance={design.imageAppearance}
-                            textSizeContent={Number(textSize.content) || 14}
-                            textSizeCompare={Number(textSize.compareAt) || 12}
-                            textSizePrice={Number(textSize.price) || 12}
-                            contentText={content.message}
-                            stockCount={data.stockUnder}
-                            showProductImage={data.showProductImage}
-                            showPriceTag={data.showPriceTag}
-                            showRating={data.showRating}
-                            showClose={behavior.showClose}
-                            product={previewProduct}
-                            template={design.template}
-                            productNameMode={productNameMode}
-                            productNameLimit={productNameLimit}
-                          />
-                        )}
-                      </div>
-                    </BlockStack>
-                  </Box>
-                </Card>
+              <div
+                className={[
+                  "lowstock-preview",
+                  "is-popup-type-lowstock",
+                  `is-layout-${design.layout || "landscape"}`,
+                  design.imageAppearance === "contain" ? "is-fit-image" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                <PopupPreviewPanel
+                  title="Preview"
+                >
+                  <PreviewCard
+                    layout={design.layout}
+                    size={design.size}
+                    transparency={design.transparent}
+                    bgColor={normalizeHex(design.bgColor, "#FFFBD2")}
+                    bgAlt={normalizeHex(design.bgAlt, "#FBCFCF")}
+                    textColor={normalizeHex(
+                      design.textColor,
+                      "#000000"
+                    )}
+                    numberColor={normalizeHex(
+                      design.numberColor,
+                      "#000000"
+                    )}
+                    priceTagBg={normalizeHex(
+                      design.priceTagBg,
+                      "#593E3F"
+                    )}
+                    priceTagAlt={normalizeHex(
+                      design.priceTagAlt,
+                      "#E66465"
+                    )}
+                    priceColor={normalizeHex(
+                      design.priceColor,
+                      "#FFFFFF"
+                    )}
+                    starColor={normalizeHex(
+                      design.starColor,
+                      "#F06663"
+                    )}
+                    imageAppearance={design.imageAppearance}
+                    textSizeContent={Number(textSize.content) || 12}
+                    textSizeCompare={Number(textSize.compareAt) || 10}
+                    textSizePrice={Number(textSize.price) || 10}
+                    contentText={content.message}
+                    stockCount={data.stockUnder}
+                    showProductImage={data.showProductImage}
+                    showPriceTag={data.showPriceTag}
+                    showRating={data.showRating}
+                    showClose={behavior.showClose}
+                    product={previewProduct}
+                    template={design.template}
+                    productNameMode={productNameMode}
+                    productNameLimit={productNameLimit}
+                  />
+                </PopupPreviewPanel>
               </div>
             </div>
 
@@ -2067,14 +2139,7 @@ export default function LowStockPopupPage() {
                       />
                     </IndexTable.Cell>
                     <IndexTable.Cell>
-                      <InlineStack gap="200" blockAlign="center">
-                        <Thumbnail
-                          source={item.image}
-                          alt={item.title}
-                          size="small"
-                        />
-                        <Text>{item.title}</Text>
-                      </InlineStack>
+                      <Text>{item.title}</Text>
                     </IndexTable.Cell>
                     <IndexTable.Cell>
                       <Badge tone="success">active</Badge>
@@ -2084,25 +2149,6 @@ export default function LowStockPopupPage() {
               })}
             </IndexTable>
 
-            <InlineStack gap="200" align="space-between" blockAlign="center">
-              <Text tone="subdued">
-                {pickerProducts.length} products selected
-              </Text>
-              <InlineStack gap="200">
-                <Button
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  Previous
-                </Button>
-                <Button
-                  disabled={!hasNextPage}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Next
-                </Button>
-              </InlineStack>
-            </InlineStack>
           </BlockStack>
         </Modal.Section>
       </Modal>
@@ -2165,14 +2211,7 @@ export default function LowStockPopupPage() {
                       />
                     </IndexTable.Cell>
                     <IndexTable.Cell>
-                      <InlineStack gap="200" blockAlign="center">
-                        <Thumbnail
-                          source={item.image}
-                          alt={item.title}
-                          size="small"
-                        />
-                        <Text>{item.title}</Text>
-                      </InlineStack>
+                      <Text>{item.title}</Text>
                     </IndexTable.Cell>
                     <IndexTable.Cell>
                       <Badge tone="info">

@@ -17,13 +17,10 @@ const writeCache = globalForEmbedPing.__fomoEmbedPingWriteCache;
 const getEmbedPingModel = () => prisma.embedPing || prisma.embedping || null;
 
 const isConnectionLimitError = (error) => {
-  const code = String(error?.code || "").toUpperCase();
   const message = String(error?.message || "").toLowerCase();
   return (
-    code === "P2024" ||
     message.includes("max_user_connections") ||
-    message.includes("too many database connections") ||
-    message.includes("timed out fetching a new connection")
+    message.includes("too many database connections")
   );
 };
 

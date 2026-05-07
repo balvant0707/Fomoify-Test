@@ -1,4 +1,5 @@
 import prisma from "../db.server";
+import { deleteCacheByPrefix } from "../utils/serverCache.server";
 
 const toStr = (v) => {
   const s = v === undefined || v === null ? "" : String(v).trim();
@@ -34,6 +35,16 @@ const withoutKeys = (obj, keys) => {
   const out = { ...obj };
   for (const key of keys) delete out[key];
   return out;
+};
+const invalidatePopupProxyCache = (shop) => {
+  try {
+    if (shop) deleteCacheByPrefix(`proxy:popup:${shop}:`);
+  } catch (error) {
+    console.warn("[PopupConfig] popup proxy cache invalidation failed:", {
+      shop,
+      error: error?.message || error,
+    });
+  }
 };
 const normalizeColumnName = (value) => {
   const raw = String(value || "")
@@ -128,6 +139,7 @@ async function upsertByShop(
         updatedCount: updated?.id ? 1 : 0,
         id: existing.id,
       });
+      invalidatePopupProxyCache(shop);
       return updated;
     }
 
@@ -154,6 +166,7 @@ async function upsertByShop(
       shop,
       id: created?.id ?? null,
     });
+    invalidatePopupProxyCache(shop);
     return created;
   } catch (e) {
     console.error("[PopupConfig] upsert failed:", {
@@ -230,6 +243,99 @@ async function upsertByShopWithSplitFallback(
   );
 }
 
+export async function saveVisitorAnnouncement(shop, form) {
+  const table =
+    prisma?.visitorannouncementconfig ?? prisma?.visitorAnnouncementConfig ?? null;
+  if (!table) throw new Error("Prisma model missing: visitorannouncementconfig");
+
+  const selectedProducts = Array.isArray(form?.selectedProducts) ? form.selectedProducts : [];
+  const productScope =
+    toStr(form?.productScope) === "specific" && !selectedProducts.length
+      ? "all"
+      : toStr(form?.productScope);
+
+  const data = {
+    enabled:         toBool(form?.enabled, true),
+    visitorMin:      toInt(form?.visitorMin),
+    visitorMax:      toInt(form?.visitorMax),
+    template:        toStr(form?.template),
+    iconKey:         toStr(form?.iconKey),
+    iconColor:       toStr(form?.iconColor),
+    refreshSeconds:  toInt(form?.refreshSeconds),
+    behavior:        toStr(form?.behavior),
+    animationStyle:  toStr(form?.animationStyle),
+    animationSpeed:  toStr(form?.animationSpeed),
+    iconAnimationStyle: toStr(form?.iconAnimationStyle),
+    countInterval:   toInt(form?.countInterval),
+    prefixText:      toStr(form?.prefixText),
+    suffixText:      toStr(form?.suffixText),
+    hideOnMobile:    toBool(form?.hideOnMobile, false),
+    textColor:       toStr(form?.textColor),
+    fontSize:        toInt(form?.fontSize),
+    mobileFontSize:  toInt(form?.mobileFontSize),
+    iconSize:        toInt(form?.iconSize),
+    spacing:         toInt(form?.spacing),
+    textWeight:      toStr(form?.textWeight),
+    customClass:     toStr(form?.customClass),
+    alignment:       toStr(form?.alignment),
+    topMargin:       toInt(form?.topMargin),
+    bottomMargin:    toInt(form?.bottomMargin),
+    productScope,
+    selectedProductsJson: toJson(selectedProducts),
+  };
+
+  const preferredId = toInt(form?.editId ?? form?.id);
+  return upsertByShop(table, shop, data, "visitorannouncementconfig", preferredId);
+}
+
+export async function saveStockAnnouncement(shop, form) {
+  const table =
+    prisma?.stockannouncementconfig ?? prisma?.stockAnnouncementConfig ?? null;
+  if (!table) throw new Error("Prisma model missing: stockannouncementconfig");
+
+  const selectedProducts = Array.isArray(form?.selectedProducts)
+    ? form.selectedProducts
+    : [];
+  const productScope =
+    toStr(form?.productScope) === "specific" && !selectedProducts.length
+      ? "all"
+      : toStr(form?.productScope);
+
+  const data = {
+    enabled:             toBool(form?.enabled, true),
+    productQuantity:     toInt(form?.productQuantity),
+    showProductQuantity: toBool(form?.showProductQuantity, true),
+    hideOutOfStock:      toBool(form?.hideOutOfStock, false),
+    inStockText:         toStr(form?.inStockText),
+    quantityText:        toStr(form?.quantityText),
+    lowStockText:        toStr(form?.lowStockText),
+    outOfStockText:      toStr(form?.outOfStockText),
+    inStockDotColor:     toStr(form?.inStockDotColor),
+    lowStockDotColor:    toStr(form?.lowStockDotColor),
+    outStockDotColor:    toStr(form?.outStockDotColor),
+    lowStockThreshold:   toInt(form?.lowStockThreshold),
+    dotAnimationStyle:   toStr(form?.dotAnimationStyle),
+    dotIcon:             toStr(form?.dotIcon),
+    highlightBg:         toStr(form?.highlightBg),
+    hideOnMobile:        toBool(form?.hideOnMobile, false),
+    textColor:           toStr(form?.textColor),
+    fontSize:            toInt(form?.fontSize),
+    mobileFontSize:      toInt(form?.mobileFontSize),
+    dotSize:             toInt(form?.dotSize),
+    spacing:             toInt(form?.spacing),
+    textWeight:          toStr(form?.textWeight),
+    customClass:         toStr(form?.customClass),
+    alignment:           toStr(form?.alignment),
+    topMargin:           toInt(form?.topMargin),
+    bottomMargin:        toInt(form?.bottomMargin),
+    productScope,
+    selectedProductsJson: toJson(selectedProducts),
+  };
+
+  const preferredId = toInt(form?.editId ?? form?.id);
+  return upsertByShop(table, shop, data, "stockannouncementconfig", preferredId);
+}
+
 export async function saveVisitorPopup(shop, form) {
   const table =
     prisma?.visitorpopupconfig || prisma?.visitorPopupConfig || null;
@@ -254,7 +360,7 @@ export async function saveVisitorPopup(shop, form) {
     size: toInt(form?.design?.size),
     transparent: toInt(form?.design?.transparent),
     template: toStr(form?.design?.template),
-    imageAppearance: toStr(form?.design?.imageAppearance || "contain"),
+    imageAppearance: toStr(form?.design?.imageAppearance || "cover"),
     bgColor: toStr(form?.design?.bgColor),
     bgAlt: toStr(form?.design?.bgAlt),
     textColor: toStr(form?.design?.textColor),
@@ -307,7 +413,16 @@ export async function saveVisitorPopup(shop, form) {
     selectedCollectionsJson: toJson(form?.selectedCollections),
   };
 
-  return upsertByShopWithSplitFallback(table, shop, data, "visitorpopupconfig");
+  const preferredId = toInt(form?.editId ?? form?.id);
+
+  return upsertByShopWithSplitFallback(
+    table,
+    shop,
+    data,
+    "visitorpopupconfig",
+    SPLIT_SELECTION_COLUMNS,
+    preferredId
+  );
 }
 
 export async function saveLowStockPopup(shop, form) {
@@ -333,7 +448,7 @@ export async function saveLowStockPopup(shop, form) {
     size: toInt(form?.design?.size),
     transparent: toInt(form?.design?.transparent),
     template: toStr(form?.design?.template),
-    imageAppearance: toStr(form?.design?.imageAppearance),
+    imageAppearance: toStr(form?.design?.imageAppearance || "cover"),
     bgColor: toStr(form?.design?.bgColor),
     bgAlt: toStr(form?.design?.bgAlt),
     textColor: toStr(form?.design?.textColor),
@@ -383,11 +498,15 @@ export async function saveLowStockPopup(shop, form) {
     selectedCollectionsJson: toJson(form?.selectedCollections),
   };
 
+  const preferredId = toInt(form?.editId ?? form?.id);
+
   return upsertByShopWithSplitFallback(
     table,
     shop,
     data,
-    "lowstockpopupconfig"
+    "lowstockpopupconfig",
+    SPLIT_SELECTION_COLUMNS,
+    preferredId
   );
 }
 
@@ -414,7 +533,7 @@ export async function saveAddToCartPopup(shop, form) {
     size: toInt(form?.design?.size),
     transparent: toInt(form?.design?.transparent),
     template: toStr(form?.design?.template),
-    imageAppearance: toStr(form?.design?.imageAppearance),
+    imageAppearance: toStr(form?.design?.imageAppearance || "cover"),
     bgColor: toStr(form?.design?.bgColor),
     bgAlt: toStr(form?.design?.bgAlt),
     textColor: toStr(form?.design?.textColor),
@@ -500,7 +619,7 @@ export async function saveReviewPopup(shop, form) {
 
     reviewType: toStr(form?.design?.reviewType),
     template: toStr(form?.design?.template),
-    imageAppearance: toStr(form?.design?.imageAppearance),
+    imageAppearance: toStr(form?.design?.imageAppearance || "cover"),
     bgColor: toStr(form?.design?.bgColor),
     bgAlt: toStr(form?.design?.bgAlt),
     textColor: toStr(form?.design?.textColor),
@@ -579,7 +698,7 @@ export async function saveRecentPopup(shop, form) {
 
     template: toStr(form?.template),
     layout: toStr(form?.layout),
-    imageAppearance: toStr(form?.imageAppearance),
+    imageAppearance: toStr(form?.imageAppearance || "cover"),
 
     bgColor: toStr(form?.bgColor),
     bgAlt: toStr(form?.bgAlt),
@@ -613,6 +732,12 @@ export async function saveRecentPopup(shop, form) {
 }
 
 export async function saveFlashPopup(shop, form) {
+  const table =
+    prisma?.flashpopupconfig || prisma?.flashPopupConfig || null;
+  if (!table) {
+    throw new Error("Prisma model missing: flashpopupconfig");
+  }
+
   const data = {
     enabled: form?.enabled?.includes?.("enabled") ?? false,
     showType: toStr(form?.showType),
@@ -624,7 +749,7 @@ export async function saveFlashPopup(shop, form) {
     fontFamily: toStr(form?.fontFamily),
     fontWeight: toInt(form?.fontWeight),
     layout: toStr(form?.layout),
-    imageAppearance: toStr(form?.imageAppearance),
+    imageAppearance: toStr(form?.imageAppearance || "cover"),
     template: toStr(form?.template),
     position: toStr(form?.position),
     animation: toStr(form?.animation),
@@ -655,5 +780,13 @@ export async function saveFlashPopup(shop, form) {
     selectedProductsJson: JSON.stringify(form?.selectedProductsJson ?? []),
   };
 
-  return upsertByShop(prisma.flashpopupconfig, shop, data, "flashpopupconfig");
+  const preferredId = toInt(form?.editId ?? form?.id);
+
+  return upsertByShop(
+    table,
+    shop,
+    data,
+    "flashpopupconfig",
+    preferredId
+  );
 }

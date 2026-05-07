@@ -10,6 +10,8 @@ import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { saveFlashPopup } from "../models/popup-config.server";
+import { PopupPreviewPanel } from "../components/notification/PopupPreviewPanel";
+import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
 /* ---------------- Constants ---------------- */
 const KEY = "flash";
@@ -49,45 +51,41 @@ const initVisibility = (showType) => {
     collectionScope: "all",
     showCart: false,
   };
-  switch (showType) {
-    case "home":
-      return { ...base, showHome: true };
-    case "product":
-      return { ...base, showProduct: true };
-    case "collection":
-      return { ...base, showCollection: true, showCollectionList: true };
-    case "cart":
-      return { ...base, showCart: true };
-    case "allpage":
-    default:
-      return {
-        ...base,
-        showHome: true,
-        showProduct: true,
-        showCollection: true,
-        showCollectionList: true,
-        showCart: true,
-      };
+  const parts = String(showType || "allpage")
+    .toLowerCase()
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (!parts.length || parts.includes("all") || parts.includes("allpage")) {
+    return {
+      ...base,
+      showHome: true,
+      showProduct: true,
+      showCollection: true,
+      showCollectionList: true,
+      showCart: true,
+    };
   }
+  return {
+    ...base,
+    showHome: parts.includes("home"),
+    showProduct: parts.includes("product"),
+    showCollectionList:
+      parts.includes("collection_list") || parts.includes("collectionlist"),
+    showCollection: parts.includes("collection"),
+    showCart: parts.includes("cart"),
+  };
 };
 
 const visibilityToShowType = (visibility) => {
-  const flags = [
-    visibility.showHome,
-    visibility.showProduct,
-    visibility.showCollection,
-    visibility.showCollectionList,
-    visibility.showCart,
-  ];
-  const enabledCount = flags.filter(Boolean).length;
-  if (enabledCount === 0) return "allpage";
-  if (enabledCount > 1) return "allpage";
-  if (visibility.showHome) return "home";
-  if (visibility.showProduct) return "product";
-  if (visibility.showCollection || visibility.showCollectionList)
-    return "collection";
-  if (visibility.showCart) return "cart";
-  return "allpage";
+  const selected = [];
+  if (visibility.showHome) selected.push("home");
+  if (visibility.showProduct) selected.push("product");
+  if (visibility.showCollectionList) selected.push("collection_list");
+  if (visibility.showCollection) selected.push("collection");
+  if (visibility.showCart) selected.push("cart");
+  if (selected.length === 0 || selected.length === 5) return "allpage";
+  return selected.join(",");
 };
 
 const FLASH_STYLES = `
@@ -149,11 +147,142 @@ const FLASH_STYLES = `
   flex: 1;
   min-width: 320px;
 }
+.flash-preview .popup-preview-panel__header {
+  border-bottom: 0;
+}
+.flash-preview .popup-preview-panel__surface {
+  min-height: 300px;
+  padding: 0 0 0 30px;
+  align-items: center;
+}
+.flash-preview.is-layout-portrait .popup-preview-panel__surface {
+  padding: 0 !important;
+}
+.flash-preview.is-fit-image .popup-preview-panel__surface {
+  padding: 0;
+}
+.flash-preview.is-fit-image .popup-preview-panel {
+  padding-right: var(--p-space-400);
+}
+.flash-preview .popup-preview-panel__content {
+  max-width: 100%;
+}
 .flash-preview-box {
   border: 1px solid #e5e7eb;
   border-radius: 16px;
   padding: 10px;
   min-height: 320px;
+}
+.flash-live-preview {
+  width: 100%;
+}
+.flash-preview-stage {
+  width: 100%;
+  min-height: 340px;
+  box-sizing: border-box;
+  display: flex;
+  border-radius: 10px;
+}
+.flash-sale-popup {
+  position: relative;
+  width: min(100%, 520px);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid rgba(205, 130, 18, 0.18);
+  box-shadow: 0 22px 48px rgba(130, 80, 20, 0.17);
+  overflow: visible;
+}
+.flash-sale-popup--portrait {
+  width: min(100%, 340px);
+  flex-direction: column;
+  text-align: center;
+}
+.flash-sale-popup--contain {
+  overflow: hidden;
+}
+.flash-sale-popup__icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.86);
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 28px rgba(130, 80, 20, 0.2);
+  overflow: hidden;
+}
+.flash-sale-popup__icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.flash-sale-popup__content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.flash-sale-popup__topline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.flash-sale-popup--portrait .flash-sale-popup__topline {
+  justify-content: center;
+}
+.flash-sale-popup__title {
+  margin: 0;
+  overflow: hidden;
+  color: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.flash-sale-popup__pill {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 700;
+}
+.flash-sale-popup__message {
+  margin: 0;
+  line-height: 1.35;
+}
+.flash-sale-popup__timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+}
+.flash-sale-popup--portrait .flash-sale-popup__timer {
+  margin: 0 auto;
+}
+
+.flash-preview-note {
+  text-align: center;
+}
+
+.flash-sale-popup__cta {
+  align-self: flex-start;
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: opacity 120ms ease, transform 80ms ease;
+}
+.flash-sale-popup__cta:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+.flash-sale-popup--portrait .flash-sale-popup__cta {
+  width: 100%;
+  align-self: unset;
 }
 @media (max-width: 1100px) {
   .flash-shell {
@@ -181,6 +310,23 @@ const FLASH_STYLES = `
   .flash-preview {
     min-width: 0;
   }
+  .flash-preview-stage {
+    min-height: 300px;
+    padding: 32px 16px;
+  }
+  .flash-preview .popup-preview-panel__surface {
+    min-height: 360px;
+    padding: 40px 12px 32px;
+  }
+  .flash-preview.is-fit-image .popup-preview-panel__surface {
+    padding: 0;
+  }
+}
+  .flash-popup__message {
+    display: flex;
+    justify-content: start;
+    gap: 5px;
+    align-items: center;
 }
 `;
 
@@ -266,6 +412,9 @@ const NAV_ITEMS = [
 export async function loader({ request }) {
   const { session } = await authenticate.admin(request);
   const shop = session?.shop;
+  const reqUrl = new URL(request.url);
+  const editIdNum = Number(reqUrl.searchParams.get("editId") || reqUrl.searchParams.get("id"));
+  const editId = Number.isInteger(editIdNum) && editIdNum > 0 ? editIdNum : null;
   let last = null;
 
   if (shop) {
@@ -273,10 +422,11 @@ export async function loader({ request }) {
       const model =
         prisma?.flashpopupconfig || prisma?.flashPopupConfig || null;
       if (model?.findFirst) {
-        last = await model.findFirst({
-          where: { shop },
-          orderBy: { id: "desc" },
-        });
+        last = await model.findFirst(
+          editId
+            ? { where: { id: editId, shop } }
+            : { where: { shop }, orderBy: { id: "desc" } }
+        );
       }
     } catch (e) {
       console.error("[Flash loader] flashpopupconfig findFirst failed:", e);
@@ -307,6 +457,7 @@ export async function loader({ request }) {
       : enabledRaw === true || enabledRaw === 1 || enabledRaw === "1";
 
   const saved = {
+    id: source?.id ?? editId ?? null,
     enabled,
     showType: source?.showType ?? "allpage",
     messageTitle: source?.messageTitle ?? messageTitlesJson[0] ?? "Flash Sale",
@@ -349,9 +500,14 @@ export async function loader({ request }) {
 
 /* ---------------- Action: Upsert Per Shop ---------------- */
 export async function action({ request }) {
-  const { session } = await authenticate.admin(request);
+  let session;
+  try {
+    ({ session } = await authenticate.admin(request));
+  } catch {
+    return json({ success: false, error: "Auth temporarily unavailable." }, { status: 503 });
+  }
   const shop = session?.shop;
-  if (!shop) throw new Response("Missing shop", { status: 400 });
+  if (!shop) return json({ success: false, error: "Missing shop" }, { status: 400 });
 
   let body;
   try {
@@ -600,10 +756,17 @@ function NotificationPreview({ form, isMobile = false }) {
     .trim()
     .toLowerCase();
   const isContain =
-    imageAppearance === "contain" || imageAppearance.includes("fit");
+    imageAppearance === "contain" ||
+    imageAppearance.includes("contain") ||
+    imageAppearance.includes("fit");
   const isPortrait = form.layout === "portrait";
-  const iconDim = isPortrait ? 96 : 60;
-  const iconSize = isPortrait ? 84 : isContain ? 48 : iconDim;
+  const portraitImageSize = 96;
+  const iconDim = isPortrait ? portraitImageSize : 60;
+  const iconSize = isPortrait
+    ? Math.round(portraitImageSize * 0.875)
+    : isContain
+      ? 48
+      : iconDim;
 
   const svgMarkup = useMemo(() => {
     const uploaded = extractFirstSvg(form.iconSvg || "");
@@ -614,18 +777,44 @@ function NotificationPreview({ form, isMobile = false }) {
 
   const base = Number(form.rounded ?? 14) || 14;
   const scale = isMobile ? mobileSizeScale(form?.mobileSize) : 1;
-  const sized = Math.max(10, Math.min(28, Math.round(base * scale)));
+  const sized = Math.max(6, Math.min(72, Math.round(base * scale)));
   const showIcon = !!svgMarkup;
   const imageOverflow = showIcon && !isContain && !isPortrait;
-  const avatarOffset = Math.round(iconDim * 0.45);
-  const padTop = isPortrait ? 24 : 15;
-  const padRight = isPortrait ? 24 : 44;
-  const padBottom = isPortrait ? 24 : 15;
-  const padLeft = isPortrait ? 24 : imageOverflow ? 12 + avatarOffset : 15;
+  const avatarOffset = Math.round(iconDim * 0.5);
+  const padTop = isPortrait ? 24 : 18;
+  const padRight = isPortrait ? 22 : 22;
+  const padBottom = isPortrait ? 24 : 18;
+  const padLeft = isPortrait ? 22 : imageOverflow ? 18 + avatarOffset : 18;
   const background =
     form.template === "gradient"
       ? `linear-gradient(135deg, ${form.bgColor} 0%, ${form.bgAlt} 100%)`
       : form.bgColor;
+  const popupClasses = [
+    "flash-sale-popup",
+    isPortrait ? "flash-sale-popup--portrait" : "",
+    isContain || isPortrait ? "flash-sale-popup--contain" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const iconStyles = imageOverflow
+    ? {
+        position: "absolute",
+        left: 0,
+        top: "50%",
+        transform: "translate(-45%, -50%)",
+        width: iconDim,
+        height: iconDim,
+        borderRadius: 10,
+      }
+    : {
+        width: iconSize,
+        height: iconSize,
+        borderRadius: isPortrait ? 22 : 16,
+      };
+  const title = String(form.messageTitle || "Flash Sale").trim();
+  const offer = String(form.name || "Flash Sale: 20% OFF").trim();
+  const timer = String(form.messageText || "ends in 02:15 hours").trim();
+
 
   return (
     <div>
@@ -636,85 +825,84 @@ function NotificationPreview({ form, isMobile = false }) {
         @keyframes notif-bounce-in { 0% { transform: translateY(18px); opacity: 0 } 60% { transform: translateY(-6px); opacity: 1 } 100% { transform: translateY(0) } }
       `}</style>
 
-      <div style={{
-        fontFamily: form.fontFamily === "System" ? "ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto" : form.fontFamily,
-        background, color: form.textColor, 
-        borderRadius: 14,
-        boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-        paddingTop: padTop,
-        paddingRight: padRight,
-        paddingBottom: padBottom,
-        paddingLeft: padLeft,
-        border: "1px solid rgba(17,24,39,0.06)",
-        display: "flex",
-        alignItems: isPortrait ? "center" : "center",
-        gap: isPortrait ? 10 : 12,
-        flexDirection: isPortrait ? "column" : "row",
-        maxWidth: isMobile
-          ? mobileSizeToWidth(form?.mobileSize)
-          : isPortrait
-            ? 340
-            : 560,
-        position: "relative",
-        ...animStyle
-      }}>
-        {imageOverflow ? (
-          <div
-            style={{
-              position: "absolute",
-              left: "8px",
-              top: isPortrait ? 24 : "50%",
-              transform: isPortrait
-                ? "translate(-50%, 0)"
-                : "translate(-50%, -50%)",
-              width: iconDim,
-              height: iconDim,
-              borderRadius: 12,
-              overflow: "hidden",
-              background: "#f3f4f6",
-              flexShrink: 0,
-              display: "grid",
-              placeItems: "center",
-              boxShadow: "0 8px 18px rgba(0,0,0,0.18)",
-              border: "2px solid rgba(255,255,255,0.75)",
-            }}
-          >
-            <span
-              aria-hidden="true"
-              style={{
-                display: "block",
-                width: "100%",
-                height: "100%",
-              }}
-              dangerouslySetInnerHTML={{ __html: svgMarkup }}
-            />
-          </div>
-        ) : showIcon ? (
+      <div
+        className={popupClasses}
+        style={{
+          fontFamily:
+            form.fontFamily === "System"
+              ? "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto"
+              : form.fontFamily,
+          background,
+          color: form.textColor,
+          borderRadius:10,
+          paddingTop: padTop,
+          paddingRight: padRight,
+          paddingBottom: padBottom,
+          paddingLeft: padLeft,
+          maxWidth: isMobile
+            ? mobileSizeToWidth(form?.mobileSize)
+            : isPortrait
+              ? 340
+              : 560,
+          ...animStyle,
+        }}
+      >
+        {showIcon ? (
           <span
             aria-hidden="true"
-            style={{
-              display: "block",
-              flexShrink: 0,
-              width: iconSize,
-              height: iconSize,
-            }}
+            className="flash-sale-popup__icon"
+            style={iconStyles}
             dangerouslySetInnerHTML={{ __html: svgMarkup }}
           />
         ) : null}
-        <div
-          style={{
-            display: "grid",
-            gap: 4,
-            minWidth: 0,
-            textAlign: isPortrait ? "center" : "left",
-          }}
-        >
-          <p style={{ margin: 0, color: form.numberColor, fontWeight: form.fontWeight ? Number(form.fontWeight) : 600, fontSize: sized }}>
-            {form.messageTitle || "Flash Sale"}
+        <div className="flash-sale-popup__content">
+          <div className="flash-sale-popup__topline">
+            <p
+              className="flash-sale-popup__title"
+              style={{
+                color: form.numberColor,
+                fontWeight: form.fontWeight ? Number(form.fontWeight) : 700,
+                fontSize: Math.max(15, sized + 1),
+              }}
+            >
+              <span style={{ fontSize: Math.max(15, sized + 1), lineHeight: 1.2 }}>
+                {title}
+              </span>
+            </p>
+            <span
+              className="flash-sale-popup__pill"
+              style={{
+                background: form.priceTagBg,
+                color: form.priceColor,
+              }}
+            >
+              SALE
+            </span>
+          </div>
+          <div className="flash-popup__message">
+          <p
+            className="flash-sale-popup__message"
+            style={{
+              fontSize: Math.max(13, sized - 1),
+              color: form.textColor,
+            }}
+          >
+            <span style={{ fontSize: Math.max(13, sized - 1), lineHeight: 1.35 }}>
+              {offer}
+            </span>
           </p>
-          <p style={{ margin: 0, fontSize: sized, lineHeight: 1.5 }}>
-            <small>{form.name || "Flash Sale: 20% OFF"} - {form.messageText || "ends in 02:15 hours"}</small>
-          </p>
+          <span
+            className="flash-sale-popup__timer"
+            style={{
+              color: form.textColor || form.priceTagAlt,
+              fontSize: Math.max(11, sized - 2),
+            }}
+          >
+            <span style={{ fontSize: Math.max(11, sized - 2), lineHeight: 1.2 }}>
+              {timer}
+            </span>
+          </span>
+          </div>
         </div>
       </div>
     </div>
@@ -726,17 +914,10 @@ function DesktopPreview({ form }) {
   const flex = posToFlex(form?.position);
   return (
     <div
+      className="flash-preview-stage"
       style={{
-        width: "100%",
-        minHeight: 320,
-        height: "100%",
-        overflow: "hidden",
-        position: "relative",
-        display: "flex",
-        padding: 0,
-        boxSizing: "border-box",
         justifyContent: "center",
-        alignItems: "flex-start",
+        alignItems: "center",
       }}
     >
       <NotificationPreview form={form} />
@@ -769,12 +950,8 @@ function MobilePreview({ form }) {
 /* Live Preview wrapper */
 function LivePreview({ form }) {
   return (
-    <BlockStack gap="300">
-      <Text as="h3" variant="headingMd">Live Preview</Text>
+    <BlockStack gap="300" className="flash-live-preview">
       <DesktopPreview form={form} />
-      <Text as="p" variant="bodySm" tone="subdued">
-        Preview reflects your desktop settings.
-      </Text>
     </BlockStack>
   );
 }
@@ -783,8 +960,16 @@ function LivePreview({ form }) {
 export default function FlashConfigPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const notificationUrl = `/app/notification${location.search || ""}`;
-  const notificationManageUrl = `/app/notification/manage${location.search || ""}`;
+  const navigationSearch = (() => {
+    const sp = new URLSearchParams(location.search);
+    sp.delete("editId");
+    sp.delete("id");
+    sp.delete("mode");
+    const qs = sp.toString();
+    return qs ? `?${qs}` : "";
+  })();
+  const notificationUrl = `/app/notification${navigationSearch}`;
+  const notificationManageUrl = `/app/notification/manage${navigationSearch}`;
   const { title, saved } = useLoaderData();
 
   const [saving, setSaving] = useState(false);
@@ -812,6 +997,7 @@ export default function FlashConfigPage() {
   const [namesList, setNamesList] = useState(defaultNames);
 
   const [form, setForm] = useState({
+    editId: saved?.id ?? null,
     enabled: saved?.enabled ? ["enabled"] : ["disabled"],
     showType: saved?.showType ?? "allpage",
 
@@ -953,6 +1139,7 @@ export default function FlashConfigPage() {
       setSaving(true);
       const payload = {
         ...form,
+        editId: form.editId,
         // send arrays; server will stringify
         messageTitlesJson: titlesList.length ? titlesList : defaultTitles,
         locationsJson: locationsList.length ? locationsList : defaultLocations,
@@ -1002,8 +1189,9 @@ export default function FlashConfigPage() {
         backAction={{ content: "Back", onAction: () => navigate(notificationUrl) }}
         primaryAction={{ content: "Save", onAction: save, loading: saving, disabled: saving }}
       >
+        <NotificationPageStyles />
         <style>{FLASH_STYLES}</style>
-<div className="flash-shell">
+<div className="flash-shell notification-page">
   <div className="flash-sidebar">
     {NAV_ITEMS.map(({ id, label, Icon }) => (
       <button
@@ -1084,6 +1272,8 @@ export default function FlashConfigPage() {
                       }
                     />
                   </BlockStack>
+                  <InlineStack gap="400" wrap={false} width="100%">
+                    <Box width="50%">
                   <TextField
                     label="Delay before first notification"
                     type="number"
@@ -1095,6 +1285,8 @@ export default function FlashConfigPage() {
                     step={1}
                     autoComplete="off"
                   />
+                  </Box>
+                  <Box width="50%">
                   <TextField
                     label="Display duration"
                     type="number"
@@ -1106,6 +1298,8 @@ export default function FlashConfigPage() {
                     step={1}
                     autoComplete="off"
                   />
+                  </Box>
+                  </InlineStack>
                   <InlineStack gap="400" wrap={false} width="100%">
                     <Box width="50%">
                       <TextField
@@ -1121,8 +1315,7 @@ export default function FlashConfigPage() {
                     </Box>
                     <Box width="50%">
                       <Select
-                        label=" "
-                        labelHidden
+                        label="Unit"
                         options={TIME_UNITS}
                         value={intervalUnit}
                         onChange={onIntervalUnitChange}
@@ -1263,41 +1456,9 @@ export default function FlashConfigPage() {
                     </Box>
                     <Box width="50%">
                       <ColorInput
-                        label="Number color"
+                        label="Heading color"
                         value={form.numberColor}
                         onChange={(v) => setForm(f => ({ ...f, numberColor: v }))}
-                      />
-                    </Box>
-                  </InlineStack>
-                  <InlineStack gap="400" wrap={false} width="100%">
-                    <Box width="50%">
-                      <ColorInput
-                        label="Price tag background"
-                        value={form.priceTagBg}
-                        onChange={(v) => setForm(f => ({ ...f, priceTagBg: v }))}
-                      />
-                    </Box>
-                    <Box width="50%">
-                      <ColorInput
-                        label="Compare at price color"
-                        value={form.priceTagAlt}
-                        onChange={(v) => setForm(f => ({ ...f, priceTagAlt: v }))}
-                      />
-                    </Box>
-                  </InlineStack>
-                  <InlineStack gap="400" wrap={false} width="100%">
-                    <Box width="50%">
-                      <ColorInput
-                        label="Price color"
-                        value={form.priceColor}
-                        onChange={(v) => setForm(f => ({ ...f, priceColor: v }))}
-                      />
-                    </Box>
-                    <Box width="50%">
-                      <ColorInput
-                        label="Star color"
-                        value={form.starColor}
-                        onChange={(v) => setForm(f => ({ ...f, starColor: v }))}
                       />
                     </Box>
                   </InlineStack>
@@ -1309,7 +1470,7 @@ export default function FlashConfigPage() {
                   <InlineStack gap="400" wrap={false} width="100%" alignItems="center">
                     <Box width="50%">
                       <Select
-                        label={`Flash Sale Icon${form.iconSvg ? " (using Uploaded)" : ""}`}
+                        label={`Flash Sale Icon${form.iconSvg ? "" : ""}`}
                         options={iconOptions}
                         value={form.iconKey}
                         onChange={onField("iconKey")}
@@ -1402,14 +1563,21 @@ export default function FlashConfigPage() {
         </BlockStack>
       </div>
 
-      <div className="flash-preview">
-        <Card>
-          <Box padding="4">
-            <div className="flash-preview-box">
-              <LivePreview form={form} />
-            </div>
-          </Box>
-        </Card>
+      <div
+        className={[
+          "flash-preview",
+          "is-popup-type-flash",
+          `is-layout-${form.layout || "landscape"}`,
+          form.imageAppearance === "contain" ? "is-fit-image" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        <PopupPreviewPanel
+          title="Preview"
+        >
+          <LivePreview form={form} />
+        </PopupPreviewPanel>
       </div>
     </div>
   </div>

@@ -4,8 +4,8 @@ import { authenticate } from "../shopify.server";
 import { getOrSetCache } from "../utils/serverCache.server";
 
 /**
- * GET /app/products-picker?q=shirt&page=1
- * Returns paginated products for the picker modal
+ * GET /app/products-picker?q=shirt
+ * Returns matching products in a single response by walking Shopify pages.
  */
 export async function loader({ request }) {
   try {
@@ -13,12 +13,14 @@ export async function loader({ request }) {
 
     const url = new URL(request.url);
     const q = url.searchParams.get("q") || "";
-    const page = parseInt(url.searchParams.get("page") || "1", 10);
-    const pageSize = 20;
+    const rawLimit = Number(url.searchParams.get("limit") || "5000");
+    const maxProducts = Number.isFinite(rawLimit)
+      ? Math.max(1, Math.min(5000, Math.trunc(rawLimit)))
+      : 5000;
 
     const query = `
       query ProductsPicker($query: String, $first: Int!, $after: String) {
-        products(first: $first, query: $query, after: $after, sortKey: TITLE) {
+        products(first: $first, after: $after, query: $query, sortKey: TITLE) {
           edges {
             cursor
             node {
@@ -30,56 +32,68 @@ export async function loader({ request }) {
               totalInventory
             }
           }
-          pageInfo { hasNextPage hasPreviousPage }
+          pageInfo { hasNextPage endCursor }
         }
       }
     `;
 
-    const cacheKey = `products-picker:${session?.shop}:${q}:${page}`;
+    const cacheKey = `products-picker:${session?.shop}:${q}:${maxProducts}`;
 
     const payload = await getOrSetCache(cacheKey, 30000, async () => {
+      const edges = [];
       let after = null;
-      let collected = [];
       let hasNextPage = true;
 
-      // simple page+cursor advance
-      for (let currentPage = 1; currentPage <= page && hasNextPage; currentPage++) {
+      while (hasNextPage && edges.length < maxProducts) {
+        const first = Math.min(250, maxProducts - edges.length);
         const res = await admin.graphql(query, {
           variables: {
             query: q ? `title:*${q}*` : null,
-            first: pageSize,
+            first,
             after,
           },
         });
         const data = await res.json();
-        const edges = data?.data?.products?.edges || [];
-        hasNextPage = data?.data?.products?.pageInfo?.hasNextPage || false;
-        after = edges.length ? edges[edges.length - 1].cursor : null;
 
-        if (currentPage === page) {
-          collected = edges.map((e) => e.node);
-          break;
+        if (Array.isArray(data?.errors) && data.errors.length) {
+          const message = data.errors
+            .map((error) => error?.message)
+            .filter(Boolean)
+            .join("; ");
+          throw new Error(message || "Failed to load products");
         }
+
+        const block = data?.data?.products;
+        const pageEdges = Array.isArray(block?.edges) ? block.edges : [];
+        edges.push(...pageEdges);
+
+        hasNextPage =
+          Boolean(block?.pageInfo?.hasNextPage) && edges.length < maxProducts;
+        after =
+          block?.pageInfo?.endCursor ||
+          pageEdges[pageEdges.length - 1]?.cursor ||
+          null;
+
+        if (!after) break;
       }
 
       return {
-        items: collected.map((p) => ({
+        items: edges.map(({ node: p }) => ({
           id: p.id,
           title: p.title,
           handle: p.handle,
           status: p.status,
+          image: p.featuredImage?.url || null,
           featuredImage: p.featuredImage?.url || null,
           totalInventory: p.totalInventory,
         })),
-        page,
-        pageSize,
-        hasNextPage,
+        totalCount: edges.length,
+        hasNextPage: false,
       };
     });
 
     return json(payload);
   } catch (e) {
-    // Let Remix handle redirects/auth responses
     if (e instanceof Response) throw e;
     console.error("[products-picker] loader failed:", e);
     return json(

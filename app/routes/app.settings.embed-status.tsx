@@ -17,11 +17,11 @@ import {
   Text,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
-import { getEmbedPingStatus } from "../utils/embedPingStatus.server";
 import {
   getStoreHandleFromShopDomain,
   normalizeShopDomain,
 } from "../utils/shopDomain.server";
+import { APP_EMBED_HANDLE } from "../utils/themeEmbed.shared";
 
 const DISABLED_MESSAGE =
   "Fomoify App Embed is currently disabled. To enable popups and social proof on your storefront, go to Theme Customize \u2192 App embeds and turn ON \u201cFomoify - Core Embed\u201d.";
@@ -45,42 +45,41 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   });
 
   const storeHandle = getStoreHandleFromShopDomain(shop);
-  const pingStatus = await getEmbedPingStatus(shop);
   const hasThemeEmbedCheck = Boolean(embedContext.appEmbedChecked);
   const hasThemeEmbedSignal =
     hasThemeEmbedCheck &&
     Boolean(embedContext.appEmbedFound);
-  const hasFreshPingSignal =
-    pingStatus?.isFresh === true || pingStatus?.isOn === true;
-  const isEmbedOn = hasThemeEmbedSignal
-    ? Boolean(embedContext.appEmbedEnabled)
-    : hasFreshPingSignal;
-  const hasReliableStatus =
-    hasThemeEmbedSignal || hasFreshPingSignal;
+  const isEmbedOn =
+    hasThemeEmbedSignal && Boolean(embedContext.appEmbedEnabled);
 
   return json({
     shop,
     storeHandle,
+    apiKey,
+    extId,
     isEmbedOn,
-    hasReliableStatus,
     hasThemeEmbedCheck,
     hasThemeEmbedSignal,
     appEmbedChecked: Boolean(embedContext.appEmbedChecked),
     appEmbedFound: Boolean(embedContext.appEmbedFound),
-    lastPingAt: pingStatus?.lastPingAt || null,
-    checkedAt: pingStatus?.checkedAt || new Date().toISOString(),
   });
 };
 
 export default function AppEmbedStatusSettingsPage() {
-  const { storeHandle, isEmbedOn, hasReliableStatus, hasThemeEmbedSignal } =
+  const { storeHandle, apiKey, isEmbedOn } =
     useLoaderData<typeof loader>();
   const app = useAppBridge();
   const revalidator = useRevalidator();
   const isRefreshing = revalidator.state !== "idle";
 
   const openAppEmbeds = () => {
-    const url = `https://admin.shopify.com/store/${storeHandle}/themes/current/editor?context=apps`;
+    const params = new URLSearchParams({ context: "apps" });
+    if (apiKey) {
+      const embedId = `${apiKey}/${APP_EMBED_HANDLE}`;
+      params.set("template", "index");
+      params.set("activateAppId", embedId);
+    }
+    const url = `https://admin.shopify.com/store/${storeHandle}/themes/current/editor?${params.toString()}`;
     const redirect = createRedirect(app as any);
     redirect.dispatch(RedirectAction.REMOTE, { url, newContext: true });
   };
@@ -95,33 +94,19 @@ export default function AppEmbedStatusSettingsPage() {
                 App embed status
               </Text>
               <Badge
-                tone={
-                  hasReliableStatus
-                    ? isEmbedOn
-                      ? "success"
-                      : "critical"
-                    : "attention"
-                }
+                tone={isEmbedOn ? "success" : "critical"}
               >
-                {hasReliableStatus
-                  ? `App embed: ${isEmbedOn ? "ON" : "OFF"}`
-                  : "App embed: CHECKING"}
+                {`App embed: ${isEmbedOn ? "On" : "Off"}`}
               </Badge>
             </InlineStack>
-            {!hasReliableStatus && (
+            {!isEmbedOn && (
               <Text as="p" tone="subdued">
-                Embed status check is in progress. Open storefront once and
-                refresh status.
-              </Text>
-            )}
-            {hasReliableStatus && !hasThemeEmbedSignal && (
-              <Text as="p" tone="subdued">
-                Theme-based embed check unavailable right now. Using storefront
-                ping status.
+                Theme customization does not show Fomoify - Core Embed as
+                enabled on the active theme.
               </Text>
             )}
 
-            {hasReliableStatus && !isEmbedOn && (
+            {!isEmbedOn && (
               <Banner tone="warning">
                 <p>{DISABLED_MESSAGE}</p>
               </Banner>

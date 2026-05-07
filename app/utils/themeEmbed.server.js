@@ -1,4 +1,4 @@
-import { getOrSetCache } from "./serverCache.server";
+import { getOrSetCache, deleteCache } from "./serverCache.server";
 import { APP_EMBED_HANDLE } from "./themeEmbed.shared";
 
 export const THEME_SETTINGS_DATA_KEY = "config/settings_data.json";
@@ -6,6 +6,28 @@ export { APP_EMBED_HANDLE };
 
 const toLower = (value) => String(value || "").trim().toLowerCase();
 const normalizeToken = (value) => toLower(value).replace(/[^a-z0-9]/g, "");
+const normalizeShopifyAppUrl = (value) =>
+  toLower(value)
+    .replace(/^shopify:\/\//, "")
+    .replace(/[^a-z0-9/_-]/g, "");
+const normalizeWords = (value) =>
+  toLower(value).replace(/[^a-z0-9]+/g, " ").trim();
+const blockSearchText = (blockId, block) =>
+  [
+    blockId,
+    block?.id,
+    block?.type,
+    block?.name,
+    block?.target,
+    block?.settings?.name,
+    block?.settings?.target,
+    block?.settings?.schemaName,
+    block?.settings?.app_id,
+    block?.settings?.appId,
+    isObjectRecord(block?.settings) ? JSON.stringify(block.settings) : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 const toBool = (value) => {
   if (value === true || value === 1) return true;
   const v = toLower(value);
@@ -26,86 +48,60 @@ const toThemeGid = (value) => {
 };
 const isObjectRecord = (value) =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
-const collectThemeBlockMaps = (parsed) => {
-  const maps = [];
-  const pushBlocks = (value) => {
-    if (isObjectRecord(value)) maps.push(value);
-  };
-
-  pushBlocks(parsed?.current?.blocks);
-  pushBlocks(parsed?.blocks);
-
-  if (typeof parsed?.current === "string") {
-    pushBlocks(parsed?.presets?.[parsed.current]?.blocks);
-  }
-
-  if (isObjectRecord(parsed?.presets)) {
-    Object.values(parsed.presets).forEach((preset) => {
-      pushBlocks(preset?.blocks);
-    });
-  }
-
-  const unique = [];
-  const seen = new Set();
-  maps.forEach((map) => {
-    if (seen.has(map)) return;
-    seen.add(map);
-    unique.push(map);
-  });
-  return unique;
+const isBlockLike = (value) =>
+  isObjectRecord(value) && typeof value.type === "string";
+const responseStatus = (error) => {
+  const status = Number(error?.status);
+  return Number.isFinite(status) ? status : null;
 };
-const collectThemeBlockEntries = (parsed) => {
-  const entries = [];
-  const seenBlocks = new Set();
-  const pushEntry = (blockId, block) => {
-    if (!isObjectRecord(block) || seenBlocks.has(block)) return;
-    seenBlocks.add(block);
-    entries.push({ blockId: String(blockId || ""), block });
-  };
-
-  collectThemeBlockMaps(parsed).forEach((blocks) => {
-    Object.entries(blocks).forEach(([blockId, block]) => {
-      pushEntry(blockId, block);
-    });
-  });
-
-  const walk = (value, keyHint = "") => {
-    if (Array.isArray(value)) {
-      value.forEach((item, idx) =>
-        walk(item, keyHint ? `${keyHint}:${idx}` : String(idx))
-      );
-      return;
-    }
-    if (!isObjectRecord(value)) return;
-    if (typeof value.type === "string") {
-      pushEntry(keyHint || value?.id || value?.type || "", value);
-    }
-    Object.entries(value).forEach(([key, child]) => walk(child, key));
-  };
-
-  walk(parsed);
-  return entries;
-};
-// Returns ONLY the root-level blocks from the active (current) configuration.
-// App embed blocks live exclusively at this level — NOT inside sections or presets.
-// Using collectThemeBlockEntries (which deep-walks presets/sections) causes false
-// positives: a preset copy with disabled:false makes the embed appear ON even
-// when the current config has disabled:true.
-const getActiveRootBlockEntries = (parsed) => {
-  let blocks = null;
-  if (typeof parsed?.current === "string") {
-    // Old theme format: "current" is a preset name string
-    blocks = parsed?.presets?.[parsed.current]?.blocks ?? null;
-  } else if (isObjectRecord(parsed?.current)) {
-    // Modern 2.0 theme format: "current" is the active configuration object
-    blocks = parsed?.current?.blocks ?? null;
+const responseHeader = (error, name) => {
+  try {
+    return String(error?.headers?.get?.(name) || "").trim();
+  } catch {
+    return "";
   }
-  // Fallback for non-standard layouts
-  if (!isObjectRecord(blocks)) blocks = parsed?.blocks ?? null;
+};
+const isEmbeddedAuthRedirect = (error) => {
+  const status = responseStatus(error);
+  if (!status || status < 300 || status >= 400) return false;
+  const location = responseHeader(error, "location").toLowerCase();
+  return (
+    location.includes("/auth/session-token") ||
+    location.includes("shopify-reload=")
+  );
+};
+const logThemeEmbedError = (message, error) => {
+  if (isEmbeddedAuthRedirect(error)) return;
+  console.error(message, error);
+};
+const entriesFromBlocks = (blocks) => {
+  if (Array.isArray(blocks)) {
+    return blocks
+      .filter(isBlockLike)
+      .map((block, index) => ({
+        blockId: String(block.id || block.name || block.type || index),
+        block,
+      }));
+  }
   if (!isObjectRecord(blocks)) return [];
   return Object.entries(blocks)
     .filter(([, block]) => isObjectRecord(block))
     .map(([blockId, block]) => ({ blockId: String(blockId), block }));
+};
+
+// Returns ONLY the root-level blocks from the active (current) configuration.
+// App embed blocks live exclusively at this level — NOT inside sections or presets.
+const getActiveRootBlockEntries = (parsed) => {
+  let blocks = null;
+  if (typeof parsed?.current === "string") {
+    blocks = parsed?.presets?.[parsed.current]?.blocks ?? null;
+  } else if (isObjectRecord(parsed?.current)) {
+    blocks = parsed?.current?.blocks ?? null;
+  }
+  if (!isObjectRecord(blocks) && !Array.isArray(blocks)) {
+    blocks = parsed?.blocks ?? null;
+  }
+  return entriesFromBlocks(blocks);
 };
 
 const hasRestAssetResources = (admin) =>
@@ -114,6 +110,7 @@ const hasRestThemeResources = (admin) =>
   Boolean(admin?.rest?.resources?.Theme?.all);
 const hasRestGet = (admin) => Boolean(admin?.rest?.get);
 const hasGraphql = (admin) => typeof admin?.graphql === "function";
+
 const graphqlJson = async (admin, query, variables) => {
   const response = await admin.graphql(query, { variables });
   const payload = response?.json ? await response.json() : response;
@@ -124,7 +121,8 @@ const graphqlJson = async (admin, query, variables) => {
   return payload;
 };
 
-async function fetchThemeSettingsData({ admin, themeId }) {
+// Fetch settings_data.json via REST or GraphQL.
+async function _fetchThemeSettingsRaw({ admin, themeId }) {
   const restThemeId = toNumericThemeId(themeId);
   const themeGid = toThemeGid(themeId);
 
@@ -134,7 +132,6 @@ async function fetchThemeSettingsData({ admin, themeId }) {
       theme_id: restThemeId,
       asset: { key: THEME_SETTINGS_DATA_KEY },
     };
-
     try {
       const resp = await admin.rest.resources.Asset.all(params);
       const data = resp?.data;
@@ -142,6 +139,7 @@ async function fetchThemeSettingsData({ admin, themeId }) {
       if (data?.asset?.value) return data.asset.value;
       return data?.value || "";
     } catch (assetError) {
+      if (isEmbeddedAuthRedirect(assetError)) throw assetError;
       if (!hasRestGet(admin)) throw assetError;
       const fallbackResp = await admin.rest.get({
         path: `themes/${restThemeId}/assets`,
@@ -186,17 +184,32 @@ async function fetchThemeSettingsData({ admin, themeId }) {
   throw new Error("Theme settings fetch unavailable: no REST or GraphQL transport");
 }
 
+// Cached wrapper — 30-second TTL so status is fresh after merchant toggles the embed.
+async function fetchThemeSettingsData({ admin, themeId }) {
+  const cacheKey = `theme:settings:${themeId}`;
+  return getOrSetCache(cacheKey, 30 * 1000, () =>
+    _fetchThemeSettingsRaw({ admin, themeId })
+  );
+}
+
+// Invalidate the settings cache (call after merchant toggles the embed).
+export function invalidateThemeSettingsCache(themeId) {
+  if (themeId) deleteCache(`theme:settings:${themeId}`);
+}
+
 export async function getMainThemeId({ admin, shop }) {
   try {
     const cacheKey = `themes:main:${shop}`;
-    const cached = await getOrSetCache(cacheKey, 60000, async () => {
+    const cached = await getOrSetCache(cacheKey, 60 * 1000, async () => {
       if (hasRestThemeResources(admin)) {
         const resp = await admin.rest.resources.Theme.all({
           session: admin.session,
           fields: "id,role",
         });
         const themes = resp?.data || [];
-        const live = themes.find((t) => t.role === "main");
+        const live = themes.find((t) =>
+          ["main", "live"].includes(toLower(t?.role))
+        );
         return live?.id ?? null;
       }
 
@@ -213,8 +226,9 @@ export async function getMainThemeId({ admin, shop }) {
         `;
         const payload = await graphqlJson(admin, query, {});
         const themes = payload?.data?.themes?.nodes || [];
-        const live = themes.find(
-          (t) => toLower(t?.role) === "main" || t?.role === "MAIN"
+        // Handle all known role names: MAIN, LIVE, main, live
+        const live = themes.find((t) =>
+          ["main", "live"].includes(toLower(t?.role))
         );
         return live?.id ?? null;
       }
@@ -223,7 +237,7 @@ export async function getMainThemeId({ admin, shop }) {
     });
     return cached ?? null;
   } catch (error) {
-    console.error("[theme-embed] theme list failed:", error);
+    logThemeEmbedError("[theme-embed] theme list failed:", error);
     return null;
   }
 }
@@ -249,16 +263,9 @@ export async function getThemeEmbedState({
       return { enabled: false, found: false, checked: false };
     }
 
-    // --- DEBUG: log current structure ---
-    console.log("[theme-embed:debug] themeId:", themeId, "| current type:", typeof parsed?.current);
-    const entries = getActiveRootBlockEntries(parsed);
-    console.log("[theme-embed:debug] root block entries:", entries.length);
-    entries.forEach(({ blockId, block }) => {
-      console.log(
-        `[theme-embed:debug]   blockId=${blockId} | type=${block?.type} | disabled=${JSON.stringify(block?.disabled)}`
-      );
-    });
-    // --- END DEBUG ---
+    const entries = getActiveRootBlockEntries(parsed).filter(({ block }) =>
+      isObjectRecord(block)
+    );
 
     if (!entries.length) {
       return { enabled: false, found: false, checked: true };
@@ -271,6 +278,10 @@ export async function getThemeEmbedState({
         handleToken.replace(/-/g, "_"),
         handleToken.replace(/_/g, "-"),
         handleToken.replace(/[-_]/g, ""),
+        "app-embed",
+        "app_embed",
+        "core-embed",
+        "core_embed",
       ])
     ).filter(Boolean);
     const normalizedHandleVariants = handleVariants
@@ -278,17 +289,25 @@ export async function getThemeEmbedState({
       .filter(Boolean);
     const appMarkers = Array.from(
       new Set(
-        [apiKey, extId, embedHandle, "fomoify", "fomo", "coreembed"]
+        [apiKey, extId, embedHandle, "fomoify", "fomo", "m2fomo", "coreembed"]
           .map((item) => normalizeToken(item))
           .filter(Boolean)
       )
     );
+    ["fomoifypopuptest", "fomoifypopup", "fomoifysalespopup"].forEach((marker) =>
+      appMarkers.push(marker)
+    );
+
+    const expectedBlockPath = `blocks/${toLower(embedHandle)}`;
+    const expectedBlockPathUnderscore = expectedBlockPath.replace(/-/g, "_");
 
     const matches = entries
       .filter(({ blockId, block }) => {
         const type = toLower(block?.type);
-        if (!type) return false;
+        const rawSearchText = blockSearchText(blockId, block);
+        if (!type && !rawSearchText) return false;
 
+        const appUrl = normalizeShopifyAppUrl(type);
         const normalizedType = normalizeToken(type);
         const normalizedBlockId = normalizeToken(blockId);
         const normalizedName = normalizeToken(
@@ -297,20 +316,31 @@ export async function getThemeEmbedState({
         const normalizedTarget = normalizeToken(
           block?.target || block?.settings?.target
         );
+        const normalizedSchemaName = normalizeToken(block?.settings?.schemaName);
+        const normalizedSearchText = normalizeToken(rawSearchText);
+        const readableHaystack = normalizeWords(rawSearchText);
         const hasAppType =
           type.includes("shopify://apps/") ||
           type.includes("/apps/") ||
+          appUrl.includes("apps/") ||
+          appUrl.includes("/blocks/") ||
           normalizedType.includes("shopifyapps") ||
-          normalizedBlockId.includes("shopifyapps");
-        if (!hasAppType) {
-          return false;
+          normalizedBlockId.includes("shopifyapps") ||
+          appMarkers.some((marker) => normalizedSearchText.includes(marker));
+
+        if (
+          appUrl.includes(expectedBlockPath) ||
+          appUrl.includes(expectedBlockPathUnderscore)
+        ) {
+          return true;
         }
 
         const haystack = `${normalizedType} ${normalizedBlockId} ${normalizedName} ${normalizedTarget}`;
         const hasHandleMatch = normalizedHandleVariants.some((variant) =>
-          haystack.includes(variant)
+          haystack.includes(variant) || normalizedSchemaName.includes(variant)
         );
-        if (hasHandleMatch) return true;
+        if (hasHandleMatch && hasAppType) return true;
+
         const hasAppMarker = appMarkers.some((marker) => haystack.includes(marker));
         const hasEmbedHint =
           normalizedType.includes("embed") ||
@@ -318,22 +348,28 @@ export async function getThemeEmbedState({
           normalizedName.includes("embed") ||
           normalizedTarget.includes("embed") ||
           normalizedType.includes("appblock");
-        return hasAppMarker && hasEmbedHint;
+        const isRootBodyEmbed =
+          normalizedTarget === "body" ||
+          normalizeToken(block?.target) === "body" ||
+          normalizeToken(block?.settings?.target) === "body";
+
+        if (hasHandleMatch && (hasEmbedHint || isRootBodyEmbed)) return true;
+        if (hasAppMarker && hasEmbedHint) return true;
+
+        return (
+          (hasEmbedHint || isRootBodyEmbed) &&
+          /\b(fomoify|fomo|m2fomo)\b/.test(readableHaystack) &&
+          /\b(core|app|embed)\b/.test(readableHaystack)
+        );
       })
       .map(({ block }) => block);
+
     const found = matches.length > 0;
     const enabled = matches.some((block) => !toBool(block?.disabled));
 
-    // --- DEBUG: log match result ---
-    console.log("[theme-embed:debug] matched blocks:", matches.length, "| found:", found, "| enabled:", enabled);
-    matches.forEach((block, i) => {
-      console.log(`[theme-embed:debug]   match[${i}] type=${block?.type} disabled=${JSON.stringify(block?.disabled)}`);
-    });
-    // --- END DEBUG ---
-
     return { enabled, found, checked: true };
   } catch (error) {
-    console.error("[theme-embed] embed detect failed:", error);
+    logThemeEmbedError("[theme-embed] embed detect failed:", error);
     return { enabled: false, found: false, checked: false };
   }
 }

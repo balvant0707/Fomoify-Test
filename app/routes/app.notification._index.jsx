@@ -1,8 +1,9 @@
 // app/routes/app.notification._index.jsx
 import React, { useState, useCallback } from "react";
-import { Page, Button, Loading } from "@shopify/polaris";
+import { Page, Button, Loading, BlockStack, InlineStack, Text, Box } from "@shopify/polaris";
 import { useNavigate } from "@remix-run/react";
 import { authenticate } from "../shopify.server";
+import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
 export const links = () => [
   {
@@ -24,51 +25,56 @@ const DASHBOARD_STYLES = `
 .notify-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 16px;
-}
-.notify-card {
-  border-radius: 16px;
-  border: 1px solid #e6e6e6;
-  background: #ffffff;
-  padding: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  box-shadow: 0 8px 20px rgba(15, 15, 15, 0.06);
-}
-.notify-card-body {
-  display: grid;
-  gap: 8px;
-}
-.notify-card-title {
-  font-size: 15px;
-  font-weight: 700;
-}
-.notify-card-desc {
-  font-size: 13px;
-  color: #6b6b6b;
-  max-width: 300px;
-}
-.notify-actions {
-  display: flex;
   gap: 10px;
 }
-.notify-card-right {
+.notify-card-shell {
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  background: #ffffff;
+  min-height: 120px;
+  padding: 10px 10px;
+  box-shadow: 0 1px 0 rgba(17, 24, 39, 0.04);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+.notify-card-shell:hover {
+  border-color: #1a73e8;
+  box-shadow: 0 10px 26px rgba(26, 115, 232, 0.14);
+  transform: translateY(-2px);
+}
+.notify-card-layout {
+  height: 100%;
+}
+.notify-card-media {
+  width: 62px;
+  height: 62px;
+  flex-shrink: 0;
   display: grid;
-  gap: 8px;
-  justify-items: end;
+  place-items: center;
+  border-radius: 8px;
+  background: transparent;
+  overflow: hidden;
 }
-.notify-bar {
-  height: 10px;
-  width: 86px;
-  border-radius: 999px;
-  background: #e5e7eb;
+.notify-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
-.notify-bar.is-primary {
-  height: 12px;
-  width: 96px;
-  background: #2f855a;
+.notify-card-content {
+  min-width: 0;
+  flex: 1;
+}
+.notify-card-actions {
+  width: fit-content;
+  padding-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.notify-card-actions .Polaris-Button {
+  flex: 0 0 auto;
 }
 `;
 
@@ -83,28 +89,32 @@ function DashboardCard({
   const imageSrc = `/images/${encodeURIComponent(imageName)}`;
 
   return (
-    <div className="notify-card">
-      <div className="notify-card-body">
-        <div className="notify-card-title">{title}</div>
-        <div className="notify-card-desc">{desc}</div>
-        <div className="notify-actions">
-          <Button primary onClick={onCreate} loading={loading} disabled={loading}>
-            {loading ? "Opening..." : "Create"}
-          </Button>
-          <Button onClick={onManage} disabled={loading}>
-            Manage
-          </Button>
+    <div className="notify-card-shell">
+      <InlineStack
+        align="space-between"
+        blockAlign="center"
+        gap="400"
+        wrap={false}
+        className="notify-card-layout"
+      >
+        <Box className="notify-card-content">
+          <BlockStack gap="150">
+            <Text as="h3" fontSize="16px !important" fontWeight="bold">{title}</Text>
+            <Text as="p" tone="subdued">{desc}</Text>
+            <div className="notify-card-actions">
+              <Button variant="primary" onClick={onCreate} loading={loading} disabled={loading}>
+                {loading ? "Opening..." : "Create"}
+              </Button>
+              <Button onClick={onManage} disabled={loading}>
+                Manage
+              </Button>
+            </div>
+          </BlockStack>
+        </Box>
+        <div className="notify-card-media" aria-hidden>
+          <img src={imageSrc} alt="" />
         </div>
-      </div>
-      <div className="notify-card-right" aria-hidden>
-        <img
-          src={imageSrc}
-          alt={`${title} preview`}
-          width={80}
-          height={80}
-          style={{ borderRadius: 8, objectFit: "contain" }}
-        />
-      </div>
+      </InlineStack>
     </div>
   );
 }
@@ -112,28 +122,28 @@ function DashboardCard({
 const CARD_DATA = [
   {
     key: "recent",
-    title: "Recent Purchases Popup",
+    title: "Recent Purchase Notification",
     desc: "Show real-time customer activity to create social proof and FOMO.",
     path: "/app/notification/recent",
     imageName: "Recent cart.png",
   },
   {
     key: "flash",
-    title: "Flash Sale / Countdown Bar",
+    title: "Flash Sale Notification",
     desc: "Announce limited-time offers with a sticky top bar and timer.",
     path: "/app/notification/flash",
     imageName: "Flash Sale.png",
   },
   {
     key: "visitor",
-    title: "Visitor Popup",
+    title: "Visitor Notification",
     desc: "Show live visitor activity and product interest notifications.",
     path: "/app/notification/visitor",
     imageName: "Visitor Popup - new.png",
   },
   {
     key: "lowstock",
-    title: "Low Stock Popup",
+    title: "Low Stock Notification",
     desc: "Create urgency when inventory is running low.",
     path: "/app/notification/lowstock",
     imageName: "low stock popup.png",
@@ -152,6 +162,22 @@ const CARD_DATA = [
     path: "/app/notification/review",
     imageName: "Review notification.png",
   },
+  {
+    key: "visitor-block",
+    title: "Visitor Announcement Bar",
+    desc: "Show visitor count inside product information on all or selected products.",
+    path: "/app/visitor-announcement",
+    managePath: "/app/notification/manage?type=visitor-block",
+    imageName: "Visitor Popup - new.png",
+  },
+  {
+    key: "stock-block",
+    title: "Stock Announcement Bar",
+    desc: "Show stock status inside product information on all or selected products.",
+    path: "/app/stock-announcement",
+    managePath: "/app/notification/manage?type=stock-block",
+    imageName: "low stock popup.png",
+  },
 ];
 
 export default function NotificationDashboardIndex() {
@@ -168,11 +194,11 @@ export default function NotificationDashboardIndex() {
   );
 
   const goManage = useCallback(
-    (key) => {
+    (key, path = "/app/notification/manage") => {
       if (loadingKey) return;
       const loadingId = `${key}-manage`;
       setLoadingKey(loadingId);
-      setTimeout(() => navigate("/app/notification/manage"), 450);
+      setTimeout(() => navigate(path), 450);
     },
     [navigate, loadingKey]
   );
@@ -181,8 +207,9 @@ export default function NotificationDashboardIndex() {
     <>
       {loadingKey && <Loading />}
       <Page title="Sales Popups & Flash Bars">
+        <NotificationPageStyles />
         <style>{DASHBOARD_STYLES}</style>
-        <div className="notify-page">
+        <div className="notify-page notification-page">
           <div className="notify-grid">
             {CARD_DATA.map((card) => (
               <DashboardCard
@@ -191,7 +218,7 @@ export default function NotificationDashboardIndex() {
                 desc={card.desc}
                 imageName={card.imageName}
                 onCreate={() => go(card.path, `${card.key}-create`)}
-                onManage={() => goManage(card.key)}
+                onManage={() => goManage(card.key, card.managePath)}
                 loading={
                   loadingKey === `${card.key}-create` ||
                   loadingKey === `${card.key}-manage`

@@ -1,11 +1,12 @@
 // app/routes/proxy.fomo.$subpath.jsx
 import { json } from "@remix-run/node";
-import prisma from "../db.server";                // <-- default import (IMPORTANT)
+import prisma from "../db.server";  // <-- default import (IMPORTANT)
 import { ensureShopRow } from "../utils/ensureShop.server";
 import { touchEmbedPing } from "../utils/embedPingWrite.server";
 import { normalizeShopDomain } from "../utils/shopDomain.server";
 import { getOrSetCache } from "../utils/serverCache.server";
 import { isValidProxyRequest } from "../utils/verifyProxySignature.server";
+
 
 const norm = (s) =>
   (s || "")
@@ -22,8 +23,17 @@ const getShopFromRequest = (request) => {
   const fallback = norm(url.searchParams.get("shop"));
   return fromHeader || fromQuery || fallback || "";
 };
-const ok = (d, s = 200) => json(d, { status: s });
-const bad = (d, s = 400) => json(d, { status: s });
+const hasProxySignature = (requestUrl) => {
+  const url = new URL(requestUrl);
+  return Boolean(url.searchParams.get("signature") || url.searchParams.get("hmac"));
+};
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, X-Requested-With",
+};
+const ok = (d, s = 200) => json(d, { status: s, headers: corsHeaders });
+const bad = (d, s = 400) => json(d, { status: s, headers: corsHeaders });
 const EVENTS = new Set(["view", "click", "order"]);
 const JUDGE_ME_INTEGRATION_KEY = "integration_judge_me";
 const POPUPS = new Set([
@@ -34,6 +44,17 @@ const POPUPS = new Set([
   "lowstock",
   "addtocart",
   "review",
+  "visitor-block",
+  "stock-block",
+]);
+const PUBLIC_STOREFRONT_PATHS = new Set([
+  "session",
+  "embed-status",
+  "popup",
+  "orders",
+  "customers",
+  "products",
+  "track",
 ]);
 const CACHE_TTL = {
   session: 5 * 1000,
@@ -43,8 +64,17 @@ const CACHE_TTL = {
   products: 120 * 1000,
 };
 const SELECT_KEY_CACHE = new Map();
+const TRACK_DEDUPE_MS = Number(process.env.FOMO_TRACK_DEDUPE_MS || 30000);
+const TRACK_DEDUPE_LIMIT = 1000;
+const TRACK_DEDUPE_CACHE = new Map();
 const analyticsModel = () =>
   prisma.popupanalyticsevent || prisma.popupAnalyticsEvent || null;
+const getProxyShopRecord = async (shop) => {
+  const existing = await prisma.shop.findUnique({ where: { shop } });
+  if (existing?.installed && existing?.accessToken) return existing;
+  const healed = await ensureShopRow(shop);
+  return healed || existing || null;
+};
 const tableModel = (key) => {
   switch (key) {
     case "visitor":
@@ -59,6 +89,10 @@ const tableModel = (key) => {
       return prisma.recentpopupconfig || prisma.recentPopupConfig || null;
     case "flash":
       return prisma.flashpopupconfig || prisma.flashPopupConfig || null;
+    case "visitor-block":
+      return prisma.visitorannouncementconfig || prisma.visitorAnnouncementConfig || null;
+    case "stock-block":
+      return prisma.stockannouncementconfig || prisma.stockAnnouncementConfig || null;
     default:
       return null;
   }
@@ -338,6 +372,65 @@ const TABLE_SELECTS = {
     namesJson: true,
     selectedProductsJson: true,
   },
+  "visitor-block": {
+    id: true,
+    enabled: true,
+    visitorMin: true,
+    visitorMax: true,
+    template: true,
+    iconKey: true,
+    iconColor: true,
+    refreshSeconds: true,
+    behavior: true,
+    animationStyle: true,
+    animationSpeed: true,
+    iconAnimationStyle: true,
+    countInterval: true,
+    hideOnMobile: true,
+    textColor: true,
+    fontSize: true,
+    mobileFontSize: true,
+    iconSize: true,
+    spacing: true,
+    textWeight: true,
+    customClass: true,
+    alignment: true,
+    topMargin: true,
+    bottomMargin: true,
+    productScope: true,
+    selectedProductsJson: true,
+  },
+  "stock-block": {
+    id: true,
+    enabled: true,
+    productQuantity: true,
+    showProductQuantity: true,
+    hideOutOfStock: true,
+    inStockText: true,
+    quantityText: true,
+    lowStockText: true,
+    outOfStockText: true,
+    inStockDotColor: true,
+    lowStockDotColor: true,
+    outStockDotColor: true,
+    lowStockThreshold: true,
+    dotAnimationStyle: true,
+    dotIcon: true,
+    highlightBg: true,
+    hideOnMobile: true,
+    textColor: true,
+    fontSize: true,
+    mobileFontSize: true,
+    dotSize: true,
+    spacing: true,
+    textWeight: true,
+    customClass: true,
+    alignment: true,
+    topMargin: true,
+    bottomMargin: true,
+    productScope: true,
+    selectedProductsJson: true,
+  },
 };
 
 const missingColumnError = (err) => {
@@ -427,15 +520,6 @@ async function safeFindLatest(model, key, shop) {
   }
 
   return null;
-}
-
-async function getShopRecord(shop) {
-  return getOrSetCache(`proxy:shop:${shop}`, CACHE_TTL.session, async () => {
-    return (
-      (await prisma.shop.findUnique({ where: { shop } })) ||
-      (await ensureShopRow(shop))
-    );
-  });
 }
 
 const clean = (v, max = 255) => {
@@ -684,6 +768,18 @@ const enrichOrdersLineItems = (orders, productMap) =>
     return { ...order, line_items: nextLines };
   });
 
+function isDbConnectionError(err) {
+  const msg = `${err?.message || ""} ${err?.cause?.message || ""}`;
+  return (
+    msg.includes("max_user_connections") ||
+    msg.includes("Too many database connections") ||
+    msg.includes("connection pool timed out") ||
+    msg.includes("Can't connect to MySQL") ||
+    msg.includes("Engine is not yet connected") ||
+    err?.errorCode === "P2024"
+  );
+}
+
 async function saveTrackEvent({ shop, body }) {
   const model = analyticsModel();
   if (!model) return { ok: false, skipped: "model_missing" };
@@ -694,22 +790,60 @@ async function saveTrackEvent({ shop, body }) {
     return { ok: false, skipped: "invalid_event" };
   }
 
-  await model.create({
-    data: {
-      shop,
-      popupType,
-      eventType,
-      visitorId: clean(body?.visitorId, 128),
-      productHandle: clean(body?.productHandle, 128),
-      pagePath: clean(body?.pagePath, 255),
-      sourceUrl: clean(body?.sourceUrl, 500),
-    },
-  });
-  return { ok: true };
+  const visitorId = clean(body?.visitorId, 128);
+  const productHandle = clean(body?.productHandle, 128);
+  const pagePath = clean(body?.pagePath, 255);
+  const sourceUrl = clean(body?.sourceUrl, 500);
+  const dedupeKey = [
+    shop,
+    popupType,
+    eventType,
+    visitorId,
+    productHandle,
+    pagePath,
+  ].join("|");
+  const now = Date.now();
+  const lastTrackedAt = TRACK_DEDUPE_CACHE.get(dedupeKey) || 0;
+  if (now - lastTrackedAt < TRACK_DEDUPE_MS) {
+    return { ok: false, skipped: "duplicate" };
+  }
+
+  TRACK_DEDUPE_CACHE.set(dedupeKey, now);
+  if (TRACK_DEDUPE_CACHE.size > TRACK_DEDUPE_LIMIT) {
+    for (const [key, trackedAt] of TRACK_DEDUPE_CACHE) {
+      if (now - trackedAt > TRACK_DEDUPE_MS) TRACK_DEDUPE_CACHE.delete(key);
+      if (TRACK_DEDUPE_CACHE.size <= TRACK_DEDUPE_LIMIT) break;
+    }
+  }
+
+  try {
+    await model.create({
+      data: {
+        shop,
+        popupType,
+        eventType,
+        visitorId,
+        productHandle,
+        pagePath,
+        sourceUrl,
+      },
+    });
+    return { ok: true };
+  } catch (err) {
+    if (isDbConnectionError(err)) {
+      console.warn("[FOMO Track] DB connection limit reached, skipping analytics write");
+      return { ok: false, skipped: "db_busy" };
+    }
+    throw err;
+  }
 }
 
 export const loader = async ({ request, params }) => {
   try {
+    if (request.method === "OPTIONS") {
+      return ok({ ok: true });
+    }
+
     const url = new URL(request.url);
     const subpath = (params.subpath || "").toLowerCase();
 
@@ -736,7 +870,12 @@ export const loader = async ({ request, params }) => {
       });
     }
 
-    if (!isValidProxyRequest(request.url)) {
+    const allowUnsignedStorefront = PUBLIC_STOREFRONT_PATHS.has(subpath);
+    const signatureValid = hasProxySignature(request.url)
+      ? isValidProxyRequest(request.url)
+      : false;
+
+    if (!signatureValid && !allowUnsignedStorefront) {
       return bad({ error: "Unauthorized" }, 401);
     }
 
@@ -764,7 +903,7 @@ export const loader = async ({ request, params }) => {
         `proxy:session:${shop}`,
         CACHE_TTL.session,
         async () => {
-          const shopRecord = await getShopRecord(shop);
+          const shopRecord = await getProxyShopRecord(shop);
 
           if (!shopRecord) {
             return {
@@ -780,7 +919,7 @@ export const loader = async ({ request, params }) => {
             sessionReady: !!shopRecord.installed,
             shop,
             installed: !!shopRecord.installed,
-            hasAccessToken: !!shopRecord.accessToken,
+            hasAccessToken: signatureValid ? !!shopRecord.accessToken : undefined,
             timestamp,
           };
         }
@@ -798,7 +937,7 @@ export const loader = async ({ request, params }) => {
         `proxy:orders:${shop}:${days}:${limit}`,
         CACHE_TTL.orders,
         async () => {
-          const shopRecord = await getShopRecord(shop);
+          const shopRecord = await getProxyShopRecord(shop);
 
           if (!shopRecord || !shopRecord.installed || !shopRecord.accessToken) {
             return {
@@ -976,7 +1115,7 @@ export const loader = async ({ request, params }) => {
         `proxy:customers:${shop}:${limit}`,
         CACHE_TTL.customers,
         async () => {
-          const shopRecord = await getShopRecord(shop);
+          const shopRecord = await getProxyShopRecord(shop);
 
           if (!shopRecord || !shopRecord.installed || !shopRecord.accessToken) {
             return {
@@ -1040,7 +1179,7 @@ export const loader = async ({ request, params }) => {
         `proxy:products:${shop}:${limit}`,
         CACHE_TTL.products,
         async () => {
-          const shopRecord = await getShopRecord(shop);
+          const shopRecord = await getProxyShopRecord(shop);
 
           if (!shopRecord || !shopRecord.installed || !shopRecord.accessToken) {
             return {
@@ -1081,7 +1220,7 @@ export const loader = async ({ request, params }) => {
 
     if (subpath === "popup") {
       // Ensure/require session
-      const shopRecord = await getShopRecord(shop);
+      const shopRecord = await getProxyShopRecord(shop);
 
       if (!shopRecord || !shopRecord.installed) {
         return ok({
@@ -1114,7 +1253,16 @@ export const loader = async ({ request, params }) => {
             }
           })();
 
-          const keys = ["visitor", "lowstock", "addtocart", "review", "recent", "flash"];
+          const keys = [
+            "visitor",
+            "lowstock",
+            "addtocart",
+            "review",
+            "recent",
+            "flash",
+            "visitor-block",
+            "stock-block",
+          ];
           const fetchTable = async (key) => {
             const model = tableModel(key);
             if (!model) return [];
@@ -1177,12 +1325,21 @@ export const loader = async ({ request, params }) => {
 
 export const action = async ({ request, params }) => {
   try {
-    if (!isValidProxyRequest(request.url)) {
+    if (request.method === "OPTIONS") {
+      return ok({ ok: true });
+    }
+
+    const subpath = (params.subpath || "").toLowerCase();
+    const allowUnsignedStorefront = PUBLIC_STOREFRONT_PATHS.has(subpath);
+    const signatureValid = hasProxySignature(request.url)
+      ? isValidProxyRequest(request.url)
+      : false;
+
+    if (!signatureValid && !allowUnsignedStorefront) {
       return bad({ error: "Unauthorized" }, 401);
     }
 
     const shop = getShopFromRequest(request);
-    const subpath = (params.subpath || "").toLowerCase();
 
     if (!shop) return bad({ error: "Missing shop" });
 

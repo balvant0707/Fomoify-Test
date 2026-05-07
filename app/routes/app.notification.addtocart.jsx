@@ -27,6 +27,8 @@ import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import { saveAddToCartPopup } from "../models/popup-config.server";
 import prisma from "../db.server";
+import { PopupPreviewPanel } from "../components/notification/PopupPreviewPanel";
+import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
 const SAMPLE_ADD_TO_CART_CUSTOMER = Object.freeze({
   first_name: "Jenna",
@@ -424,10 +426,10 @@ export async function loader({ request }) {
         id: source.id,
         design: {
           layout: toStr(source.layout, "landscape"),
-          size: toNum(source.size, 60),
+          size: toNum(source.size, 50) === 60 ? 50 : toNum(source.size, 50),
           transparent: toNum(source.transparent, 10),
           template: toStr(source.template, "gradient"),
-          imageAppearance: toStr(source.imageAppearance, "contain"),
+          imageAppearance: toStr(source.imageAppearance, "cover"),
           bgColor: toStr(source.bgColor, "#CCC01E"),
           bgAlt: toStr(source.bgAlt, "#7E6060"),
           textColor: toStr(source.textColor, "#F9EEEE"),
@@ -438,9 +440,9 @@ export async function loader({ request }) {
           starColor: toStr(source.starColor, "#F06663"),
         },
         textSize: {
-          content: toStr(source.textSizeContent, "14"),
-          compareAt: toStr(source.textSizeCompareAt, "12"),
-          price: toStr(source.textSizePrice, "12"),
+          content: toStr(source.textSizeContent, "12"),
+          compareAt: toStr(source.textSizeCompareAt, "10"),
+          price: toStr(source.textSizePrice, "10"),
         },
         content: {
           message: toStr(
@@ -479,7 +481,7 @@ export async function loader({ request }) {
           delay: toStr(source.delay, "1"),
           duration: toStr(source.duration, "10"),
           interval: toStr(source.interval, "5"),
-          intervalUnit: toStr(source.intervalUnit, "seconds"),
+          intervalUnit: normalizeIntervalUnit(source.intervalUnit),
           randomize: toBool(source.randomize, true),
         },
         selectedDataProducts: dataProducts,
@@ -583,10 +585,13 @@ const POSITIONS = [
   { label: "Top left", value: "top-left" },
 ];
 const TIME_UNITS = [
-  { label: "seconds", value: "seconds" },
-  { label: "mins", value: "mins" },
-  { label: "hours", value: "hours" },
+  { label: "Seconds", value: "seconds" },
+  { label: "Minutes", value: "minutes" },
 ];
+const normalizeIntervalUnit = (value) => {
+  const unit = String(value || "seconds").trim().toLowerCase();
+  return unit.startsWith("min") ? "minutes" : "seconds";
+};
 
 const CONTENT_TOKENS = [
   "full_name",
@@ -659,9 +664,29 @@ const LOW_STOCK_STYLES = `
   flex: 1;
   min-width: 360px;
 }
-.lowstock-preview {
+.addtocart-preview {
   flex: 1;
   min-width: 320px;
+}
+.addtocart-preview .popup-preview-panel__header {
+  border-bottom: 0;
+}
+.addtocart-preview .popup-preview-panel__surface {
+  min-height: 300px;
+  padding: 0 0 0 30px;
+  align-items: center;
+}
+.addtocart-preview.is-layout-portrait .popup-preview-panel__surface {
+  padding: 0 !important;
+}
+.addtocart-preview.is-fit-image .popup-preview-panel__surface {
+  padding: 0;
+}
+.addtocart-preview.is-fit-image .popup-preview-panel {
+  padding-right: var(--p-space-400);
+}
+.addtocart-preview .popup-preview-panel__content {
+  max-width: 100%;
 }
 .lowstock-preview-box {
   border: 1px solid #e5e7eb;
@@ -717,8 +742,15 @@ const LOW_STOCK_STYLES = `
     font-size: 12px;
   }
   .lowstock-form,
-  .lowstock-preview {
+  .addtocart-preview {
     min-width: 0;
+  }
+  .addtocart-preview .popup-preview-panel__surface {
+    min-height: 360px;
+    padding: 40px 12px 32px;
+  }
+  .addtocart-preview.is-fit-image .popup-preview-panel__surface {
+    padding: 0;
   }
 }
 `;
@@ -917,6 +949,16 @@ function PreviewCard({
   productNameMode,
   productNameLimit,
 }) {
+  const clampFontSize = (value, fallback) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.max(6, Math.min(72, n)) : fallback;
+  };
+  const contentFontSize = clampFontSize(textSizeContent, 12);
+  const compareFontSize = clampFontSize(textSizeCompare, 10);
+  const priceFontSize = clampFontSize(textSizePrice, 10);
+  const metaFontSize = Math.max(6, Math.round(contentFontSize * 0.9));
+  const ratingFontSize = Math.max(8, Math.round(contentFontSize * 1.5));
+  const badgeFontSize = Math.max(6, Math.round(contentFontSize * 0.9));
   const scale = 0.8 + (size / 100) * 0.4;
   const opacity = 1 - (transparency / 100) * 0.7;
   const background =
@@ -925,10 +967,16 @@ function PreviewCard({
       : bgColor;
 
   const isPortrait = layout === "portrait";
-  const imageMode = String(imageAppearance || "contain").toLowerCase();
-  const isContainImage = imageMode === "contain" || imageMode.includes("fit");
-  const imageFit = isContainImage ? "contain" : "cover";
-  const avatarSize = isPortrait ? 66 : 64;
+  const imageMode = String(imageAppearance || "cover")
+    .trim()
+    .toLowerCase();
+  const isContainImage =
+    imageMode === "contain" ||
+    imageMode.includes("contain") ||
+    imageMode.includes("fit");
+  const imageFit = "cover";
+  const portraitImageSize = 120;
+  const avatarSize = isPortrait ? portraitImageSize : 64;
   const avatarOffset = Math.round(avatarSize * 0.45);
   const useFloatingImage = showProductImage && !isPortrait && !isContainImage;
   const cardStyle = {
@@ -936,9 +984,8 @@ function PreviewCard({
     opacity,
     background,
     color: textColor,
-    borderRadius: 18,
+    borderRadius: 10,
     boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
-    border: "1px solid rgba(0,0,0,0.06)",
     padding: isPortrait ? 18 : 16,
     paddingLeft: useFloatingImage ? 16 + avatarOffset : 16,
     display: "flex",
@@ -995,17 +1042,32 @@ function PreviewCard({
   );
   const productName = tokenValues.product_name;
   const productIndex = resolvedContent.indexOf(productName);
+  const contentTextSpanStyle = {
+    fontSize: contentFontSize,
+    lineHeight: 1.35,
+    color: textColor,
+  };
   const contentNode =
     productIndex >= 0 ? (
       <>
-        {resolvedContent.slice(0, productIndex)}
-        <span style={{ fontWeight: 600, textDecoration: "underline" }}>
+        <span style={contentTextSpanStyle}>
+          {resolvedContent.slice(0, productIndex)}
+        </span>
+        <span
+          style={{
+            ...contentTextSpanStyle,
+            fontWeight: 700,
+            color: textColor,
+          }}
+        >
           {productName}
         </span>
-        {resolvedContent.slice(productIndex + productName.length)}
+        <span style={contentTextSpanStyle}>
+          {resolvedContent.slice(productIndex + productName.length)}
+        </span>
       </>
     ) : (
-      resolvedContent
+      <span style={contentTextSpanStyle}>{resolvedContent}</span>
     );
 
   return (
@@ -1041,7 +1103,7 @@ function PreviewCard({
             transform: "translate(-50%, -50%)",
             width: avatarSize,
             height: avatarSize,
-            borderRadius: 14,
+            borderRadius: 10,
             overflow: "hidden",
             background: "#f3f4f6",
             flexShrink: 0,
@@ -1060,7 +1122,7 @@ function PreviewCard({
               decoding="async"
             />
           ) : (
-            <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+            <span style={{ fontSize: 12, color: textColor }}>IMG</span>
           )}
         </div>
       )}
@@ -1069,7 +1131,7 @@ function PreviewCard({
           style={{
             width: avatarSize,
             height: avatarSize,
-            borderRadius: 14,
+            borderRadius: 4,
             overflow: "hidden",
             background: "#f3f4f6",
             display: "grid",
@@ -1089,56 +1151,31 @@ function PreviewCard({
               decoding="async"
             />
           ) : (
-            <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+            <span style={{ fontSize: 12, color: textColor }}>IMG</span>
           )}
         </div>
       )}
 
-      <div style={{ display: "grid", gap: isPortrait ? 8 : 6, minWidth: 0, flex: 1 }}>
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            width: "fit-content",
-            background: "rgba(0,0,0,0.82)",
-            color: "#ffffff",
-            borderRadius: 999,
-            padding: "3px 10px",
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: 0.2,
-          }}
-        >
-          <span
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: "#ffffff",
-              opacity: 0.95,
-            }}
-          />
-          Added to cart
-        </div>
+      <div style={{ display: "grid", gap: isPortrait ? 8 : 6, minWidth: 0, flex: 1, textAlign: isPortrait ? "center" : undefined }}>
         {showRating && (
-          <div style={{ color: starColor, fontSize: 12, letterSpacing: 1 }}>
+          <div style={{ color: starColor, fontSize: ratingFontSize, letterSpacing: 1 }}>
             {"★★★★★".slice(0, product?.rating || 4)}
-            <span style={{ color: "#d1d5db" }}>
+            <span style={{ color: starColor, opacity: 0.28, fontSize: ratingFontSize }}>
               {"★★★★★".slice(0, 5 - (product?.rating || 4))}
             </span>
           </div>
         )}
-        <div style={{ fontSize: textSizeContent, lineHeight: 1.35 }}>
+        <div style={{ fontSize: contentFontSize,fontWeight: 600,lineHeight: 1.35,letterSpacing: 0.25, color: textColor, minWidth: 0 }}>
           {contentNode}
         </div>
         {showPriceTag && (
-          <InlineStack gap="200" blockAlign="center">
+          <div style={{ display: "flex", justifyContent: isPortrait ? "center" : "flex-start" }}>
+            <InlineStack gap="200" blockAlign="center">
             <span
               style={{
                 background: priceTagBg,
                 color: priceColor,
-                fontSize: textSizePrice,
+                fontSize: priceFontSize,
                 padding: "2px 8px",
                 borderRadius: 6,
                 fontWeight: 600,
@@ -1149,25 +1186,28 @@ function PreviewCard({
             <span
               style={{
                 color: priceTagAlt,
-                fontSize: textSizeCompare,
+                fontSize: compareFontSize,
                 textDecoration: "line-through",
               }}
             >
               {product?.compareAt || "Rs. 49.99"}
             </span>
-          </InlineStack>
+            </InlineStack>
+          </div>
         )}
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
-            fontSize: 12,
+            justifyContent: isPortrait ? "center" : "space-between",
+            fontSize: metaFontSize,
             color: timestampColor,
             gap: 12,
           }}
         >
-          <span>{resolvedTimestamp}</span>
+          <span style={{ fontSize: metaFontSize, lineHeight: 1.2 }}>
+            {resolvedTimestamp}
+          </span>
         </div>
       </div>
     </div>
@@ -1178,18 +1218,26 @@ export default function AddToCartPopupPage() {
   const { saved, customerCount, firstProduct, previewCustomer } = useLoaderData();
   const navigate = useNavigate();
   const location = useLocation();
-  const notificationUrl = `/app/notification${location.search || ""}`;
-  const notificationManageUrl = `/app/notification/manage${location.search || ""}`;
+  const navigationSearch = (() => {
+    const sp = new URLSearchParams(location.search);
+    sp.delete("editId");
+    sp.delete("id");
+    sp.delete("mode");
+    const qs = sp.toString();
+    return qs ? `?${qs}` : "";
+  })();
+  const notificationUrl = `/app/notification${navigationSearch}`;
+  const notificationManageUrl = `/app/notification/manage${navigationSearch}`;
   const [activeSection, setActiveSection] = useState("layout");
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ active: false, error: false, msg: "" });
 
   const [design, setDesign] = useState({
     layout: "landscape",
-    size: 25,
+    size: 50,
     transparent: 10,
     template: "gradient",
-    imageAppearance: "contain",
+    imageAppearance: "cover",
     bgColor: "#CCC01E",
     bgAlt: "#7E6060",
     textColor: "#F9EEEE",
@@ -1201,9 +1249,9 @@ export default function AddToCartPopupPage() {
   });
 
   const [textSize, setTextSize] = useState({
-    content: "14",
-    compareAt: "12",
-    price: "12",
+    content: "12",
+    compareAt: "10",
+    price: "10",
   });
 
   const [content, setContent] = useState({
@@ -1261,7 +1309,6 @@ export default function AddToCartPopupPage() {
   const [collectionSearch, setCollectionSearch] = useState("");
   const [page, setPage] = useState(1);
   const [collectionPage, setCollectionPage] = useState(1);
-  const [hasLoadedProducts, setHasLoadedProducts] = useState(false);
   const [hasLoadedCollections, setHasLoadedCollections] = useState(false);
 
   const [selectedDataProducts, setSelectedDataProducts] = useState([]);
@@ -1316,14 +1363,6 @@ export default function AddToCartPopupPage() {
   }, [selectedDataProducts]);
 
   useEffect(() => {
-    if (hasLoadedProducts) return;
-    const params = new URLSearchParams();
-    params.set("page", "1");
-    productFetcher.load(`/app/products-picker?${params.toString()}`);
-    setHasLoadedProducts(true);
-  }, [hasLoadedProducts, productFetcher]);
-
-  useEffect(() => {
     if (!pickerOpen) return;
     const params = new URLSearchParams();
     if (search) params.set("q", search);
@@ -1354,7 +1393,7 @@ export default function AddToCartPopupPage() {
       id: item.id,
       title: item.title,
       handle: item.handle || null,
-      image: item.featuredImage || null,
+      image: item.image || item.featuredImage || null,
       status: item.status,
       price: item.price || null,
       compareAt: item.compareAt || null,
@@ -1536,8 +1575,9 @@ export default function AddToCartPopupPage() {
         backAction={{ content: "Back", onAction: () => navigate(notificationUrl) }}
         primaryAction={{ content: "Save", onAction: save, loading: saving }}
       >
+        <NotificationPageStyles />
         <style>{LOW_STOCK_STYLES}</style>
-        <div className="lowstock-shell">
+        <div className="lowstock-shell notification-page">
           <div className="lowstock-sidebar">
             {NAV_ITEMS.map(({ id, label, Icon }) => (
               <button
@@ -1738,7 +1778,7 @@ export default function AddToCartPopupPage() {
                               onChange={(v) =>
                                 setDesign((d) => ({
                                   ...d,
-                                  imageAppearance: v[0] || "contain",
+                                  imageAppearance: v[0] || "cover",
                                 }))
                               }
                             />
@@ -1882,33 +1922,6 @@ export default function AddToCartPopupPage() {
                                 </button>
                               ))}
                             </InlineStack>
-                            <InlineStack gap="400" wrap={false}>
-                              <Box width="50%">
-                                <TextField
-                                  label="Average time"
-                                  type="number"
-                                  value={content.avgTime}
-                                  onChange={(v) =>
-                                    setContent((c) => ({ ...c, avgTime: v }))
-                                  }
-                                  autoComplete="off"
-                                />
-                              </Box>
-                              <Box width="50%">
-                                <Select
-                                  label=" "
-                                  labelHidden
-                                  options={TIME_UNITS}
-                                  value={content.avgUnit}
-                                  onChange={(v) =>
-                                    setContent((c) => ({ ...c, avgUnit: v }))
-                                  }
-                                />
-                              </Box>
-                            </InlineStack>
-                            <Text variant="bodySm" tone="subdued">
-                              Time will be randomized around this time.
-                            </Text>
                           </BlockStack>
                         </Box>
                       </Card>
@@ -2237,6 +2250,9 @@ export default function AddToCartPopupPage() {
                             </Text>
                             <TextField
                               label="Delay before first notification"
+                              type="number"
+                              min={0}
+                              step={1}
                               value={behavior.delay}
                               onChange={(v) =>
                                 setBehavior((b) => ({ ...b, delay: v }))
@@ -2246,6 +2262,9 @@ export default function AddToCartPopupPage() {
                             />
                             <TextField
                               label="Display duration"
+                              type="number"
+                              min={1}
+                              step={1}
                               value={behavior.duration}
                               onChange={(v) =>
                                 setBehavior((b) => ({ ...b, duration: v }))
@@ -2257,6 +2276,9 @@ export default function AddToCartPopupPage() {
                               <Box width="50%">
                                 <TextField
                                   label="Interval time"
+                                  type="number"
+                                  min={0}
+                                  step={1}
                                   value={behavior.interval}
                                   onChange={(v) =>
                                     setBehavior((b) => ({ ...b, interval: v }))
@@ -2266,8 +2288,7 @@ export default function AddToCartPopupPage() {
                               </Box>
                               <Box width="50%">
                                 <Select
-                                  label=" "
-                                  labelHidden
+                                  label="Unit"
                                   options={TIME_UNITS}
                                   value={behavior.intervalUnit}
                                   onChange={(v) =>
@@ -2297,68 +2318,62 @@ export default function AddToCartPopupPage() {
                 </BlockStack>
               </div>
 
-              <div className="lowstock-preview">
-                <Card>
-                  <Box padding="4">
-                    <BlockStack gap="300">
-                      <Text as="h3" variant="headingMd">
-                        Preview
-                      </Text>
-                      <div className="lowstock-preview-box">
-                        {previewMessage ? (
-                          <div style={{ textAlign: "center" }}>
-                            <Text as="p" tone="subdued">
-                              {previewMessage}
-                            </Text>
-                          </div>
-                        ) : (
-                          <PreviewCard
-                            layout={design.layout}
-                            size={design.size}
-                            transparency={design.transparent}
-                            bgColor={normalizeHex(design.bgColor, "#FFFBD2")}
-                            bgAlt={normalizeHex(design.bgAlt, "#FBCFCF")}
-                            textColor={normalizeHex(design.textColor, "#000000")}
-                            timestampColor={normalizeHex(
-                              design.timestampColor,
-                              "#FBF9F9"
-                            )}
-                            priceTagBg={normalizeHex(
-                              design.priceTagBg,
-                              "#593E3F"
-                            )}
-                            priceTagAlt={normalizeHex(
-                              design.priceTagAlt,
-                              "#E66465"
-                            )}
-                            priceColor={normalizeHex(
-                              design.priceColor,
-                              "#FFFFFF"
-                            )}
-                            starColor={normalizeHex(design.starColor, "#F06663")}
-                            imageAppearance={design.imageAppearance}
-                            textSizeContent={Number(textSize.content) || 14}
-                            textSizeCompare={Number(textSize.compareAt) || 12}
-                            textSizePrice={Number(textSize.price) || 12}
-                            contentText={content.message}
-                            timestampText={content.timestamp}
-                            avgTime={content.avgTime}
-                            avgUnit={content.avgUnit}
-                            showProductImage={data.showProductImage}
-                            showPriceTag={data.showPriceTag}
-                            showRating={data.showRating}
-                            showClose={behavior.showClose}
-                            product={previewProduct}
-                            previewCustomer={previewCustomer}
-                            template={design.template}
-                            productNameMode={productNameMode}
-                            productNameLimit={productNameLimit}
-                          />
-                        )}
-                      </div>
-                    </BlockStack>
-                  </Box>
-                </Card>
+              <div
+                className={[
+                  "addtocart-preview",
+                  "is-popup-type-addtocart",
+                  `is-layout-${design.layout || "landscape"}`,
+                  design.imageAppearance === "contain" ? "is-fit-image" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                <PopupPreviewPanel
+                  title="Preview"
+                >
+                  <PreviewCard
+                    layout={design.layout}
+                    size={design.size}
+                    transparency={design.transparent}
+                    bgColor={normalizeHex(design.bgColor, "#FFFBD2")}
+                    bgAlt={normalizeHex(design.bgAlt, "#FBCFCF")}
+                    textColor={normalizeHex(design.textColor, "#000000")}
+                    timestampColor={normalizeHex(
+                      design.timestampColor,
+                      "#FBF9F9"
+                    )}
+                    priceTagBg={normalizeHex(
+                      design.priceTagBg,
+                      "#593E3F"
+                    )}
+                    priceTagAlt={normalizeHex(
+                      design.priceTagAlt,
+                      "#E66465"
+                    )}
+                    priceColor={normalizeHex(
+                      design.priceColor,
+                      "#FFFFFF"
+                    )}
+                    starColor={normalizeHex(design.starColor, "#F06663")}
+                    imageAppearance={design.imageAppearance}
+                    textSizeContent={Number(textSize.content) || 12}
+                    textSizeCompare={Number(textSize.compareAt) || 10}
+                    textSizePrice={Number(textSize.price) || 10}
+                    contentText={content.message}
+                    timestampText={content.timestamp}
+                    avgTime={content.avgTime}
+                    avgUnit={content.avgUnit}
+                    showProductImage={data.showProductImage}
+                    showPriceTag={data.showPriceTag}
+                    showRating={data.showRating}
+                    showClose={behavior.showClose}
+                    product={previewProduct}
+                    previewCustomer={previewCustomer}
+                    template={design.template}
+                    productNameMode={productNameMode}
+                    productNameLimit={productNameLimit}
+                  />
+                </PopupPreviewPanel>
               </div>
             </div>
 
@@ -2450,25 +2465,6 @@ export default function AddToCartPopupPage() {
               })}
             </IndexTable>
 
-            <InlineStack gap="200" align="space-between" blockAlign="center">
-              <Text tone="subdued">
-                {pickerProducts.length} products selected
-              </Text>
-              <InlineStack gap="200">
-                <Button
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  Previous
-                </Button>
-                <Button
-                  disabled={!hasNextPage}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Next
-                </Button>
-              </InlineStack>
-            </InlineStack>
           </BlockStack>
         </Modal.Section>
       </Modal>

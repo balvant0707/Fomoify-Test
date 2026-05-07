@@ -9,7 +9,10 @@ import {
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
 import { upsertInstalledShop } from "./utils/upsertShop.server";
-import { ensurePrismaSessionTable } from "./utils/ensureSessionTable.server";
+import {
+  ensurePrismaSessionTable,
+  resetPrismaSessionTableReady,
+} from "./utils/ensureSessionTable.server";
 
 const toPositiveInt = (value, fallback) => {
   const n = Number(value);
@@ -17,9 +20,6 @@ const toPositiveInt = (value, fallback) => {
   return Math.floor(n);
 };
 
-const shouldAutoPrepareSessionTable =
-  process.env.PRISMA_AUTO_PREPARE_SESSION_TABLE === "1" ||
-  process.env.NODE_ENV !== "production";
 const sessionConnectionRetries = toPositiveInt(
   process.env.SHOPIFY_SESSION_CONNECTION_RETRIES,
   1
@@ -29,22 +29,34 @@ const sessionConnectionRetryIntervalMs = toPositiveInt(
   1000
 );
 
+// Always ensure the session table exists before creating PrismaSessionStorage.
+// The storage constructor starts a background readiness timer that throws an
+// unhandled rejection if the table is missing, so we must create the table first.
+const createPrismaSessionStorage = async (prismaClient) => {
+  await ensurePrismaSessionTable(prismaClient);
+  return new PrismaSessionStorage(prismaClient, {
+    connectionRetries: sessionConnectionRetries,
+    connectionRetryIntervalMs: sessionConnectionRetryIntervalMs,
+  });
+};
+
+function isMissingSessionTableError(error) {
+  const name = error?.name || error?.constructor?.name || "";
+  const message = `${error?.message || ""} ${error?.cause?.message || ""}`;
+  return (
+    name === "MissingSessionTableError" ||
+    message.includes("MissingSessionTableError") ||
+    message.includes("The table `session` does not exist") ||
+    message.includes("The table `Session` does not exist")
+  );
+}
 
 function createSessionStorage(prismaClient) {
   let storagePromise;
 
   const getStorage = async () => {
     if (!storagePromise) {
-      storagePromise = (async () => {
-        if (shouldAutoPrepareSessionTable) {
-          await ensurePrismaSessionTable(prismaClient);
-        }
-        return new PrismaSessionStorage(prismaClient, {
-          connectionRetries: sessionConnectionRetries,
-          connectionRetryIntervalMs: sessionConnectionRetryIntervalMs,
-        });
-      })().catch((error) => {
-        // Allow retries after transient failures (for example, temporary DB saturation).
+      storagePromise = createPrismaSessionStorage(prismaClient).catch((error) => {
         storagePromise = undefined;
         throw error;
       });
@@ -52,26 +64,36 @@ function createSessionStorage(prismaClient) {
     return storagePromise;
   };
 
+  const runWithStorageRetry = async (operation) => {
+    const storage = await getStorage();
+    try {
+      return await operation(storage);
+    } catch (error) {
+      if (!isMissingSessionTableError(error)) throw error;
+
+      storagePromise = undefined;
+      resetPrismaSessionTableReady();
+      await ensurePrismaSessionTable(prismaClient, { force: true });
+      const nextStorage = await getStorage();
+      return operation(nextStorage);
+    }
+  };
+
   return {
     async storeSession(session) {
-      const storage = await getStorage();
-      return storage.storeSession(session);
+      return runWithStorageRetry((storage) => storage.storeSession(session));
     },
     async loadSession(id) {
-      const storage = await getStorage();
-      return storage.loadSession(id);
+      return runWithStorageRetry((storage) => storage.loadSession(id));
     },
     async deleteSession(id) {
-      const storage = await getStorage();
-      return storage.deleteSession(id);
+      return runWithStorageRetry((storage) => storage.deleteSession(id));
     },
     async deleteSessions(ids) {
-      const storage = await getStorage();
-      return storage.deleteSessions(ids);
+      return runWithStorageRetry((storage) => storage.deleteSessions(ids));
     },
     async findSessionsByShop(shop) {
-      const storage = await getStorage();
-      return storage.findSessionsByShop(shop);
+      return runWithStorageRetry((storage) => storage.findSessionsByShop(shop));
     },
     async isReady() {
       try {
@@ -191,9 +213,10 @@ export const shopify = shopifyApp({
         console.error("[FOMO][afterAuth] failed to fetch shop info:", e);
       }
 
-      // 3) Register webhooks
-      const reg = await shopify.registerWebhooks({ session });
-      console.log("registerWebhooks:", JSON.stringify(reg, null, 2));
+      // Webhook subscriptions are managed by shopify.app.toml.
+      // Calling registerWebhooks here duplicates app-managed subscriptions and
+      // Shopify rejects ORDERS_CREATE with "Address for this topic has already
+      // been taken".
     },
   },
 });
