@@ -123,7 +123,6 @@ const styles = `
   background: #2f8d5a;
   color: #ffffff;
   border-color: #2f8d5a;
-  box-shadow: 0 8px 18px rgba(47, 141, 90, 0.24);
 }
 .product-info-nav-icon {
   width: 22px;
