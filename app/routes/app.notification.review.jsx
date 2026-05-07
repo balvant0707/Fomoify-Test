@@ -522,12 +522,45 @@ const MOCK_PRODUCTS = [
     id: "p1",
     title: "DREAMY BLUE BALL GOWN",
     image:
-      "https://cdn.shopify.com/s/files/1/0000/0001/products/Dreamy-Blue-Ball-Gown.jpg?v=1",
+      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Crect width='160' height='160' rx='18' fill='%23f3f4f6'/%3E%3Cpath d='M58 132h44l-7-72H65l-7 72Z' fill='%2393c5fd'/%3E%3Cpath d='M66 60c3-18 25-18 28 0' fill='none' stroke='%232563eb' stroke-width='8' stroke-linecap='round'/%3E%3Ccircle cx='80' cy='86' r='18' fill='%23dbeafe'/%3E%3C/svg%3E",
     price: "Rs. 14,099.00",
     compareAt: "Rs. 24,099.00",
     rating: 4,
   },
 ];
+
+function resolveProductImage(product) {
+  const direct = product?.image || product?.productImage || product?.uploadedImage;
+  if (typeof direct === "string" && direct.trim()) return direct.trim();
+  if (typeof product?.featuredImage === "string" && product.featuredImage.trim()) {
+    return product.featuredImage.trim();
+  }
+  if (typeof product?.featuredImage?.url === "string" && product.featuredImage.url.trim()) {
+    return product.featuredImage.url.trim();
+  }
+  if (typeof product?.featured_image === "string" && product.featured_image.trim()) {
+    return product.featured_image.trim();
+  }
+  if (typeof product?.featured_image?.src === "string" && product.featured_image.src.trim()) {
+    return product.featured_image.src.trim();
+  }
+  if (Array.isArray(product?.images) && product.images[0]) {
+    const first = product.images[0];
+    if (typeof first === "string" && first.trim()) return first.trim();
+    if (typeof first?.src === "string" && first.src.trim()) return first.src.trim();
+    if (typeof first?.url === "string" && first.url.trim()) return first.url.trim();
+  }
+  return "";
+}
+
+function normalizePreviewProduct(product) {
+  if (!product) return null;
+  return {
+    ...product,
+    title: product.title || product.name || "Product",
+    image: resolveProductImage(product) || MOCK_PRODUCTS[0].image,
+  };
+}
 
 function normalizeHex(value, fallback) {
   const v = String(value || "").trim();
@@ -682,6 +715,7 @@ function PreviewCard({
   const imageOverflow = showProductImage && !isContainMode;
 
   const rawProductName = product?.title || "DREAMY BLUE BALL GOWN";
+  const imageSrc = resolveProductImage(product) || MOCK_PRODUCTS[0].image;
   const safeProductName = formatProductName(
     rawProductName,
     productNameMode,
@@ -770,9 +804,9 @@ function PreviewCard({
               border: "2px solid rgba(255,255,255,0.75)",
             }}
           >
-            {product?.image ? (
+            {imageSrc ? (
               <img
-                src={product.image}
+                src={imageSrc}
                 alt={product.title}
                 style={{
                   width: "100%",
@@ -781,6 +815,9 @@ function PreviewCard({
                 }}
                 loading="lazy"
                 decoding="async"
+                onError={(event) => {
+                  event.currentTarget.src = MOCK_PRODUCTS[0].image;
+                }}
               />
             ) : (
               <span style={{ fontSize: 12, color: textColor }}>IMG</span>
@@ -801,9 +838,9 @@ function PreviewCard({
               border: "1px solid rgba(15,23,42,0.08)",
             }}
           >
-            {product?.image ? (
+            {imageSrc ? (
               <img
-                src={product.image}
+                src={imageSrc}
                 alt={product.title}
                 style={{
                   width: "100%",
@@ -812,6 +849,9 @@ function PreviewCard({
                 }}
                 loading="lazy"
                 decoding="async"
+                onError={(event) => {
+                  event.currentTarget.src = MOCK_PRODUCTS[0].image;
+                }}
               />
             ) : (
               <span style={{ fontSize: 12, color: textColor }}>IMG</span>
@@ -925,6 +965,7 @@ function StyledPreviewCard({
   const isReviewContent = reviewType === "review_content";
 
   const rawProductName = product?.title || "DREAMY BLUE BALL GOWN";
+  const imageSrc = resolveProductImage(product) || MOCK_PRODUCTS[0].image;
   const safeProductName = formatProductName(
     rawProductName,
     productNameMode,
@@ -1007,9 +1048,9 @@ function StyledPreviewCard({
               border: "2px solid rgba(255,255,255,0.75)",
             }}
           >
-            {product?.image ? (
+            {imageSrc ? (
               <img
-                src={product.image}
+                src={imageSrc}
                 alt={product.title}
                 style={{
                   width: "100%",
@@ -1018,6 +1059,9 @@ function StyledPreviewCard({
                 }}
                 loading="lazy"
                 decoding="async"
+                onError={(event) => {
+                  event.currentTarget.src = MOCK_PRODUCTS[0].image;
+                }}
               />
             ) : (
               <span style={{ fontSize: 12, color: textColor }}>IMG</span>
@@ -1038,9 +1082,9 @@ function StyledPreviewCard({
               border: "1px solid rgba(15,23,42,0.08)",
             }}
           >
-            {product?.image ? (
+            {imageSrc ? (
               <img
-                src={product.image}
+                src={imageSrc}
                 alt={product.title}
                 style={{
                   width: "100%",
@@ -1049,6 +1093,9 @@ function StyledPreviewCard({
                 }}
                 loading="lazy"
                 decoding="async"
+                onError={(event) => {
+                  event.currentTarget.src = MOCK_PRODUCTS[0].image;
+                }}
               />
             ) : (
               <span style={{ fontSize: 12, color: textColor }}>IMG</span>
@@ -1241,7 +1288,11 @@ export default function ReviewNotificationPage() {
       setProductNameLimit(String(saved.productNameLimit));
     }
 
-    setSelectedProducts(Array.isArray(saved.selectedProducts) ? saved.selectedProducts : []);
+    setSelectedProducts(
+      Array.isArray(saved.selectedProducts)
+        ? saved.selectedProducts.map(normalizePreviewProduct).filter(Boolean)
+        : []
+    );
     setSelectedCollections(
       Array.isArray(saved.selectedCollections) ? saved.selectedCollections : []
     );
@@ -1271,16 +1322,19 @@ export default function ReviewNotificationPage() {
   const storeProducts = useMemo(() => {
     const items = fetcher.data?.items || [];
     if (!Array.isArray(items)) return [];
-    return items.map((item) => ({
-      id: item.id,
-      title: item.title,
-      handle: item.handle || null,
-      image: item.image || item.featuredImage || null,
-      status: item.status,
-      price: item.price || null,
-      compareAt: item.compareAt || null,
-      rating: 4,
-    }));
+    return items.map((item) =>
+      normalizePreviewProduct({
+        id: item.id,
+        title: item.title,
+        handle: item.handle || null,
+        image: item.image || item.featuredImage || null,
+        featuredImage: item.featuredImage,
+        status: item.status,
+        price: item.price || null,
+        compareAt: item.compareAt || null,
+        rating: 4,
+      })
+    );
   }, [fetcher.data]);
 
   const storeCollections = useMemo(() => {
@@ -1311,12 +1365,12 @@ export default function ReviewNotificationPage() {
     visibility.productScope === "specific" ? selectedProducts[0] : null;
   const scopedCollectionProduct =
     visibility.collectionScope === "specific"
-      ? selectedCollections[0]?.sampleProduct
+      ? normalizePreviewProduct(selectedCollections[0]?.sampleProduct)
       : null;
   const previewProduct =
-    scopedProduct ||
+    normalizePreviewProduct(scopedProduct) ||
     scopedCollectionProduct ||
-    fallbackPreviewProduct ||
+    normalizePreviewProduct(fallbackPreviewProduct) ||
     null;
   const previewMessage = needsProductSelection
     ? "Select a product to preview."
@@ -1327,10 +1381,12 @@ export default function ReviewNotificationPage() {
         : null;
 
   const togglePick = (item) => {
+    const normalizedItem = normalizePreviewProduct(item);
+    if (!normalizedItem) return;
     setSelectedProducts((prev) => {
-      const exists = prev.some((p) => p.id === item.id);
-      if (exists) return prev.filter((p) => p.id !== item.id);
-      return [...prev, item];
+      const exists = prev.some((p) => p.id === normalizedItem.id);
+      if (exists) return prev.filter((p) => p.id !== normalizedItem.id);
+      return [...prev, normalizedItem];
     });
   };
 

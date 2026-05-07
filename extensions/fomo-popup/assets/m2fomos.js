@@ -140,13 +140,33 @@ const bootFomoify = async function () {
   };
 
   // Normalize Shopify page type so Admin “Pages” works
-  const pageType = () => {
-    const raw = (window.meta && window.meta.page?.pageType) || "";
-    const t = String(raw).toLowerCase();
+  const normalizePageType = (raw) => {
+    const t = String(raw || "").trim().toLowerCase();
     if (t === "index" || t === "frontpage" || t === "home") return "home";
     if (t === "page") return "pages";
     if (t === "list-collections" || t === "collection-list") return "collection_list";
-    return t || "allpage";
+    return t;
+  };
+  const pageType = () => {
+    const raw =
+      (window.meta && window.meta.page?.pageType) ||
+      (window.ShopifyAnalytics && window.ShopifyAnalytics.meta?.page?.pageType) ||
+      "";
+    const normalized = normalizePageType(raw);
+    if (normalized) return normalized;
+    const path = String(window.location?.pathname || "/").replace(/\/+$/, "");
+    return !path ? "home" : "allpage";
+  };
+  const showTypeMatchesPage = (showType, currentPageType) => {
+    const types = String(showType || "allpage")
+      .toLowerCase()
+      .split(",")
+      .map((part) => normalizePageType(part.trim()))
+      .filter(Boolean);
+    if (!types.length || types.includes("all") || types.includes("allpage")) {
+      return true;
+    }
+    return types.includes(currentPageType);
   };
   const currHandle = () =>
     (window.meta && window.meta.product?.handle) || "";
@@ -2445,10 +2465,7 @@ const bootFomoify = async function () {
         continue;
       if (!["flash", "recent", "orders"].includes(it.key)) continue;
 
-      const showType = String(it.showType || "allpage").toLowerCase();
-      const match =
-        showType === "all" || showType === "allpage" || showType === pt;
-      if (!match) continue;
+      if (!showTypeMatchesPage(it.showType, pt)) continue;
 
       const titlesArr = parseList(it.messageTitlesJson);
       const timesArr = parseList(it.namesJson);
@@ -2789,17 +2806,7 @@ const bootFomoify = async function () {
     }
 
     // ==== TABLE CONFIGS (new popup tables) ====
-    const matchesShowType = (showType) => {
-      const types = String(showType || "allpage")
-        .toLowerCase()
-        .split(",")
-        .map((part) => part.trim())
-        .filter(Boolean);
-      if (!types.length || types.includes("all") || types.includes("allpage")) {
-        return true;
-      }
-      return types.includes(pt);
-    };
+    const matchesShowType = (showType) => showTypeMatchesPage(showType, pt);
     const normalizeImage = (img) => {
       if (!img) return "";
       if (typeof img === "string") return img;

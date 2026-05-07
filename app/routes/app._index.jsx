@@ -242,6 +242,9 @@ export const loader = async ({ request }) => {
   const { getAppEmbedContext } = await import(
     "../utils/themeEmbed.server"
   );
+  const { getEmbedPingStatus } = await import(
+    "../utils/embedPingStatus.server"
+  );
   const url = new URL(request.url);
   const normalizeShop = (value) => String(value || "").trim().toLowerCase();
   const toShopSlug = (value) => {
@@ -344,7 +347,10 @@ export const loader = async ({ request }) => {
     ? getAppEmbedContext({ admin, shop, apiKey, extId, embedHandle: APP_EMBED_HANDLE })
     : Promise.resolve({ themeId: null, appEmbedEnabled: false, appEmbedFound: false, appEmbedChecked: false });
 
-  const embedContext = await embedContextState;
+  const [embedContext, embedPingStatus] = await Promise.all([
+    embedContextState,
+    getEmbedPingStatus(shopDomain || shop),
+  ]);
   const dashboardReviewPopupStatus = await getDashboardReviewPopupStatus(shop);
 
   return json({
@@ -354,6 +360,7 @@ export const loader = async ({ request }) => {
     extId,
     dashboardReviewPopupStatus,
     embedContext,
+    embedPingStatus,
   });
 };
 
@@ -631,6 +638,7 @@ export default function AppIndex() {
     extId,
     dashboardReviewPopupStatus,
     embedContext,
+    embedPingStatus,
   } = useLoaderData();
   const contactFetcher = useFetcher();
   const revalidator = useRevalidator();
@@ -643,6 +651,7 @@ export default function AppIndex() {
     appEmbedEnabled: Boolean(embedContext?.appEmbedEnabled),
     appEmbedFound: Boolean(embedContext?.appEmbedFound),
     appEmbedChecked: Boolean(embedContext?.appEmbedChecked),
+    pingFresh: Boolean(embedPingStatus?.isFresh),
   });
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
@@ -666,9 +675,12 @@ export default function AppIndex() {
   );
   const hasThemeEmbedCheck = embedContextState.appEmbedChecked === true;
   const hasThemeEmbedSignal =
-    hasThemeEmbedCheck && embedContextState.appEmbedFound === true;
+    (hasThemeEmbedCheck && embedContextState.appEmbedFound === true) ||
+    embedContextState.pingFresh === true;
   const isEmbedActive =
-    hasThemeEmbedSignal && Boolean(embedContextState.appEmbedEnabled);
+    hasThemeEmbedSignal &&
+    ((hasThemeEmbedCheck && Boolean(embedContextState.appEmbedEnabled)) ||
+      embedContextState.pingFresh === true);
   const embedStatusTone = isEmbedActive ? "on" : "off";
   const embedBadgeText = `App embed: ${isEmbedActive ? "On" : "Off"}`;
   const whatsappSupportUrl = `https://wa.me/?text=${encodeURIComponent(
@@ -688,16 +700,22 @@ export default function AppIndex() {
           appEmbedEnabled: Boolean(ctx?.appEmbedEnabled),
           appEmbedFound: Boolean(ctx?.appEmbedFound),
           appEmbedChecked: Boolean(ctx?.appEmbedChecked),
+          pingFresh: Boolean(embedPingStatus?.isFresh),
         });
       })
       .catch(() => {
         if (!active) return;
-        setEmbedContextState({ appEmbedEnabled: false, appEmbedFound: false, appEmbedChecked: false });
+        setEmbedContextState({
+          appEmbedEnabled: false,
+          appEmbedFound: false,
+          appEmbedChecked: false,
+          pingFresh: Boolean(embedPingStatus?.isFresh),
+        });
       });
     return () => {
       active = false;
     };
-  }, [embedContext]);
+  }, [embedContext, embedPingStatus]);
 
   useEffect(() => {
     const refreshStatus = () => {

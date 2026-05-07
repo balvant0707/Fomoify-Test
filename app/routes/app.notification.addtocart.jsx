@@ -1919,33 +1919,6 @@ export default function AddToCartPopupPage() {
                                 </button>
                               ))}
                             </InlineStack>
-                            <InlineStack gap="400" wrap={false}>
-                              <Box width="50%">
-                                <TextField
-                                  label="Average time"
-                                  type="number"
-                                  value={content.avgTime}
-                                  onChange={(v) =>
-                                    setContent((c) => ({ ...c, avgTime: v }))
-                                  }
-                                  autoComplete="off"
-                                />
-                              </Box>
-                              <Box width="50%">
-                                <Select
-                                  label=" "
-                                  labelHidden
-                                  options={TIME_UNITS}
-                                  value={content.avgUnit}
-                                  onChange={(v) =>
-                                    setContent((c) => ({ ...c, avgUnit: v }))
-                                  }
-                                />
-                              </Box>
-                            </InlineStack>
-                            <Text variant="bodySm" tone="subdued">
-                              Time will be randomized around this time.
-                            </Text>
                           </BlockStack>
                         </Box>
                       </Card>
