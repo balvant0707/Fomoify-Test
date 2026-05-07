@@ -30,7 +30,7 @@ const hasProxySignature = (requestUrl) => {
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, X-Requested-With",
 };
 const ok = (d, s = 200) => json(d, { status: s, headers: corsHeaders });
 const bad = (d, s = 400) => json(d, { status: s, headers: corsHeaders });
@@ -47,7 +47,15 @@ const POPUPS = new Set([
   "visitor-block",
   "stock-block",
 ]);
-const PUBLIC_STOREFRONT_PATHS = new Set(["session", "embed-status", "popup", "track"]);
+const PUBLIC_STOREFRONT_PATHS = new Set([
+  "session",
+  "embed-status",
+  "popup",
+  "orders",
+  "customers",
+  "products",
+  "track",
+]);
 const CACHE_TTL = {
   session: 5 * 1000,
   popup: 8 * 1000,
@@ -832,6 +840,10 @@ async function saveTrackEvent({ shop, body }) {
 
 export const loader = async ({ request, params }) => {
   try {
+    if (request.method === "OPTIONS") {
+      return ok({ ok: true });
+    }
+
     const url = new URL(request.url);
     const subpath = (params.subpath || "").toLowerCase();
 

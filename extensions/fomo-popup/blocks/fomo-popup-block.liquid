@@ -65,7 +65,6 @@
     if (!shop || window.Shopify?.designMode) return;
     fetchWithProxyFallback("track", { shop }, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
       keepalive: true,
       body: JSON.stringify({

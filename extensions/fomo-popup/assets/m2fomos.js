@@ -579,7 +579,6 @@ const bootFomoify = async function () {
 
     fetchWithProxyFallback(TRACK_ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body,
       keepalive: true,
     }).catch(() => { });
