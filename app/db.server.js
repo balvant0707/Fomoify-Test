@@ -43,6 +43,8 @@ if (!globalForPrisma.prisma && globalForPrisma.__prisma) {
 
 if (!globalForPrisma.prisma) {
   globalForPrisma.prisma = new PrismaClient(buildPrismaOptions());
+  // Eagerly start the engine so the first Lambda query doesn't race on connect.
+  globalForPrisma.prisma.$connect().catch(() => {});
 }
 
 globalForPrisma.__prisma = globalForPrisma.prisma;
@@ -60,6 +62,12 @@ export function scheduleDisconnect(delayMs = 2000) {
     _disconnectTimer = null;
     prisma.$disconnect().catch(() => {});
   }, delayMs);
+}
+
+// Call before any query in serverless loaders to ensure the engine is ready.
+// $connect() is a no-op when already connected.
+export async function ensureConnected() {
+  await prisma.$connect();
 }
 
 export { prisma };        // named export

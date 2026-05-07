@@ -24,6 +24,11 @@ const isConnectionLimitError = (error) => {
   );
 };
 
+const isEngineNotConnectedError = (error) => {
+  const message = String(error?.message || "").toLowerCase();
+  return message.includes("engine is not yet connected");
+};
+
 const pruneCache = (nowMs) => {
   if (writeCache.size <= MAX_CACHE_ENTRIES) return;
   const staleMs = WRITE_WINDOW_MS * 2;
@@ -63,12 +68,15 @@ export async function touchEmbedPing(shopDomain) {
     };
   }
 
-  try {
-    await model.upsert({
+  const doUpsert = () =>
+    model.upsert({
       where: { shop },
       create: { shop, lastPingAt: new Date(nowMs) },
       update: { lastPingAt: new Date(nowMs) },
     });
+
+  try {
+    await doUpsert();
 
     writeCache.set(shop, nowMs);
     pruneCache(nowMs);
@@ -96,6 +104,37 @@ export async function touchEmbedPing(shopDomain) {
         persisted: false,
       };
     }
+
+    if (isEngineNotConnectedError(error)) {
+      try {
+        await prisma.$connect();
+        await doUpsert();
+        writeCache.set(shop, nowMs);
+        pruneCache(nowMs);
+        return {
+          ok: true,
+          shop,
+          lastPingAt: nowIso,
+          skipped: false,
+          persisted: true,
+        };
+      } catch (retryError) {
+        writeCache.set(shop, nowMs);
+        pruneCache(nowMs);
+        console.warn("[embed-status] engine reconnect failed, using in-memory ping:", {
+          shop,
+          error: retryError?.message,
+        });
+        return {
+          ok: true,
+          shop,
+          lastPingAt: nowIso,
+          skipped: true,
+          persisted: false,
+        };
+      }
+    }
+
     throw error;
   }
 }
