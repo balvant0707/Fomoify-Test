@@ -25,7 +25,7 @@ const DASHBOARD_STYLES = `
 .notify-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 16px;
+  gap: 10px;
 }
 .notify-card-shell {
   border: 1px solid #dfe3e8;
