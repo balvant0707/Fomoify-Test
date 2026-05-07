@@ -2,7 +2,7 @@
 
 client_id = "fe498ceb049ee2edc48f609a10869a64"
 name = "Fomoify Popup Test"
-application_url = "https://fomoify-test.vercel.app/app"
+application_url = "https://fomoify-test.vercel.app"
 embedded = true
 handle = "fomoify-popup-test"
 
