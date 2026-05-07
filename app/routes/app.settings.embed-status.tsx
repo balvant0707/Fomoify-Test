@@ -66,7 +66,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function AppEmbedStatusSettingsPage() {
-  const { storeHandle, apiKey, extId, isEmbedOn } =
+  const { storeHandle, apiKey, isEmbedOn } =
     useLoaderData<typeof loader>();
   const app = useAppBridge();
   const revalidator = useRevalidator();
@@ -75,9 +75,8 @@ export default function AppEmbedStatusSettingsPage() {
   const openAppEmbeds = () => {
     const params = new URLSearchParams({ context: "apps" });
     if (apiKey) {
-      const embedSuffix = extId || APP_EMBED_HANDLE;
-      const embedId = `${apiKey}/${embedSuffix}`;
-      params.set("appEmbed", embedId);
+      const embedId = `${apiKey}/${APP_EMBED_HANDLE}`;
+      params.set("template", "index");
       params.set("activateAppId", embedId);
     }
     const url = `https://admin.shopify.com/store/${storeHandle}/themes/current/editor?${params.toString()}`;

@@ -755,9 +755,8 @@ export default function AppIndex() {
     const safeThemeId = toThemeEditorThemeId(id);
     const params = new URLSearchParams({ context: "apps" });
     if (mode === "activate" && apiKey) {
-      const embedSuffix = extId || APP_EMBED_HANDLE;
-      const embedId = `${apiKey}/${embedSuffix}`;
-      params.set("appEmbed", embedId);
+      const embedId = `${apiKey}/${APP_EMBED_HANDLE}`;
+      params.set("template", "index");
       params.set("activateAppId", embedId);
     }
     const editorBase = shopDomain
