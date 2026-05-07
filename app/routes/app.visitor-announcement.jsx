@@ -218,17 +218,29 @@ const styles = `
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
-.product-info-color-swatch {
-  width: 34px;
-  height: 31px;
-  margin: 0 -12px -5px 0;
-  border: 0;
+.product-info-color-swatch-shell {
+  width: 42px;
+  height: 30px;
+  margin: -4px -8px -4px 0;
   border-left: 1px solid #c9cccf;
   border-radius: 0 8px 8px 0;
   overflow: hidden;
+  background: #ffffff;
+  display: flex;
+}
+.product-info-color-swatch {
+  width: 100%;
+  height: 100%;
+  border: 0;
   cursor: pointer;
   background: transparent;
   padding: 0;
+}
+.product-info-color-swatch::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.product-info-color-swatch::-webkit-color-swatch {
+  border: 0;
 }
 @media (max-width: 768px) {
   .product-info-designer {
@@ -385,13 +397,15 @@ function ColorField({ label, value, onChange, fallback = "#000000" }) {
       onChange={(next) => onChange(String(next || "").toUpperCase())}
       autoComplete="off"
       suffix={
-        <input
-          className="product-info-color-swatch"
-          type="color"
-          value={safeValue}
-          aria-label={`${label} color`}
-          onChange={(e) => onChange(e.target.value.toUpperCase())}
-        />
+        <span className="product-info-color-swatch-shell">
+          <input
+            className="product-info-color-swatch"
+            type="color"
+            value={safeValue}
+            aria-label={`${label} color`}
+            onChange={(e) => onChange(e.target.value.toUpperCase())}
+          />
+        </span>
       }
     />
   );
