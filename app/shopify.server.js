@@ -51,6 +51,15 @@ function isMissingSessionTableError(error) {
   );
 }
 
+function isPrismaEngineDisconnectedError(error) {
+  const name = error?.name || error?.constructor?.name || "";
+  const message = `${error?.message || ""} ${error?.cause?.message || ""}`;
+  return (
+    name === "PrismaClientUnknownRequestError" &&
+    message.includes("Engine is not yet connected")
+  );
+}
+
 function createSessionStorage(prismaClient) {
   let storagePromise;
 
@@ -69,6 +78,11 @@ function createSessionStorage(prismaClient) {
     try {
       return await operation(storage);
     } catch (error) {
+      if (isPrismaEngineDisconnectedError(error)) {
+        await prismaClient.$connect();
+        return operation(storage);
+      }
+
       if (!isMissingSessionTableError(error)) throw error;
 
       storagePromise = undefined;

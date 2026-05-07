@@ -4,7 +4,6 @@ import { RemixServer } from "@remix-run/react";
 import { createReadableStreamFromReadable } from "@remix-run/node";
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
-import prisma from "./db.server";
 
 export const streamTimeout = 2000;
 
@@ -24,10 +23,6 @@ export default async function handleRequest(
       {
         [callbackName]: () => {
           const body = new PassThrough();
-          // Release the DB connection once the response body is fully flushed.
-          // In serverless (Lambda), without this the connection stays open while
-          // the instance is warm-but-idle, exhausting max_user_connections.
-          body.on("finish", () => prisma.$disconnect().catch(() => {}));
           const stream = createReadableStreamFromReadable(body);
 
           responseHeaders.set("Content-Type", "text/html");

@@ -1,6 +1,6 @@
 // app/routes/proxy.fomo.$subpath.jsx
 import { json } from "@remix-run/node";
-import prisma from "../db.server";  // <-- default import (IMPORTANT)
+import prisma, { ensureConnected } from "../db.server";  // <-- default import (IMPORTANT)
 import { ensureShopRow } from "../utils/ensureShop.server";
 import { touchEmbedPing } from "../utils/embedPingWrite.server";
 import { normalizeShopDomain } from "../utils/shopDomain.server";
@@ -843,6 +843,8 @@ export const loader = async ({ request, params }) => {
     if (request.method === "OPTIONS") {
       return ok({ ok: true });
     }
+
+    await ensureConnected();
 
     const url = new URL(request.url);
     const subpath = (params.subpath || "").toLowerCase();
