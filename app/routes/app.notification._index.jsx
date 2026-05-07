@@ -31,8 +31,8 @@ const DASHBOARD_STYLES = `
   border: 1px solid #dfe3e8;
   border-radius: 8px;
   background: #ffffff;
-  min-height: 150px;
-  padding: 20px 20px;
+  min-height: 120px;
+  padding: 10px 10px;
   box-shadow: 0 1px 0 rgba(17, 24, 39, 0.04);
   transition:
     border-color 180ms ease,

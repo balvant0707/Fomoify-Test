@@ -144,7 +144,7 @@ const POPUP_CARD_DATA = [
   },
   {
     key: "visitor-block",
-    title: "Visitor Block",
+    title: "Visitor Announcement Bar",
     desc: "Show visitor count inside product information on all or selected products.",
     path: "/app/visitor-announcement",
     managePath: "/app/notification/manage?type=visitor-block",
@@ -152,7 +152,7 @@ const POPUP_CARD_DATA = [
   },
   {
     key: "stock-block",
-    title: "Stock Block",
+    title: "Stock Announcement Bar",
     desc: "Show stock status inside product information on all or selected products.",
     path: "/app/stock-announcement",
     managePath: "/app/notification/manage?type=stock-block",
