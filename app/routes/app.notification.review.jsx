@@ -26,6 +26,8 @@ import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import { saveReviewPopup } from "../models/popup-config.server";
 import prisma from "../db.server";
+import { PopupPreviewPanel } from "../components/notification/PopupPreviewPanel";
+import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
 const JUDGE_ME_INTEGRATION_KEY = "integration_judge_me";
 const isTransientDbError = (error) => {
@@ -72,6 +74,9 @@ export async function loader({ request }) {
     });
   }
   const shop = session?.shop;
+  const reqUrl = new URL(request.url);
+  const editIdNum = Number(reqUrl.searchParams.get("editId") || reqUrl.searchParams.get("id"));
+  const editId = Number.isInteger(editIdNum) && editIdNum > 0 ? editIdNum : null;
 
   const parseArr = (raw) => {
     if (Array.isArray(raw)) return raw;
@@ -95,10 +100,11 @@ export async function loader({ request }) {
     const model = prisma?.reviewpopupconfig || prisma?.reviewPopupConfig || null;
     const source =
       shop && model?.findFirst
-        ? await model.findFirst({
-            where: { shop },
-            orderBy: { id: "desc" },
-          })
+        ? await model.findFirst(
+            editId
+              ? { where: { id: editId, shop } }
+              : { where: { shop }, orderBy: { id: "desc" } }
+          )
         : null;
 
     if (source) {
@@ -118,9 +124,9 @@ export async function loader({ request }) {
           starColor: toStr(source.starColor, "#FFCF0D"),
         },
         textSize: {
-          content: toStr(source.textSizeContent, "14"),
-          compareAt: toStr(source.textSizeCompareAt, "12"),
-          price: toStr(source.textSizePrice, "12"),
+          content: toStr(source.textSizeContent, "12"),
+          compareAt: toStr(source.textSizeCompareAt, "10"),
+          price: toStr(source.textSizePrice, "10"),
         },
         content: {
           message: toStr(
@@ -154,7 +160,7 @@ export async function loader({ request }) {
           delay: toStr(source.delay, "1"),
           duration: toStr(source.duration, "10"),
           interval: toStr(source.interval, "1"),
-          intervalUnit: toStr(source.intervalUnit, "mins"),
+          intervalUnit: normalizeIntervalUnit(source.intervalUnit),
           randomize: toBool(source.randomize, false),
         },
         selectedProducts: parseArr(
@@ -255,10 +261,13 @@ const POSITIONS = [
   { label: "Top left", value: "top-left" },
 ];
 const TIME_UNITS = [
-  { label: "seconds", value: "seconds" },
-  { label: "mins", value: "mins" },
-  { label: "hours", value: "hours" },
+  { label: "Seconds", value: "seconds" },
+  { label: "Minutes", value: "minutes" },
 ];
+const normalizeIntervalUnit = (value) => {
+  const unit = String(value || "seconds").trim().toLowerCase();
+  return unit.startsWith("min") ? "minutes" : "seconds";
+};
 
 const CONTENT_TOKENS = [
   "reviewer_name",
@@ -346,6 +355,26 @@ const REVIEW_STYLES = `
   flex: 1;
   min-width: 320px;
 }
+.review-preview .popup-preview-panel__header {
+  border-bottom: 0;
+}
+.review-preview .popup-preview-panel__surface {
+  min-height: 300px;
+  padding: 0 0 0 30px;
+  align-items: center;
+}
+.review-preview.is-review-type-review_content .popup-preview-panel__surface {
+  padding: 0 !important;
+}
+.review-preview.is-fit-image .popup-preview-panel__surface {
+  padding: 0;
+}
+.review-preview.is-fit-image .popup-preview-panel {
+  padding-right: var(--p-space-400);
+}
+.review-preview .popup-preview-panel__content {
+  max-width: 100%;
+}
 .review-preview-box {
   border: 1px solid #e5e7eb;
   border-radius: 16px;
@@ -402,6 +431,13 @@ const REVIEW_STYLES = `
   .review-form,
   .review-preview {
     min-width: 0;
+  }
+  .review-preview .popup-preview-panel__surface {
+    min-height: 360px;
+    padding: 40px 12px 32px;
+  }
+  .review-preview.is-fit-image .popup-preview-panel__surface {
+    padding: 0;
   }
 }
 `;
@@ -489,12 +525,45 @@ const MOCK_PRODUCTS = [
     id: "p1",
     title: "DREAMY BLUE BALL GOWN",
     image:
-      "https://cdn.shopify.com/s/files/1/0000/0001/products/Dreamy-Blue-Ball-Gown.jpg?v=1",
+      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Crect width='160' height='160' rx='18' fill='%23f3f4f6'/%3E%3Cpath d='M58 132h44l-7-72H65l-7 72Z' fill='%2393c5fd'/%3E%3Cpath d='M66 60c3-18 25-18 28 0' fill='none' stroke='%232563eb' stroke-width='8' stroke-linecap='round'/%3E%3Ccircle cx='80' cy='86' r='18' fill='%23dbeafe'/%3E%3C/svg%3E",
     price: "Rs. 14,099.00",
     compareAt: "Rs. 24,099.00",
     rating: 4,
   },
 ];
+
+function resolveProductImage(product) {
+  const direct = product?.image || product?.productImage || product?.uploadedImage;
+  if (typeof direct === "string" && direct.trim()) return direct.trim();
+  if (typeof product?.featuredImage === "string" && product.featuredImage.trim()) {
+    return product.featuredImage.trim();
+  }
+  if (typeof product?.featuredImage?.url === "string" && product.featuredImage.url.trim()) {
+    return product.featuredImage.url.trim();
+  }
+  if (typeof product?.featured_image === "string" && product.featured_image.trim()) {
+    return product.featured_image.trim();
+  }
+  if (typeof product?.featured_image?.src === "string" && product.featured_image.src.trim()) {
+    return product.featured_image.src.trim();
+  }
+  if (Array.isArray(product?.images) && product.images[0]) {
+    const first = product.images[0];
+    if (typeof first === "string" && first.trim()) return first.trim();
+    if (typeof first?.src === "string" && first.src.trim()) return first.src.trim();
+    if (typeof first?.url === "string" && first.url.trim()) return first.url.trim();
+  }
+  return "";
+}
+
+function normalizePreviewProduct(product) {
+  if (!product) return null;
+  return {
+    ...product,
+    title: product.title || product.name || "Product",
+    image: resolveProductImage(product) || MOCK_PRODUCTS[0].image,
+  };
+}
 
 function normalizeHex(value, fallback) {
   const v = String(value || "").trim();
@@ -567,6 +636,45 @@ function resolveTemplate(value, map) {
     .replace(/\{(\w+)\}/g, (match, key) => map[key] ?? match);
 }
 
+function RatingStars({ rating = 4, color = "#FFCF0D", size = 18 }) {
+  const normalizedRating = Math.max(
+    0,
+    Math.min(5, Math.round(Number(rating) || 0))
+  );
+  const starSize = Math.max(8, Number(size) || 18);
+
+  return (
+    <span
+      aria-label={`${normalizedRating} out of 5 stars`}
+      role="img"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 2,
+        color,
+        fontSize: starSize,
+        lineHeight: 1,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {Array.from({ length: 5 }, (_, index) => (
+        <span
+          key={index}
+          style={{
+            color,
+            display: "inline-block",
+            fontSize: starSize,
+            lineHeight: 1,
+            opacity: index < normalizedRating ? 1 : 0.28,
+          }}
+        >
+          {"\u2605"}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function PreviewCard({
   bgColor,
   bgAlt,
@@ -595,14 +703,22 @@ function PreviewCard({
     template === "gradient"
       ? `linear-gradient(135deg, ${bgColor} 0%, ${bgAlt} 100%)`
       : bgColor;
-  const imageMode = imageAppearance || "cover";
-  const imageFit = imageMode === "contain" ? "contain" : "cover";
-  const avatarSize = 56;
+  const imageMode = String(imageAppearance || "cover").toLowerCase().trim();
+  const isContainMode =
+    imageMode === "contain" ||
+    imageMode.includes("contain") ||
+    imageMode.includes("fit");
+  const imageFit = "cover";
+  const reviewContentFontSize = Math.max(6, Number(textSizeContent) || 12);
+  const ratingFontSize = Math.max(8, Math.round(reviewContentFontSize * 1.5));
+  const portraitImageSize = 60;
+  const avatarSize = isContainMode ? portraitImageSize : 56;
   const avatarOffset = Math.round(avatarSize * 0.45);
   const pad = 16;
-  const imageOverflow = showProductImage && imageMode === "cover";
+  const imageOverflow = showProductImage && !isContainMode;
 
   const rawProductName = product?.title || "DREAMY BLUE BALL GOWN";
+  const imageSrc = resolveProductImage(product) || MOCK_PRODUCTS[0].image;
   const safeProductName = formatProductName(
     rawProductName,
     productNameMode,
@@ -626,17 +742,21 @@ function PreviewCard({
     timestampText || "{review_date}",
     tokenValues
   );
-  const contentNode = resolvedContent;
+  const contentNode = (
+    <span style={{ fontSize: textSizeContent, lineHeight: 1.35, color: textColor }}>
+      {resolvedContent}
+    </span>
+  );
 
   return (
     <div
       style={{
         background,
         color: textColor,
-        borderRadius: 18,
+        borderRadius: 10,
         boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
         border: "1px solid rgba(0,0,0,0.06)",
-        padding: pad,
+        padding: 0,
         paddingLeft: imageOverflow ? pad + avatarOffset : pad,
         display: "flex",
         gap: 14,
@@ -672,7 +792,7 @@ function PreviewCard({
           <div
             style={{
               position: "absolute",
-              left: "8px",
+              left: "0",
               top: "50%",
               transform: "translate(-50%, -50%)",
               width: avatarSize,
@@ -687,20 +807,23 @@ function PreviewCard({
               border: "2px solid rgba(255,255,255,0.75)",
             }}
           >
-            {product?.image ? (
+            {imageSrc ? (
               <img
-                src={product.image}
+                src={imageSrc}
                 alt={product.title}
                 style={{
                   width: "100%",
                   height: "100%",
-                  objectFit: "cover",
+                  objectFit: imageFit,
                 }}
                 loading="lazy"
                 decoding="async"
+                onError={(event) => {
+                  event.currentTarget.src = MOCK_PRODUCTS[0].image;
+                }}
               />
             ) : (
-              <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+              <span style={{ fontSize: 12, color: textColor }}>IMG</span>
             )}
           </div>
         ) : (
@@ -718,9 +841,9 @@ function PreviewCard({
               border: "1px solid rgba(15,23,42,0.08)",
             }}
           >
-            {product?.image ? (
+            {imageSrc ? (
               <img
-                src={product.image}
+                src={imageSrc}
                 alt={product.title}
                 style={{
                   width: "100%",
@@ -729,22 +852,26 @@ function PreviewCard({
                 }}
                 loading="lazy"
                 decoding="async"
+                onError={(event) => {
+                  event.currentTarget.src = MOCK_PRODUCTS[0].image;
+                }}
               />
             ) : (
-              <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+              <span style={{ fontSize: 12, color: textColor }}>IMG</span>
             )}
           </div>
         ))}
       <div style={{ display: "grid", gap: 6, minWidth: 0, flex: 1 }}>
         {showRating && (
-          <div style={{ color: starColor, fontSize: 20, letterSpacing: 1 }}>
-            {"★★★★★".slice(0, product?.rating || 4)}
-            <span style={{ color: "#d1d5db" }}>
-              {"☆☆☆☆☆".slice(0, 5 - (product?.rating || 4))}
-            </span>
+          <div>
+            <RatingStars
+              rating={product?.rating || 4}
+              color={starColor}
+              size={ratingFontSize}
+            />
           </div>
         )}
-        <div style={{ fontSize: textSizeContent, lineHeight: 1.35 }}>
+        <div style={{ fontSize: textSizeContent, lineHeight: 1.35, color: textColor }}>
           {contentNode}
         </div>
         {showPriceTag && (
@@ -790,6 +917,7 @@ function PreviewCard({
 }
 
 function StyledPreviewCard({
+  reviewType,
   bgColor,
   bgAlt,
   template,
@@ -813,18 +941,34 @@ function StyledPreviewCard({
   productNameMode,
   productNameLimit,
 }) {
+  const clampFontSize = (value, fallback) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.max(6, Math.min(72, n)) : fallback;
+  };
+  const contentFontSize = clampFontSize(textSizeContent, 12);
+  const compareFontSize = clampFontSize(textSizeCompare, 10);
+  const priceFontSize = clampFontSize(textSizePrice, 10);
+  const metaFontSize = Math.max(6, Math.round(contentFontSize * 0.9));
+  const ratingFontSize = Math.max(8, Math.round(contentFontSize * 1.5));
   const background =
     template === "gradient"
       ? `linear-gradient(135deg, ${bgColor} 0%, ${bgAlt} 100%)`
       : bgColor;
-  const imageMode = imageAppearance || "cover";
-  const imageFit = imageMode === "contain" ? "contain" : "cover";
-  const avatarSize = 56;
+  const imageMode = String(imageAppearance || "cover").toLowerCase().trim();
+  const isContainMode =
+    imageMode === "contain" ||
+    imageMode.includes("contain") ||
+    imageMode.includes("fit");
+  const imageFit = "cover";
+  const portraitImageSize = 60;
+  const avatarSize = isContainMode ? portraitImageSize : 56;
   const avatarOffset = Math.round(avatarSize * 0.45);
   const pad = 16;
-  const imageOverflow = showProductImage && imageMode === "cover";
+  const imageOverflow = showProductImage && !isContainMode;
+  const isReviewContent = reviewType === "review_content";
 
   const rawProductName = product?.title || "DREAMY BLUE BALL GOWN";
+  const imageSrc = resolveProductImage(product) || MOCK_PRODUCTS[0].image;
   const safeProductName = formatProductName(
     rawProductName,
     productNameMode,
@@ -833,7 +977,7 @@ function StyledPreviewCard({
   const tokenValues = {
     reviewer_name: "Jane B.",
     review_title: "Great product!",
-    review_body: "This product is amazing! I love it!!!",
+    review_body: "This product is amazing!",
     reviewer_country: "abroad",
     reviewer_city: "London",
     product_name: safeProductName,
@@ -849,23 +993,18 @@ function StyledPreviewCard({
     tokenValues
   );
 
-  const rating = Math.max(0, Math.min(5, Number(product?.rating || 4)));
-  const filledStars = "\u2605".repeat(rating);
-  const emptyStars = "\u2605".repeat(5 - rating);
-
   return (
     <div
       style={{
         background,
         color: textColor,
-        borderRadius: 18,
+        borderRadius: 10,
         boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
-        border: "1px solid rgba(0,0,0,0.06)",
-        padding: pad,
+        padding: "5px",
         paddingLeft: imageOverflow ? pad + avatarOffset : pad,
         display: "flex",
         gap: 14,
-        alignItems: "flex-start",
+        alignItems: "center",
         position: "relative",
         maxWidth: 460,
       }}
@@ -876,14 +1015,14 @@ function StyledPreviewCard({
           aria-label="Close"
           style={{
             position: "absolute",
-            top: -12,
-            right: -12,
+            top: 0 ,
+            right: 10,
             border: "none",
             background: "transparent",
             color: textColor,
             display: "grid",
             placeItems: "center",
-            fontSize: 20,
+            fontSize: Math.max(12, Math.round(contentFontSize * 1.1)),
             lineHeight: 1,
             padding: 0,
             cursor: "pointer",
@@ -912,20 +1051,23 @@ function StyledPreviewCard({
               border: "2px solid rgba(255,255,255,0.75)",
             }}
           >
-            {product?.image ? (
+            {imageSrc ? (
               <img
-                src={product.image}
+                src={imageSrc}
                 alt={product.title}
                 style={{
                   width: "100%",
                   height: "100%",
-                  objectFit: "cover",
+                  objectFit: imageFit,
                 }}
                 loading="lazy"
                 decoding="async"
+                onError={(event) => {
+                  event.currentTarget.src = MOCK_PRODUCTS[0].image;
+                }}
               />
             ) : (
-              <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+              <span style={{ fontSize: 12, color: textColor }}>IMG</span>
             )}
           </div>
         ) : (
@@ -943,9 +1085,9 @@ function StyledPreviewCard({
               border: "1px solid rgba(15,23,42,0.08)",
             }}
           >
-            {product?.image ? (
+            {imageSrc ? (
               <img
-                src={product.image}
+                src={imageSrc}
                 alt={product.title}
                 style={{
                   width: "100%",
@@ -954,37 +1096,48 @@ function StyledPreviewCard({
                 }}
                 loading="lazy"
                 decoding="async"
+                onError={(event) => {
+                  event.currentTarget.src = MOCK_PRODUCTS[0].image;
+                }}
               />
             ) : (
-              <span style={{ fontSize: 12, color: "#6b7280" }}>IMG</span>
+              <span style={{ fontSize: 12, color: textColor }}>IMG</span>
             )}
           </div>
         ))}
       <div style={{ display: "grid", gap: 6, minWidth: 0, flex: 1 }}>
         {showRating && (
-          <div style={{ color: starColor, fontSize: 20, letterSpacing: 1 }}>
-            {filledStars}
-            <span style={{ color: "#d1d5db" }}>{emptyStars}</span>
+          <div>
+            <RatingStars
+              rating={product?.rating || 4}
+              color={starColor}
+              size={ratingFontSize}
+            />
           </div>
         )}
-        <div
-          style={{
-            fontWeight: 800,
-            fontSize: 16,
-            lineHeight: 1.05,
-            letterSpacing: 0.1,
-            textTransform: "uppercase",
-          }}
-        >
-          {safeProductName}
-        </div>
+        {isReviewContent && (
+          <div
+            style={{
+              fontWeight: 800,
+              fontSize: contentFontSize,
+              lineHeight: 1.05,
+              letterSpacing: 0.1,
+              textTransform: "uppercase",
+              color: textColor,
+            }}
+          >
+            <span style={{ fontSize: contentFontSize, lineHeight: 1.05, color: textColor }}>
+              {safeProductName}
+            </span>
+          </div>
+        )}
         {showPriceTag && (
           <InlineStack gap="200" blockAlign="center">
             <span
               style={{
                 background: priceTagBg,
                 color: priceColor,
-                fontSize: textSizePrice,
+                fontSize: priceFontSize,
                 padding: "2px 8px",
                 borderRadius: 6,
                 fontWeight: 600,
@@ -995,7 +1148,7 @@ function StyledPreviewCard({
             <span
               style={{
                 color: priceTagAlt,
-                fontSize: textSizeCompare,
+                fontSize: compareFontSize,
                 textDecoration: "line-through",
               }}
             >
@@ -1005,12 +1158,15 @@ function StyledPreviewCard({
         )}
         <div
           style={{
-            fontSize: textSizeContent,
+            fontSize: contentFontSize,
             lineHeight: 1.35,
-            fontStyle: "italic",
+            fontStyle: isReviewContent ? "italic" : "normal",
+            color: textColor,
           }}
         >
-          {resolvedContent}
+          <span style={{ fontSize: contentFontSize, lineHeight: 1.35, color: textColor }}>
+            {resolvedContent}
+          </span>
         </div>
         <div
           style={{
@@ -1018,11 +1174,13 @@ function StyledPreviewCard({
             alignItems: "center",
             justifyContent: "space-between",
             gap: 12,
-            fontSize: 12,
+            fontSize: metaFontSize,
             color: timestampColor,
           }}
         >
-          <span>{resolvedTimestamp}</span>
+          <span style={{ fontSize: metaFontSize, lineHeight: 1.2 }}>
+            {resolvedTimestamp}
+          </span>
         </div>
       </div>
     </div>
@@ -1033,8 +1191,16 @@ export default function ReviewNotificationPage() {
   const { saved, judgeMeConnected } = useLoaderData();
   const navigate = useNavigate();
   const location = useLocation();
-  const notificationUrl = `/app/notification${location.search || ""}`;
-  const notificationManageUrl = `/app/notification/manage${location.search || ""}`;
+  const navigationSearch = (() => {
+    const sp = new URLSearchParams(location.search);
+    sp.delete("editId");
+    sp.delete("id");
+    sp.delete("mode");
+    const qs = sp.toString();
+    return qs ? `?${qs}` : "";
+  })();
+  const notificationUrl = `/app/notification${navigationSearch}`;
+  const notificationManageUrl = `/app/notification/manage${navigationSearch}`;
   const fetcher = useFetcher();
   const collectionFetcher = useFetcher();
   const [activeSection, setActiveSection] = useState("layout");
@@ -1046,7 +1212,6 @@ export default function ReviewNotificationPage() {
   const [collectionSearch, setCollectionSearch] = useState("");
   const [page, setPage] = useState(1);
   const [collectionPage, setCollectionPage] = useState(1);
-  const [hasLoadedProducts, setHasLoadedProducts] = useState(false);
 
   const [design, setDesign] = useState({
     reviewType: "new_review",
@@ -1063,9 +1228,9 @@ export default function ReviewNotificationPage() {
   });
 
   const [textSize, setTextSize] = useState({
-    content: "14",
-    compareAt: "12",
-    price: "12",
+    content: "12",
+    compareAt: "10",
+    price: "10",
   });
 
   const [content, setContent] = useState({
@@ -1102,7 +1267,7 @@ export default function ReviewNotificationPage() {
     delay: "1",
     duration: "10",
     interval: "1",
-    intervalUnit: "mins",
+    intervalUnit: "minutes",
     randomize: false,
   });
 
@@ -1126,7 +1291,11 @@ export default function ReviewNotificationPage() {
       setProductNameLimit(String(saved.productNameLimit));
     }
 
-    setSelectedProducts(Array.isArray(saved.selectedProducts) ? saved.selectedProducts : []);
+    setSelectedProducts(
+      Array.isArray(saved.selectedProducts)
+        ? saved.selectedProducts.map(normalizePreviewProduct).filter(Boolean)
+        : []
+    );
     setSelectedCollections(
       Array.isArray(saved.selectedCollections) ? saved.selectedCollections : []
     );
@@ -1136,14 +1305,6 @@ export default function ReviewNotificationPage() {
         : null
     );
   }, [saved]);
-
-  useEffect(() => {
-    if (hasLoadedProducts) return;
-    const params = new URLSearchParams();
-    params.set("page", "1");
-    fetcher.load(`/app/products-picker?${params.toString()}`);
-    setHasLoadedProducts(true);
-  }, [hasLoadedProducts, fetcher]);
 
   useEffect(() => {
     if (!pickerOpen) return;
@@ -1164,16 +1325,19 @@ export default function ReviewNotificationPage() {
   const storeProducts = useMemo(() => {
     const items = fetcher.data?.items || [];
     if (!Array.isArray(items)) return [];
-    return items.map((item) => ({
-      id: item.id,
-      title: item.title,
-      handle: item.handle || null,
-      image: item.featuredImage || null,
-      status: item.status,
-      price: item.price || null,
-      compareAt: item.compareAt || null,
-      rating: 4,
-    }));
+    return items.map((item) =>
+      normalizePreviewProduct({
+        id: item.id,
+        title: item.title,
+        handle: item.handle || null,
+        image: item.image || item.featuredImage || null,
+        featuredImage: item.featuredImage,
+        status: item.status,
+        price: item.price || null,
+        compareAt: item.compareAt || null,
+        rating: 4,
+      })
+    );
   }, [fetcher.data]);
 
   const storeCollections = useMemo(() => {
@@ -1204,12 +1368,12 @@ export default function ReviewNotificationPage() {
     visibility.productScope === "specific" ? selectedProducts[0] : null;
   const scopedCollectionProduct =
     visibility.collectionScope === "specific"
-      ? selectedCollections[0]?.sampleProduct
+      ? normalizePreviewProduct(selectedCollections[0]?.sampleProduct)
       : null;
   const previewProduct =
-    scopedProduct ||
+    normalizePreviewProduct(scopedProduct) ||
     scopedCollectionProduct ||
-    fallbackPreviewProduct ||
+    normalizePreviewProduct(fallbackPreviewProduct) ||
     null;
   const previewMessage = needsProductSelection
     ? "Select a product to preview."
@@ -1220,10 +1384,12 @@ export default function ReviewNotificationPage() {
         : null;
 
   const togglePick = (item) => {
+    const normalizedItem = normalizePreviewProduct(item);
+    if (!normalizedItem) return;
     setSelectedProducts((prev) => {
-      const exists = prev.some((p) => p.id === item.id);
-      if (exists) return prev.filter((p) => p.id !== item.id);
-      return [...prev, item];
+      const exists = prev.some((p) => p.id === normalizedItem.id);
+      if (exists) return prev.filter((p) => p.id !== normalizedItem.id);
+      return [...prev, normalizedItem];
     });
   };
 
@@ -1392,7 +1558,7 @@ export default function ReviewNotificationPage() {
   };
 
   const items = allProducts;
-  const ActivePreviewCard = StyledPreviewCard || PreviewCard;
+  const ActivePreviewCard = StyledPreviewCard;
 
   return (
     <Frame>
@@ -1404,8 +1570,9 @@ export default function ReviewNotificationPage() {
         }}
         primaryAction={{ content: "Save", onAction: save, loading: saving }}
       >
+        <NotificationPageStyles />
         <style>{REVIEW_STYLES}</style>
-        <div className="review-shell">
+        <div className="review-shell notification-page">
           <div className="review-sidebar">
             {NAV_ITEMS.map(({ id, label, Icon }) => (
               <button
@@ -1996,6 +2163,9 @@ export default function ReviewNotificationPage() {
                             </Text>
                             <TextField
                               label="Delay before first notification"
+                              type="number"
+                              min={0}
+                              step={1}
                               value={behavior.delay}
                               onChange={(v) =>
                                 setBehavior((b) => ({ ...b, delay: v }))
@@ -2005,6 +2175,9 @@ export default function ReviewNotificationPage() {
                             />
                             <TextField
                               label="Display duration"
+                              type="number"
+                              min={1}
+                              step={1}
                               value={behavior.duration}
                               onChange={(v) =>
                                 setBehavior((b) => ({ ...b, duration: v }))
@@ -2016,6 +2189,9 @@ export default function ReviewNotificationPage() {
                               <Box width="50%">
                                 <TextField
                                   label="Interval time"
+                                  type="number"
+                                  min={0}
+                                  step={1}
                                   value={behavior.interval}
                                   onChange={(v) =>
                                     setBehavior((b) => ({ ...b, interval: v }))
@@ -2025,8 +2201,7 @@ export default function ReviewNotificationPage() {
                               </Box>
                               <Box width="50%">
                                 <Select
-                                  label=" "
-                                  labelHidden
+                                  label="Unit"
                                   options={TIME_UNITS}
                                   value={behavior.intervalUnit}
                                   onChange={(v) =>
@@ -2055,62 +2230,58 @@ export default function ReviewNotificationPage() {
                   )}
                 </BlockStack>
               </div>
-              <div className="review-preview">
-                <Card>
-                  <Box padding="4">
-                    <BlockStack gap="300">
-                      <Text as="h3" variant="headingMd">
-                        Preview
-                      </Text>
-                      <div className="review-preview-box">
-                        {previewMessage ? (
-                          <div style={{ textAlign: "center" }}>
-                            <Text as="p" tone="subdued">
-                              {previewMessage}
-                            </Text>
-                          </div>
-                        ) : (
-                          <ActivePreviewCard
-                            bgColor={normalizeHex(design.bgColor, "#FFFFFF")}
-                            bgAlt={normalizeHex(design.bgAlt, "#F3F4F6")}
-                            template={design.template}
-                            imageAppearance={design.imageAppearance}
-                            textColor={normalizeHex(design.textColor, "#000000")}
-                            timestampColor={normalizeHex(
-                              design.timestampColor,
-                              "#696969"
-                            )}
-                            priceTagBg={normalizeHex(
-                              design.priceTagBg,
-                              "#593E3F"
-                            )}
-                            priceTagAlt={normalizeHex(
-                              design.priceTagAlt,
-                              "#E66465"
-                            )}
-                            priceColor={normalizeHex(
-                              design.priceColor,
-                              "#FFFFFF"
-                            )}
-                            starColor={normalizeHex(design.starColor, "#FFCF0D")}
-                            textSizeContent={Number(textSize.content) || 14}
-                            textSizeCompare={Number(textSize.compareAt) || 12}
-                            textSizePrice={Number(textSize.price) || 12}
-                            contentText={content.message}
-                            timestampText={content.timestamp}
-                            showProductImage={data.showProductImage}
-                            showPriceTag={data.showPriceTag}
-                            showRating={data.showRating}
-                            showClose={behavior.showClose}
-                            product={previewProduct}
-                            productNameMode={productNameMode}
-                            productNameLimit={productNameLimit}
-                          />
-                        )}
-                      </div>
-                    </BlockStack>
-                  </Box>
-                </Card>
+              <div
+                className={[
+                  "review-preview",
+                  "is-popup-type-review",
+                  `is-review-type-${design.reviewType || "new_review"}`,
+                  design.imageAppearance === "contain" ? "is-fit-image" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                <PopupPreviewPanel
+                  title="Preview"
+                  emptyMessage={previewMessage}
+                >
+                  <ActivePreviewCard
+                    reviewType={design.reviewType}
+                    bgColor={normalizeHex(design.bgColor, "#FFFFFF")}
+                    bgAlt={normalizeHex(design.bgAlt, "#F3F4F6")}
+                    template={design.template}
+                    imageAppearance={design.imageAppearance}
+                    textColor={normalizeHex(design.textColor, "#000000")}
+                    timestampColor={normalizeHex(
+                      design.timestampColor,
+                      "#696969"
+                    )}
+                    priceTagBg={normalizeHex(
+                      design.priceTagBg,
+                      "#593E3F"
+                    )}
+                    priceTagAlt={normalizeHex(
+                      design.priceTagAlt,
+                      "#E66465"
+                    )}
+                    priceColor={normalizeHex(
+                      design.priceColor,
+                      "#FFFFFF"
+                    )}
+                    starColor={normalizeHex(design.starColor, "#FFCF0D")}
+                    textSizeContent={Number(textSize.content) || 12}
+                    textSizeCompare={Number(textSize.compareAt) || 10}
+                    textSizePrice={Number(textSize.price) || 10}
+                    contentText={content.message}
+                    timestampText={content.timestamp}
+                    showProductImage={data.showProductImage}
+                    showPriceTag={data.showPriceTag}
+                    showRating={data.showRating}
+                    showClose={behavior.showClose}
+                    product={previewProduct}
+                    productNameMode={productNameMode}
+                    productNameLimit={productNameLimit}
+                  />
+                </PopupPreviewPanel>
               </div>
             </div>
             <div className="review-help">
@@ -2198,25 +2369,6 @@ export default function ReviewNotificationPage() {
               })}
             </IndexTable>
 
-            <InlineStack gap="200" align="space-between" blockAlign="center">
-              <Text tone="subdued">
-                {selectedProducts.length} products selected
-              </Text>
-              <InlineStack gap="200">
-                <Button
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  Previous
-                </Button>
-                <Button
-                  disabled={!hasNextPage}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Next
-                </Button>
-              </InlineStack>
-            </InlineStack>
           </BlockStack>
         </Modal.Section>
       </Modal>

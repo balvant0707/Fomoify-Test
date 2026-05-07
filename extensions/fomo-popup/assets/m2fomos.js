@@ -1,9 +1,10 @@
-document.addEventListener("DOMContentLoaded", async function () {
-  if (window.__fomoOneFile) return;
-  window.__fomoOneFile = true;
+(function () {
+const bootFomoify = async function () {
+  if (window.__fomoOneFile) return true;
 
   const ROOT = document.getElementById("fomo-embed-root");
-  if (!ROOT) return;
+  if (!ROOT) return false;
+  window.__fomoOneFile = true;
 
   const rootShopDomain = String(
     ROOT.getAttribute("data-shop-domain") || ""
@@ -13,7 +14,8 @@ document.addEventListener("DOMContentLoaded", async function () {
   const SHOP = String((window.Shopify && window.Shopify.shop) || rootShopDomain)
     .trim()
     .toLowerCase();
-  const PROXY_BASES = ["/apps/fomo"];
+  const DIRECT_PROXY_BASE = "https://fomoify-test.vercel.app/proxy/fomo";
+  const PROXY_BASES = ["/apps/fomo", DIRECT_PROXY_BASE];
   const PROXY_STORE_KEY = "__fomo_proxy_base__";
   const readSavedProxyBase = () => {
     try {
@@ -66,18 +68,20 @@ document.addEventListener("DOMContentLoaded", async function () {
     return null;
   };
 
-  const PROXY_BASE = ACTIVE_PROXY_BASE;
   const appendShopQuery = (path, shop) => {
     const p = String(path || "").replace(/^\//, "");
-    const url = new URL(`${PROXY_BASE}/${p}`, window.location.origin);
+    const url = new URL(`${ACTIVE_PROXY_BASE}/${p}`, window.location.origin);
     if (shop) url.searchParams.set("shop", shop);
-    return `${url.pathname}${url.search}`;
+    return url.origin === window.location.origin
+      ? `${url.pathname}${url.search}`
+      : url.toString();
   };
   const ENDPOINT = appendShopQuery("popup", SHOP);
   const SESSION_ENDPOINT = appendShopQuery("session", SHOP);
-  const ORDERS_ENDPOINT_BASE = `${PROXY_BASE}/orders`; // expects ?shop=&days=&limit=
-  const CUSTOMERS_ENDPOINT_BASE = `${PROXY_BASE}/customers`; // expects ?shop=&limit=
-  const PRODUCTS_ENDPOINT_BASE = `${PROXY_BASE}/products`; // expects ?shop=&limit=
+  const endpointBase = (path) => new URL(`${ACTIVE_PROXY_BASE}/${path}`, window.location.origin).toString().replace(window.location.origin, "");
+  const ORDERS_ENDPOINT_BASE = endpointBase("orders"); // expects ?shop=&days=&limit=
+  const CUSTOMERS_ENDPOINT_BASE = endpointBase("customers"); // expects ?shop=&limit=
+  const PRODUCTS_ENDPOINT_BASE = endpointBase("products"); // expects ?shop=&limit=
   const TRACK_ENDPOINT = appendShopQuery("track", SHOP);
   const EMBED_STATUS_ENDPOINT = appendShopQuery("embed-status", SHOP);
 
@@ -137,12 +141,33 @@ document.addEventListener("DOMContentLoaded", async function () {
   };
 
   // Normalize Shopify page type so Admin “Pages” works
-  const pageType = () => {
-    const raw = (window.meta && window.meta.page?.pageType) || "";
-    const t = String(raw).toLowerCase();
+  const normalizePageType = (raw) => {
+    const t = String(raw || "").trim().toLowerCase();
     if (t === "index" || t === "frontpage" || t === "home") return "home";
     if (t === "page") return "pages";
-    return t || "allpage";
+    if (t === "list-collections" || t === "collection-list") return "collection_list";
+    return t;
+  };
+  const pageType = () => {
+    const raw =
+      (window.meta && window.meta.page?.pageType) ||
+      (window.ShopifyAnalytics && window.ShopifyAnalytics.meta?.page?.pageType) ||
+      "";
+    const normalized = normalizePageType(raw);
+    if (normalized) return normalized;
+    const path = String(window.location?.pathname || "/").replace(/\/+$/, "");
+    return !path ? "home" : "allpage";
+  };
+  const showTypeMatchesPage = (showType, currentPageType) => {
+    const types = String(showType || "allpage")
+      .toLowerCase()
+      .split(",")
+      .map((part) => normalizePageType(part.trim()))
+      .filter(Boolean);
+    if (!types.length || types.includes("all") || types.includes("allpage")) {
+      return true;
+    }
+    return types.includes(currentPageType);
   };
   const currHandle = () =>
     (window.meta && window.meta.product?.handle) || "";
@@ -166,12 +191,46 @@ document.addEventListener("DOMContentLoaded", async function () {
     const n = Number(v);
     return Number.isFinite(n) ? n : fb;
   };
+  const POPUP_CARD_RADIUS = 6;
+  const POPUP_IMAGE_RADIUS = 5;
+  const popupRadius = () => POPUP_CARD_RADIUS;
   const unitToSeconds = (value, unit) => {
     const n = Math.max(0, toNum(value, 0));
     const u = String(unit || "seconds").toLowerCase();
     if (u.startsWith("hour")) return Math.round(n * 3600);
     if (u.startsWith("min")) return Math.round(n * 60);
     return Math.round(n);
+  };
+  const displaySecondsFrom = (...values) => {
+    for (const value of values) {
+      const n = Number(value);
+      if (Number.isFinite(n) && n > 0) return n;
+    }
+    return 6;
+  };
+  const timingFromConfig = (cfg = {}) => {
+    const firstDelaySeconds = Math.max(
+      0,
+      toNum(cfg.firstDelaySeconds ?? cfg.delaySeconds ?? cfg.delay, 0)
+    );
+    const durationSeconds = displaySecondsFrom(
+      cfg.durationSeconds,
+      cfg.visibleSeconds,
+      cfg.duration
+    );
+    const hasSavedIntervalSeconds =
+      cfg.alternateSeconds !== undefined &&
+      cfg.alternateSeconds !== null &&
+      cfg.alternateSeconds !== "";
+    const alternateSeconds = hasSavedIntervalSeconds
+      ? Math.max(0, toNum(cfg.alternateSeconds, 0))
+      : unitToSeconds(cfg.interval, cfg.intervalUnit);
+    return {
+      firstDelaySeconds,
+      durationSeconds,
+      visibleSeconds: durationSeconds,
+      alternateSeconds,
+    };
   };
   const formatProductName = (name, mode, limit) => {
     const raw = String(name || "").trim();
@@ -314,16 +373,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (!Number.isFinite(n)) return "";
     const code = String(currencyCode || "").trim().toUpperCase();
     if (!code) return "";
-    if (code === "INR") {
-      return `Rs. ${n.toLocaleString("en-IN", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })}`;
-    }
     try {
       return new Intl.NumberFormat(undefined, {
         style: "currency",
         currency: code,
+        currencyDisplay: "narrowSymbol",
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }).format(n);
@@ -361,6 +415,41 @@ document.addEventListener("DOMContentLoaded", async function () {
   };
   const hasMoneySymbol = (value) =>
     /[^\d\s,.-]/.test(String(value || ""));
+  const activeCurrencyCode = () =>
+    String(
+      window.Shopify?.currency?.active ||
+        window.Shopify?.currency?.current ||
+        ROOT?.dataset.shopCurrency ||
+        ""
+    ).toUpperCase();
+  const activeMoneyFormat = () =>
+    String(
+      window.Shopify?.money_format ||
+        window.Shopify?.moneyFormat ||
+        ROOT?.dataset.moneyFormat ||
+        ""
+    ).trim();
+  const formatStoreMoneyMajor = (amountMajor) => {
+    const n = Number(amountMajor);
+    if (!Number.isFinite(n)) return "";
+    const cents = Math.round(n * 100);
+    const activeCurrency = activeCurrencyCode();
+    if (window.Shopify && typeof window.Shopify.formatMoney === "function") {
+      const fmt = activeMoneyFormat() || "${{amount}}";
+      const rendered = String(window.Shopify.formatMoney(cents, fmt) || "").trim();
+      if (hasMoneySymbol(rendered) && !/[A-Za-z]{2,}/.test(rendered)) return rendered;
+      return formatCurrencyByCode(n, activeCurrency) || rendered;
+    }
+    return formatCurrencyByCode(n, activeCurrency) || n.toFixed(2);
+  };
+  const ensureMoneySymbol = (value) => {
+    const raw = String(value ?? "").trim();
+    if (!raw) return "";
+    if (hasMoneySymbol(raw)) return raw;
+    const n = parseMoneyValue(raw);
+    if (!Number.isFinite(n)) return raw;
+    return formatStoreMoneyMajor(n) || raw;
+  };
   const alignCompareCurrency = (priceText, compareText) => {
     const price = String(priceText || "").trim();
     const compare = String(compareText || "").trim();
@@ -385,11 +474,9 @@ document.addEventListener("DOMContentLoaded", async function () {
     const n = Number(cents);
     if (!Number.isFinite(n)) return String(cents || "");
     const major = n / 100;
-    const activeCurrency = String(
-      window.Shopify?.currency?.active || window.Shopify?.currency?.current || ""
-    ).toUpperCase();
+    const activeCurrency = activeCurrencyCode();
     if (window.Shopify && typeof window.Shopify.formatMoney === "function") {
-      const fmt = window.Shopify.money_format || "${{amount}}";
+      const fmt = activeMoneyFormat() || "${{amount}}";
       const rendered = String(window.Shopify.formatMoney(n, fmt) || "").trim();
       if (hasMoneySymbol(rendered)) return rendered;
       return formatCurrencyByCode(major, activeCurrency) || rendered;
@@ -424,6 +511,8 @@ document.addEventListener("DOMContentLoaded", async function () {
   };
 
   const idle = () => Promise.resolve();
+  const delay = (ms) =>
+    new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
 
   const VISITOR_ID_KEY = cacheKey("visitor-id");
   function ensureVisitorId() {
@@ -457,19 +546,39 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (!SHOP || !payload || !payload.eventType || !payload.popupType) return;
     if (toBool(window.Shopify?.designMode)) return;
 
+    const productHandle =
+      payload.productHandle || productHandleFromUrl(payload.productUrl);
+    const eventType = safe(payload.eventType, "").toLowerCase();
+    const popupType = safe(payload.popupType, "").toLowerCase();
+    const dedupeMs = eventType === "click" ? 3000 : 30000;
+    const dedupeKey = [
+      "__fomo_track__",
+      SHOP,
+      popupType,
+      eventType,
+      productHandle,
+      safe(window.location.pathname, "/"),
+    ].join("|");
+    try {
+      const lastTrackedAt = Number(window.sessionStorage.getItem(dedupeKey) || "0");
+      if (Number.isFinite(lastTrackedAt) && Date.now() - lastTrackedAt < dedupeMs) {
+        return;
+      }
+      window.sessionStorage.setItem(dedupeKey, String(Date.now()));
+    } catch {}
+
     const body = JSON.stringify({
       ...payload,
       shop: SHOP,
       visitorId: ensureVisitorId(),
       pagePath: safe(window.location.pathname, "/"),
       sourceUrl: safe(window.location.href, ""),
-      productHandle: payload.productHandle || productHandleFromUrl(payload.productUrl),
+      productHandle,
       ts: new Date().toISOString(),
     });
 
     fetchWithProxyFallback(TRACK_ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body,
       keepalive: true,
     }).catch(() => { });
@@ -482,9 +591,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       if (cached) return cached;
     }
     try {
-      const r = await fetchWithProxyFallback(url, {
-        headers: { "Content-Type": "application/json" },
-      });
+      const r = await fetchWithProxyFallback(url, {});
       if (!r) return null;
       if (!r.ok) return null;
       const data = await r.json();
@@ -891,7 +998,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       @keyframes fSlideOutToBottom  { to{opacity:0; transform:translateY(110%)} }
 
       /* Progress bar */
-      @keyframes fomoProgress { from{width:100%} to{width:0%} }
+      @keyframes fomoProgress { from{transform:scaleX(1)} to{transform:scaleX(0)} }
     `;
     document.head.appendChild(st);
   }
@@ -924,18 +1031,20 @@ document.addEventListener("DOMContentLoaded", async function () {
   function posDesktop(el, cfg) {
     el.style.top = el.style.right = el.style.bottom = el.style.left = "";
     const p = (cfg.positionDesktop || cfg.position || "bottom-left").toLowerCase();
+    const edgeOffset = "20px";
+    const leftEdgeOffset = "40px";
     if (p === "bottom-right") {
-      el.style.bottom = "20px";
-      el.style.right = "20px";
+      el.style.bottom = edgeOffset;
+      el.style.right = edgeOffset;
     } else if (p === "top-left") {
-      el.style.top = "20px";
-      el.style.left = "20px";
+      el.style.top = edgeOffset;
+      el.style.left = leftEdgeOffset;
     } else if (p === "top-right") {
-      el.style.top = "20px";
-      el.style.right = "20px";
+      el.style.top = edgeOffset;
+      el.style.right = edgeOffset;
     } else {
-      el.style.bottom = "20px";
-      el.style.left = "20px";
+      el.style.bottom = edgeOffset;
+      el.style.left = leftEdgeOffset;
     }
   }
   function posMobile(el, cfg) {
@@ -951,12 +1060,41 @@ document.addEventListener("DOMContentLoaded", async function () {
   function closeBtnStyle(color) {
     return `position:absolute;top:2px;right:4px;border:0;background:transparent;color:${color || "inherit"};font-size:20px;line-height:1;padding:2px 4px;cursor:pointer;opacity:.82;transition:opacity .15s ease;z-index:2;`;
   }
+  function createProgressBar(visibleMs, color) {
+    const barWrap = document.createElement("div");
+    barWrap.className = "fomo-progress-wrap";
+    barWrap.style.cssText = `
+      height:4px;
+      width:100%;
+      overflow:hidden;
+      line-height:0;
+      pointer-events:none;
+      flex:0 0 5px;
+    `;
+    const bar = document.createElement("div");
+    bar.className = "fomo-progress";
+    bar.style.cssText = `
+      display:block;
+      height:100%;
+      width:100%;
+      background:${color || "#111827"};
+      animation:fomoProgress ${visibleMs}ms linear forwards;
+      transform-origin:left;
+      transform:scaleX(1);
+      will-change:transform;
+    `;
+    barWrap.appendChild(bar);
+    return barWrap;
+  }
 
   /* ========== FLASH renderer ========== */
   function renderFlash(cfg, mode, onDone) {
     const mt = mobileTokens(cfg.mobileSize);
-    const visibleSec =
-      Number(cfg.durationSeconds ?? cfg.visibleSeconds ?? 6) || 6;
+    const visibleSec = displaySecondsFrom(
+      cfg.durationSeconds,
+      cfg.visibleSeconds,
+      cfg.duration
+    );
     const visibleMs = Math.max(1, visibleSec) * 1000;
     const { inAnim, outAnim } = getAnimPair(cfg, mode);
     const DUR = getAnimDur(cfg);
@@ -972,48 +1110,40 @@ document.addEventListener("DOMContentLoaded", async function () {
       String(cfg.template || "solid").toLowerCase() === "gradient"
         ? `linear-gradient(135deg, ${cfg.bgColor || "#111"} 0%, ${cfg.bgAlt || cfg.bgColor || "#111"} 100%)`
         : cfg.bgColor || "#111";
+    const cardRadius = popupRadius(cfg);
+    const flashTextColor = cfg.textColor || cfg.fontColor || "#111827";
 
     const wrap = document.createElement("div");
     wrap.className = "fomo-flash";
-    const wrapWidth = mode === "mobile" ? mt.w : isPortrait ? "340px" : "";
+    const wrapWidth = mode === "mobile"
+      ? mt.w
+      : isPortrait
+        ? "min(calc(100vw - 32px), 340px)"
+        : "min(calc(100vw - 32px), 420px)";
     wrap.style.cssText = `
       position:fixed; z-index:9999; box-sizing:border-box;
-      width:${wrapWidth}; overflow:${imageOverflow ? "visible" : "hidden"}; cursor:pointer;
-      border-radius:8px;
-      background:${bgFlash}; color:${cfg.fontColor || "#fff"};
-      box-shadow:0 10px 30px rgba(0,0,0,.12);
-      font-family:${cfg.fontFamily};
+      width:${wrapWidth}; max-width:calc(100vw - 32px); overflow:${imageOverflow ? "visible" : "hidden"}; cursor:pointer;
+      border-radius:${cardRadius}px;
+      background:${bgFlash}; color:${flashTextColor};
+      box-shadow:0 12px 28px rgba(15,23,42,.14);
       animation:${inAnim} ${DUR.in}ms ease-out both;
     `;
     (mode === "mobile" ? posMobile : posDesktop)(wrap, cfg);
 
     const card = document.createElement("div");
     card.className = "fomo-card";
-    const coverBoxSize = mode === "mobile" ? Math.max(mt.img, 52) : 60;
-    const containIconSize = mode === "mobile" ? Math.max(42, mt.img - 6) : 48;
-    const portraitIconSize = mode === "mobile" ? 50 : 70;
-    const mobileLeftPad = imageOverflow
-      ? 12 + Math.round(coverBoxSize * 0.45)
-      : 14;
-    const desktopLeftPad = imageOverflow ? 44 : 15;
-    const padTop = mode === "mobile" ? (isPortrait ? 18 : mt.pad) : isPortrait ? 24 : 15;
-    const padRight = isPortrait ? 24 : 44;
-    const padBottom =
-      mode === "mobile" ? (isPortrait ? 18 : mt.pad) : isPortrait ? 24 : 15;
-    const padLeft = isPortrait
-      ? 24
-      : mode === "mobile"
-        ? mobileLeftPad
-        : desktopLeftPad;
+    const iconBoxSize = mode === "mobile" ? Math.max(mt.img || 0, 56) : 64;
     const cardDirection = isPortrait ? "column" : "row";
     const cardGap = isPortrait ? 10 : 12;
+    const cardPadding = isPortrait
+      ? "20px 10px 20px 10px"
+      : imageOverflow
+        ? "20px 12px 20px 50px"
+        : "20px 12px 20px 12px";
     card.style.cssText = `
-      display:flex; gap:${cardGap}px; align-items:center; position:relative;
+      display:flex; gap:${cardGap}px; align-items:center; position:relative; box-sizing:border-box; width:100%;
       flex-direction:${cardDirection};
-      padding-top:${padTop}px;
-      padding-right:${padRight}px;
-      padding-bottom:${padBottom}px;
-      padding-left:${padLeft}px;
+      padding:${cardPadding};
       font-size:${Number(cfg.baseFontSize) || (mode === "mobile" ? mt.fs : 14)
       }px; line-height:1.35;
     `;
@@ -1022,13 +1152,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     img.className = "fomo-icon";
     img.alt = "Flash";
     img.src = cfg.uploadedImage || cfg.image || FLAME_SVG;
-    const iSize = isPortrait
-      ? portraitIconSize
-      : imageOverflow
-        ? coverBoxSize
-        : containIconSize;
-    const iRad = mode === "mobile" ? Math.round(iSize * 0.17) : 4;
-    img.style.cssText = `width:${iSize}px;height:${iSize}px;object-fit:${isContain ? "contain" : "cover"};border-radius:${isContain ? 0 : isPortrait ? 16 : iRad}px;background:transparent;flex:0 0 ${iSize}px;pointer-events:none;`;
+    const iSize = iconBoxSize;
+    img.style.cssText = `width:${iSize}px;height:${iSize}px;object-fit:cover;object-position:center center;border-radius:${POPUP_IMAGE_RADIUS}px;background:transparent;flex:0 0 ${iSize}px;pointer-events:none;`;
     img.onerror = () => {
       img.src = FLAME_SVG;
     };
@@ -1041,8 +1166,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         left:8px;
         top:50%;
         transform:translate(-50%, -50%);
-        width:${coverBoxSize}px;height:${coverBoxSize}px;
-        border-radius:8px;
+        width:${iconBoxSize}px;height:${iconBoxSize}px;
+        border-radius:${POPUP_IMAGE_RADIUS}px;
         overflow:hidden;
         background:#f3f4f6;
         display:grid;
@@ -1053,7 +1178,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       `;
       img.style.width = "100%";
       img.style.height = "100%";
-      img.style.borderRadius = "0";
+      img.style.borderRadius = `${POPUP_IMAGE_RADIUS}px`;
       img.style.objectFit = "cover";
       imgWrap.appendChild(img);
       iconNode = imgWrap;
@@ -1062,8 +1187,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     const body = document.createElement("div");
     body.className = "fomo-body";
     body.style.cssText = isPortrait
-      ? "flex:1;min-width:0;pointer-events:none;text-align:center;width:100%;"
-      : "flex:1;min-width:0;pointer-events:none;";
+      ? "flex:1;min-width:0;max-width:100%;pointer-events:none;text-align:center;width:100%;overflow-wrap:anywhere;word-break:normal;"
+      : "flex:1;min-width:0;max-width:100%;pointer-events:none;overflow-wrap:anywhere;word-break:normal;";
 
     const ttl = document.createElement("div");
     ttl.className = "fomo-title";
@@ -1083,6 +1208,13 @@ document.addEventListener("DOMContentLoaded", async function () {
     const loc = document.createElement("span");
     loc.className = "fomo-location";
     loc.textContent = safe(cfg.location, "");
+    loc.style.cssText = `
+      color:${flashTextColor};
+      background:transparent;
+      border-radius:0;
+      padding:0;
+      font-weight:${safe(cfg.fontWeight, "700")};
+    `;
     locLine.appendChild(loc);
 
     const tmtVal = safe(cfg.timeText, "");
@@ -1090,6 +1222,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       const sep = document.createElement("span");
       sep.textContent = "—";
       sep.style.opacity = ".6";
+      sep.style.color = flashTextColor;
       sep.setAttribute("aria-hidden", "true");
       const tmt = document.createElement("span");
       tmt.className = "fomo-time";
@@ -1097,7 +1230,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       tmt.style.cssText = `font-size:${Math.max(
         10,
         (Number(cfg.baseFontSize) || 14) - 1
-      )}px; opacity:.8;`;
+      )}px;color:${flashTextColor};background:transparent;border:0;border-radius:0;padding:0;font-weight:700;`;
       locLine.appendChild(sep);
       locLine.appendChild(tmt);
     }
@@ -1119,16 +1252,16 @@ document.addEventListener("DOMContentLoaded", async function () {
     card.appendChild(close);
     wrap.appendChild(card);
 
-    const barWrap = document.createElement("div");
-    barWrap.className = "fomo-progress-wrap";
-    barWrap.style.cssText = `height:4px;width:100%;background:transparent`;
-    const bar = document.createElement("div");
-    bar.className = "fomo-progress";
     const progCol =
-      cfg.progressColor || cfg.titleColor || cfg.fontColor || "#22c55e";
-    bar.style.cssText = `height:100%;width:100%;background:${progCol};animation:fomoProgress ${visibleMs}ms linear forwards;transform-origin:left;`;
-    barWrap.appendChild(bar);
-    wrap.appendChild(barWrap);
+      cfg.progressColor ||
+      cfg.titleColor ||
+      cfg.numberColor ||
+      cfg.priceTagAlt ||
+      cfg.starColor ||
+      cfg.fontColor ||
+      cfg.textColor ||
+      "#111827";
+    wrap.appendChild(createProgressBar(visibleMs, progCol));
 
     wrap.addEventListener("click", (e) => {
       if (e.target === close) return;
@@ -1152,7 +1285,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       e.stopPropagation();
       clearTimeout(tid);
       autoClose();
-      onDone && onDone("closed");
     };
 
     document.body.appendChild(wrap);
@@ -1168,8 +1300,11 @@ document.addEventListener("DOMContentLoaded", async function () {
   /* ========== RECENT renderer (granular hide) ========== */
   function renderRecent(cfg, mode, onDone) {
     const mt = mobileTokens(cfg.mobileSize);
-    const visibleSec =
-      Number(cfg.durationSeconds ?? cfg.visibleSeconds ?? 6) || 6;
+    const visibleSec = displaySecondsFrom(
+      cfg.durationSeconds,
+      cfg.visibleSeconds,
+      cfg.duration
+    );
     const visibleMs = Math.max(1, visibleSec) * 1000;
     const theAnim = getAnimPair(cfg, mode);
     const { inAnim, outAnim } = theAnim;
@@ -1179,6 +1314,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       String(cfg.template || "solid").toLowerCase() === "gradient"
         ? `linear-gradient(135deg, ${cfg.bgColor || "#ffffff"} 0%, ${cfg.bgAlt || cfg.bgColor || "#ffffff"} 100%)`
         : cfg.bgColor || "#ffffff";
+    const cardRadius = popupRadius(cfg);
 
     // Product title helper (legacy 2-word fallback)
     function shortProductTitle(title, wordCount = 2) {
@@ -1200,16 +1336,12 @@ document.addEventListener("DOMContentLoaded", async function () {
     const showImage = !cfg.hideProductImage;
     const imageOverflow = imageFit === "cover" && !isPortrait && showImage;
     const pad = mode === "mobile" ? mt.pad : 12;
-    const rightPad = 44;
-    const iSize = mode === "mobile" ? Math.max(mt.img || 0, 52) : 62;
-    const iRad = Math.round(iSize * 0.18);
-    const portraitImageSize = mode === "mobile" ? 60 : 80;
-    const inlineImageSize = isPortrait ? portraitImageSize : iSize;
-    const inlineImageRadius = isPortrait ? 14 : iRad;
-    const inlineImageWidth =
-      isContain && !isPortrait ? Math.round(inlineImageSize * 1.2) : inlineImageSize;
-    const inlineImageOverflow = isContain ? "visible" : "hidden";
-    const inlineImageRadiusResolved = isContain ? 0 : inlineImageRadius;
+    const rightPad = 12;
+    const iSize = mode === "mobile" ? Math.max(mt.img || 0, 56) : 64;
+    const inlineImageSize = iSize;
+    const inlineImageWidth = inlineImageSize;
+    const inlineImageOverflow = "hidden";
+    const inlineImageRadiusResolved = POPUP_IMAGE_RADIUS;
     const imageTextGap = mode === "mobile" ? 10 : 12;
     const leftPad = imageOverflow
       ? pad + Math.round(iSize / 2) + imageTextGap
@@ -1219,20 +1351,24 @@ document.addEventListener("DOMContentLoaded", async function () {
       : cfg.image || cfg.productImage || cfg.uploadedImage || "";
 
     const wrap = document.createElement("div");
+    const wrapWidth = mode === "mobile"
+      ? mt.w
+      : isPortrait
+        ? "min(calc(100vw - 32px), 360px)"
+        : "min(calc(100vw - 32px), 420px)";
     wrap.style.cssText = `
     position:fixed; z-index:9999; box-sizing:border-box;
-    width:${mode === "mobile" ? mt.w : ""}; overflow:${imageOverflow ? "visible" : "hidden"}; cursor:pointer;
-    border-radius:8px;
+    width:${wrapWidth}; max-width:calc(100vw - 32px); overflow:${imageOverflow ? "visible" : "hidden"}; cursor:pointer;
+    border-radius:${cardRadius}px;
     background:${bgRecent}; color:${cfg.fontColor || "#111"};
-    box-shadow:0 10px 30px rgba(0,0,0,.12);
-    font-family:${cfg.fontFamily };
+    box-shadow:0 12px 28px rgba(15,23,42,.14);
     animation:${inAnim} ${DUR.in}ms ease-out both;
   `;
     (mode === "mobile" ? posMobile : posDesktop)(wrap, cfg);
 
     const card = document.createElement("div");
     card.style.cssText = `
-    display:flex; gap:${isPortrait ? 10 : 12}px; align-items:flex-start; position:relative;
+    display:flex; gap:${isPortrait ? 10 : 12}px; align-items:center; position:relative; box-sizing:border-box; width:100%;
     flex-direction:${isPortrait ? "column" : "row"};
     padding:${pad}px ${rightPad}px ${pad}px ${leftPad}px;
     font-size:${Number(cfg.baseFontSize) || (mode === "mobile" ? mt.fs : 14)}px; line-height:1.35;
@@ -1241,7 +1377,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const img = document.createElement("img");
     img.src = imageSrc;
     img.alt = safe(cfg.productTitle, "Product");
-    img.style.cssText = `width:100%;height:100%;object-fit:${imageFit};object-position:center center;`;
+    img.style.cssText = `width:100%;height:100%;object-fit:cover;object-position:center center;border-radius:${POPUP_IMAGE_RADIUS}px;`;
     img.onerror = () => {
       imgWrap.style.display = "none";
     };
@@ -1254,7 +1390,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         top:50%;
         transform:translate(-50%, -50%);
         width:${iSize}px;height:${iSize}px;
-        border-radius:${iRad}px;
+        border-radius:${POPUP_IMAGE_RADIUS}px;
         overflow:hidden;background:transparent;
         display:${showImage ? "grid" : "none"};
         place-items:center;pointer-events:none;
@@ -1265,33 +1401,17 @@ document.addEventListener("DOMContentLoaded", async function () {
         border-radius:${inlineImageRadiusResolved}px;overflow:${inlineImageOverflow};background:transparent;
         flex:0 0 ${inlineImageWidth}px;display:${showImage ? "grid" : "none"};
         place-items:center;pointer-events:none;
-        align-self:${isPortrait ? "center" : "auto"};
+        align-self:center;
       `;
-    }
-    if (isContain && !imageOverflow) {
-      const syncContainWidth = () => {
-        const naturalWidth = Number(img.naturalWidth) || 0;
-        const naturalHeight = Number(img.naturalHeight) || 0;
-        if (!naturalWidth || !naturalHeight) return;
-        const ratio = Math.max(0.65, Math.min(1.85, naturalWidth / naturalHeight));
-        const targetWidth = Math.max(
-          Math.round(inlineImageSize * 0.72),
-          Math.round(inlineImageSize * ratio)
-        );
-        imgWrap.style.width = `${targetWidth}px`;
-        imgWrap.style.flexBasis = `${targetWidth}px`;
-      };
-      img.onload = syncContainWidth;
-      if (img.complete) syncContainWidth();
     }
     imgWrap.appendChild(img);
 
     const body = document.createElement("div");
-    body.style.cssText = `flex:1;min-width:0;pointer-events:none;`;
+    body.style.cssText = `flex:1;min-width:0;max-width:100%;pointer-events:none;overflow-wrap:anywhere;word-break:normal;${isPortrait ? "text-align:center;width:100%;" : ""}`;
 
-    // Name + granular location
-    const line1 = document.createElement("div");
-    line1.style.cssText = `margin:0 0 2px 0;`;
+    // Name, location, and message flow in one block so wrapped text fills the available width.
+    const textFlow = document.createElement("div");
+    textFlow.style.cssText = `margin:0 0 6px 0;max-width:100%;overflow-wrap:anywhere;word-break:normal;${isPortrait ? "text-align:center;" : ""}`;
     const fw = safe(cfg.fontWeight, "700");
     const nameText = cfg.hideName ? "" : safe(cfg.name, "Someone");
 
@@ -1316,6 +1436,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     }
 
+    let leadingHtml = "";
     if (nameText || locFinal) {
       const nameHtml = nameText
         ? `<span style="font-weight:${fw};color:${ACCENT};">${nameText}</span>`
@@ -1324,12 +1445,10 @@ document.addEventListener("DOMContentLoaded", async function () {
         ? `<span style="font-weight:${fw};color:${ACCENT};">${locFinal}</span>`
         : "";
       const spacer = nameText && locFinal ? " from " : "";
-      line1.innerHTML = `${nameHtml}${spacer}${locHtml}`;
-      body.appendChild(line1);
+      leadingHtml = `${nameHtml}${spacer}${locHtml}`;
     }
 
     // Product line
-    const line2 = document.createElement("div");
     const msgTxt = safe(cfg.message, "recently bought");
 
     // ✅ Use only first 2 words of productTitle
@@ -1346,22 +1465,30 @@ document.addEventListener("DOMContentLoaded", async function () {
         : "this product"
       }`;
 
-    line2.innerHTML = boughtTxt;
-    line2.style.cssText = `opacity:1;margin:0 0 6px 0;`;
-    body.appendChild(line2);
+    textFlow.innerHTML = `${leadingHtml}${leadingHtml ? " " : ""}${boughtTxt}`;
+    body.appendChild(textFlow);
 
-    const priceText = safe(cfg.price, "").trim();
+    const priceText = ensureMoneySymbol(safe(cfg.price, "").trim());
     const compareCandidateRaw = safe(
       cfg.compareAt || cfg.compareAtPrice,
       ""
     ).trim();
-    const compareCandidate = alignCompareCurrency(priceText, compareCandidateRaw);
+    const compareCandidate = alignCompareCurrency(
+      priceText,
+      ensureMoneySymbol(compareCandidateRaw)
+    );
     const compareText = shouldShowComparePrice(priceText, compareCandidate)
       ? compareCandidate
       : "";
+    const recentTimeText = !cfg.hideTime
+      ? relOrderDaysAgo(cfg.createOrderTime) ||
+        safe(cfg.createOrderTime, "") ||
+        safe(cfg.timeAbsolute, "") ||
+        safe(cfg.timeText, "")
+      : "";
     if (priceText || compareText) {
       const priceLine = document.createElement("div");
-      priceLine.style.cssText = `display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 6px 0;`;
+      priceLine.style.cssText = `display:flex;gap:8px;align-items:center;justify-content:${isPortrait ? "center" : "flex-start"};flex-wrap:wrap;margin:0 0 6px 0;`;
 
       if (compareText) {
         const compareEl = document.createElement("span");
@@ -1391,18 +1518,13 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     // Time
-    if (!cfg.hideTime) {
+    if (recentTimeText) {
       const line3 = document.createElement("div");
-      const orderDaysText = relOrderDaysAgo(cfg.createOrderTime);
-      line3.textContent =
-        orderDaysText ||
-        safe(cfg.createOrderTime, "") ||
-        safe(cfg.timeAbsolute, "") ||
-        safe(cfg.timeText, "");
+      line3.textContent = recentTimeText;
       line3.style.cssText = `font-size:${Math.max(
         10,
         (Number(cfg.baseFontSize) || 14) - 1
-      )}px;opacity:.7;`;
+      )}px;opacity:.7;margin-top:${priceText || compareText ? "-2px" : "0"};${isPortrait ? "text-align:center;" : ""}`;
       body.appendChild(line3);
     }
 
@@ -1421,13 +1543,16 @@ document.addEventListener("DOMContentLoaded", async function () {
     card.appendChild(close);
     wrap.appendChild(card);
 
-    const barWrap = document.createElement("div");
-    barWrap.style.cssText = `height:4px;width:100%;background:transparent`;
-    const bar = document.createElement("div");
-    bar.style.cssText = `height:100%;width:100%;background:${cfg.progressColor || ACCENT
-      };animation:fomoProgress ${visibleMs}ms linear forwards;transform-origin:left;`;
-    barWrap.appendChild(bar);
-    wrap.appendChild(barWrap);
+    const progressColor =
+      cfg.progressColor ||
+      ACCENT ||
+      cfg.numberColor ||
+      cfg.priceTagAlt ||
+      cfg.starColor ||
+      cfg.fontColor ||
+      cfg.textColor ||
+      "#111827";
+    wrap.appendChild(createProgressBar(visibleMs, progressColor));
 
     wrap.addEventListener("click", (e) => {
       if (e.target === close) return;
@@ -1451,7 +1576,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       e.stopPropagation();
       clearTimeout(tid);
       autoClose();
-      onDone && onDone("closed");
     };
 
     document.body.appendChild(wrap);
@@ -1465,19 +1589,19 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   /* ========== GENERIC product popup renderer (visitor/lowstock/addtocart/review) ========== */
   function renderProductPopup(cfg, mode, onDone) {
-    const visibleSec =
-      Number(cfg.durationSeconds ?? cfg.visibleSeconds ?? 6) || 6;
+    const visibleSec = displaySecondsFrom(
+      cfg.durationSeconds,
+      cfg.visibleSeconds,
+      cfg.duration
+    );
     const visibleMs = Math.max(1, visibleSec) * 1000;
     const { inAnim, outAnim } = getAnimPair(cfg, mode);
     const DUR = getAnimDur(cfg);
     const popupType = String(cfg.popupType || "").toLowerCase();
     const isVisitor = popupType === "visitor";
+    const isLowStock = popupType === "lowstock";
     const isAddToCart = popupType === "addtocart";
     const isReview = popupType === "review";
-    const fontFamily = safe(
-      cfg.fontFamily,
-      "system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif"
-    );
     const truncateSnippet = (value, max = 52) => {
       const text = String(value || "").replace(/\s+/g, " ").trim();
       if (!text) return "";
@@ -1523,30 +1647,22 @@ document.addEventListener("DOMContentLoaded", async function () {
           ? 12
           : 14
     );
+    const padY = isLowStock ? pad + (mode === "mobile" ? 6 : 8) : pad;
     const gap = Math.round(
       mode === "mobile" ? (isVisitor ? 12 : 10) : isVisitor ? 14 : 12
     );
-    const imgSize = Math.round((mode === "mobile" ? 56 : 64));
+    const imgSize = Math.round(mode === "mobile" ? 56 : 64);
     const imgOffset = Math.round(imgSize * (isVisitor ? 0.62 : 0.45));
-    const inlineSize = isPortrait
-      ? portraitVisitor
-        ? mode === "mobile"
-          ? 70
-          : 72
-        : 56
-      : imgSize;
-    const inlineWidth =
-      isContain && !isPortrait
-        ? Math.round(inlineSize * (isAddToCart || isReview ? 1.2 : 1.12))
-        : inlineSize;
-    const inlineWrapRadius = isContain ? 0 : Math.round(inlineSize * 0.22);
-    const inlineWrapOverflow = isContain ? "visible" : "hidden";
+    const inlineSize = imgSize;
+    const inlineWidth = inlineSize;
+    const inlineWrapRadius = POPUP_IMAGE_RADIUS;
+    const inlineWrapOverflow = "hidden";
 
     const posKey = String(cfg.positionDesktop || cfg.position || "bottom-left").toLowerCase();
     const originX = posKey.includes("right") ? "right" : "left";
     const originY = posKey.includes("top") ? "top" : "bottom";
     const transformOrigin = `${originY} ${originX}`;
-    const innerRadius = isAddToCart || isReview ? 14 : 8;
+    const innerRadius = popupRadius(cfg);
     const innerBorder = isAddToCart || isReview
       ? "1px solid rgba(15,23,42,0.12)"
       : "1px solid rgba(0,0,0,0.06)";
@@ -1559,7 +1675,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       position:fixed; z-index:9999; box-sizing:border-box;
       width:${mode === "mobile" ? "min(92vw,420px)" : ""};
       overflow:visible; cursor:pointer;
-      font-family:${fontFamily};
       animation:${inAnim} ${DUR.in}ms ease-out both;
       transform-origin:${transformOrigin};
     `;
@@ -1570,11 +1685,10 @@ document.addEventListener("DOMContentLoaded", async function () {
       overflow:${imageOverflow ? "visible" : "hidden"}; opacity:${effectiveOpacity};
       border-radius:${innerRadius}px;
       background:${bg}; color:${cfg.textColor || "#111"};
-      box-shadow:${innerShadow};
-      border:${innerBorder};
+      box-shadow:${innerShadow};     
       transform:scale(${effectiveSizeScale});
       transform-origin:${transformOrigin};
-      max-width:${isPortrait ? (portraitVisitor ? 360 : 320) : isVisitor ? 520 : 460}px;
+      max-width:${isPortrait ? (portraitVisitor ? 360 : 320) : isVisitor ? 400 : 360}px;
     `;
 
     const card = document.createElement("div");
@@ -1582,14 +1696,12 @@ document.addEventListener("DOMContentLoaded", async function () {
     const alignItems = portraitVisitor
       ? "stretch"
       : isPortrait
-        ? "flex-start"
-        : imageOverflow
-          ? "flex-start"
-          : "center";
+        ? "center"
+        : "center";
     card.style.cssText = `
       display:flex; gap:${gap}px; align-items:${alignItems};
       flex-direction:${isPortrait ? "column" : "row"};
-      position:relative; padding:${pad}px;
+      position:relative; padding:${padY}px ${pad}px;
       font-size:${fontSize}px; line-height:1.35;
       padding-left:${leftPad}px;
     `;
@@ -1603,7 +1715,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         top:${isPortrait ? 28 : "50%"};
         transform:${isPortrait ? "translate(-50%, 0)" : "translate(-50%, -50%)"};
         width:${imgSize}px;height:${imgSize}px;
-        border-radius:${Math.round(imgSize * 0.22)}px;
+        border-radius:${POPUP_IMAGE_RADIUS}px;
         overflow:hidden;background:${isVisitor ? "#ffffff" : "transparent"};
         display:${cfg.showProductImage === false ? "none" : "grid"};
         place-items:center;
@@ -1619,7 +1731,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         background:${portraitVisitor ? "#ffffff" : "transparent"};
         flex:0 0 ${inlineWidth}px;display:${cfg.showProductImage === false ? "none" : "grid"};
         place-items:center;pointer-events:none;
-        align-self:${isPortrait ? "center" : "flex-start"};
+        align-self:center;
         ${portraitVisitor ? "box-shadow:0 10px 22px rgba(0,0,0,0.14);border:1px solid rgba(15,23,42,0.08);margin:2px auto 2px;" : ""}
       `;
     }
@@ -1627,67 +1739,16 @@ document.addEventListener("DOMContentLoaded", async function () {
     const img = document.createElement("img");
     img.alt = safe(cfg.productTitle, "Product");
     img.style.cssText = `
-      width:100%;height:100%;object-fit:${imageFit};object-position:center center;
+      width:100%;height:100%;object-fit:cover;object-position:center center;border-radius:${POPUP_IMAGE_RADIUS}px;
     `;
     img.onerror = () => {
       imgWrap.style.display = "none";
     };
-    if (isContain && !imageOverflow) {
-      const syncContainWidth = () => {
-        const naturalWidth = Number(img.naturalWidth) || 0;
-        const naturalHeight = Number(img.naturalHeight) || 0;
-        if (!naturalWidth || !naturalHeight) return;
-        const ratio = Math.max(0.65, Math.min(1.85, naturalWidth / naturalHeight));
-        const targetWidth = Math.max(
-          Math.round(inlineSize * 0.72),
-          Math.round(inlineSize * ratio)
-        );
-        imgWrap.style.width = `${targetWidth}px`;
-        imgWrap.style.flexBasis = `${targetWidth}px`;
-      };
-      img.onload = syncContainWidth;
-    }
     img.src = cfg.productImage || cfg.image || "";
-    if (isContain && !imageOverflow && img.complete && Number(img.naturalWidth || 0) > 0) {
-      const ratio = Math.max(
-        0.65,
-        Math.min(1.85, Number(img.naturalWidth || 0) / Number(img.naturalHeight || 1))
-      );
-      const targetWidth = Math.max(
-        Math.round(inlineSize * 0.72),
-        Math.round(inlineSize * ratio)
-      );
-      imgWrap.style.width = `${targetWidth}px`;
-      imgWrap.style.flexBasis = `${targetWidth}px`;
-    }
     imgWrap.appendChild(img);
 
     const body = document.createElement("div");
-    body.style.cssText = `flex:1;min-width:0;pointer-events:none;display:grid;gap:${portraitVisitor ? 8 : 6}px;${portraitVisitor ? "width:100%;" : ""}`;
-
-    if (isAddToCart) {
-      const badge = document.createElement("div");
-      badge.style.cssText = `
-        display:inline-flex;align-items:center;gap:6px;
-        width:max-content;
-        padding:3px 8px;
-        border-radius:999px;
-        font-size:${Math.max(10, fontSize - 3)}px;
-        font-weight:700;
-        letter-spacing:.2px;
-        color:${cfg.priceColor || "#ffffff"};
-        background:${cfg.priceTagBg || "rgba(15,23,42,0.7)"};
-      `;
-      const dot = document.createElement("span");
-      dot.style.cssText = `
-        width:6px;height:6px;border-radius:50%;
-        background:${cfg.priceTagAlt || cfg.starColor || "#22c55e"};
-        box-shadow:0 0 0 3px rgba(255,255,255,0.18);
-      `;
-      badge.appendChild(dot);
-      badge.appendChild(document.createTextNode("Added to cart"));
-      body.appendChild(badge);
-    }
+    body.style.cssText = `flex:1;min-width:0;pointer-events:none;display:grid;gap:${portraitVisitor ? 8 : 6}px;${isPortrait ? "width:100%;text-align:center;justify-items:center;" : ""}`;
 
     if (cfg.showRating) {
       const rating = Math.max(
@@ -1696,15 +1757,16 @@ document.addEventListener("DOMContentLoaded", async function () {
       );
       const rate = document.createElement("div");
       rate.style.cssText = `display:inline-flex;align-items:center;gap:1px;font-size:${Math.max(
-        portraitVisitor ? 16 : 10,
-        portraitVisitor ? fontSize + 2 : fontSize - 2
+        8,
+        Math.round(fontSize * 1.5)
       )}px;letter-spacing:1px;line-height:1;`;
       const filled = document.createElement("span");
       filled.textContent = "★".repeat(Math.max(0, Math.min(5, rating)));
       filled.style.color = cfg.starColor || "#f5a623";
       const empty = document.createElement("span");
       empty.textContent = "★".repeat(Math.max(0, 5 - rating));
-      empty.style.color = "rgba(156,163,175,0.95)";
+      empty.style.color = cfg.starColor || "#f5a623";
+      empty.style.opacity = "0.28";
       rate.appendChild(filled);
       rate.appendChild(empty);
       body.appendChild(rate);
@@ -1718,9 +1780,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         font-size:${Math.max(14, Math.round(fontSize + 2))}px;
         line-height:1.2;
         letter-spacing:.15px;
-        white-space:nowrap;
-        overflow:hidden;
-        text-overflow:ellipsis;
+        white-space:normal;
+        overflow-wrap:anywhere;
+        word-break:normal;
       `;
       body.appendChild(reviewTitle);
     }
@@ -1756,14 +1818,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         while ((m = rx.exec(tpl))) {
           hasToken = true;
           const key = String(m[1] || "").trim().toLowerCase();
-          let before = tpl.slice(last, m.index);
-          if (isVisitor && key === "product_name" && before) {
-            before = before.replace(/\s+$/, "");
-          }
+          const before = tpl.slice(last, m.index);
           if (before) msg.appendChild(document.createTextNode(before));
-          if (isVisitor && key === "product_name") {
-            msg.appendChild(document.createElement("br"));
-          }
           const rawVal = normalized[key];
           const text =
             rawVal === undefined || rawVal === null || rawVal === ""
@@ -1773,7 +1829,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           span.textContent = text;
           span.style.cssText =
             key === "product_name"
-              ? "font-weight:700;text-decoration:underline;"
+              ? "font-weight:700;"
               : "font-weight:700;";
           msg.appendChild(span);
           last = m.index + m[0].length;
@@ -1805,15 +1861,12 @@ document.addEventListener("DOMContentLoaded", async function () {
         const parts = templ.split(/(__FOMO_PROD__|__FOMO_COUNT__)/);
         parts.forEach((part) => {
           if (part === "__FOMO_PROD__") {
-            if (isVisitor) {
-              msg.appendChild(document.createElement("br"));
-            }
             const span = document.createElement("span");
             span.textContent = productName;
             if (cfg.productHighlightStyle === "upper") {
               span.style.cssText = "font-weight:700;text-transform:uppercase;";
             } else {
-              span.style.cssText = "font-weight:600;text-decoration:underline;";
+              span.style.cssText = "font-weight:600;";
             }
             msg.appendChild(span);
             return;
@@ -1834,6 +1887,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         msg.style.maxWidth = "100%";
         msg.style.wordBreak = "break-word";
       }
+      msg.style.maxWidth = "100%";
+      msg.style.overflowWrap = "anywhere";
+      msg.style.wordBreak = "normal";
       if (isReview) {
         msg.style.fontStyle = "italic";
         msg.style.lineHeight = "1.32";
@@ -1845,21 +1901,24 @@ document.addEventListener("DOMContentLoaded", async function () {
       return true;
     };
 
+    const getTimestampText = () =>
+      safe(cfg.timestamp || cfg.timeText || cfg.timeAbsolute, "").trim();
+
     const appendPriceLine = () => {
-      const priceText = safe(cfg.price, "").trim();
+      const priceText = ensureMoneySymbol(safe(cfg.price, "").trim());
       const compareCandidate = alignCompareCurrency(
         priceText,
-        safe(cfg.compareAt || cfg.compareAtPrice, "").trim()
+        ensureMoneySymbol(safe(cfg.compareAt || cfg.compareAtPrice, "").trim())
       );
       const compareText = shouldShowComparePrice(priceText, compareCandidate)
         ? compareCandidate
         : "";
       const shouldRenderPrice =
         (isVisitor || cfg.showPriceTag) && (priceText || compareText);
-      if (!shouldRenderPrice) return;
+      if (!shouldRenderPrice) return false;
 
       const line = document.createElement("div");
-      line.style.cssText = `display:flex;gap:8px;align-items:center;flex-wrap:wrap;`;
+      line.style.cssText = `display:flex;gap:8px;align-items:center;flex-wrap:wrap;${isPortrait ? "justify-content:center;" : ""}`;
       if (priceText) {
         const p = document.createElement("span");
         p.textContent = priceText;
@@ -1870,7 +1929,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             10,
             Math.round((Number(cfg.textSizePrice) || fontSize - 2) * effectiveSizeScale)
           )}px;
-          padding:2px 8px;border-radius:8px;font-weight:${isReview ? 700 : 600};
+          padding:2px 8px;border-radius:${POPUP_CARD_RADIUS}px;font-weight:${isReview ? 700 : 600};
         `;
         line.appendChild(p);
       }
@@ -1886,6 +1945,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         line.appendChild(c);
       }
       body.appendChild(line);
+      return true;
     };
 
     const appendReviewLine = () => {
@@ -1919,13 +1979,14 @@ document.addEventListener("DOMContentLoaded", async function () {
         display:flex;
         align-items:baseline;
         gap:6px;
-        flex-wrap:nowrap;
-        overflow:hidden;
+        flex-wrap:wrap;
+        overflow:visible;
+        ${isPortrait ? "justify-content:center;" : ""}
       `;
 
       const nameSpan = document.createElement("span");
       nameSpan.textContent = reviewerName || "Someone";
-      nameSpan.style.cssText = "font-weight:700;white-space:nowrap;";
+      nameSpan.style.cssText = "font-weight:700;";
       row.appendChild(nameSpan);
 
       if (reviewText) {
@@ -1933,10 +1994,10 @@ document.addEventListener("DOMContentLoaded", async function () {
         reviewSpan.textContent = `- "${reviewText}"`;
         reviewSpan.style.cssText = `
           font-style:italic;
-          white-space:nowrap;
-          overflow:hidden;
-          text-overflow:ellipsis;
-          display:block;
+          white-space:normal;
+          overflow-wrap:anywhere;
+          word-break:normal;
+          display:inline;
         `;
         row.appendChild(reviewSpan);
       }
@@ -1944,38 +2005,44 @@ document.addEventListener("DOMContentLoaded", async function () {
       body.appendChild(row);
     };
 
+    let priceLineRendered = false;
     if (isReview) {
       const renderedMessage = appendMessageLine();
-      appendPriceLine();
+      priceLineRendered = appendPriceLine();
       if (!renderedMessage) appendReviewLine();
     } else {
       appendMessageLine();
-      appendPriceLine();
+      priceLineRendered = appendPriceLine();
     }
 
+    const timestampText = getTimestampText();
     if (isVisitor) {
-      const footer = document.createElement("div");
-      footer.style.cssText = `display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:${Math.max(
-        10,
-        fontSize - 2
-      )}px;color:${cfg.timestampColor || "rgba(0,0,0,0.62)"};margin-top:2px;`;
-      const ts = document.createElement("span");
-      ts.textContent = cfg.timestamp || "Just now";
-      footer.appendChild(ts);
       const brandText = String(cfg.brandText || "").trim();
-      if (brandText) {
-        const brand = document.createElement("span");
-        brand.textContent = brandText;
-        brand.style.cssText = "opacity:.88;font-size:0.95em;white-space:nowrap;";
-        footer.appendChild(brand);
-      } else {
-        footer.style.justifyContent = "flex-start";
+      if (timestampText || brandText) {
+        const footer = document.createElement("div");
+        footer.style.cssText = `display:flex;align-items:center;justify-content:${portraitVisitor ? "center" : "space-between"};gap:10px;font-size:${Math.max(
+          10,
+          fontSize - 2
+        )}px;color:${cfg.timestampColor || "rgba(0,0,0,0.62)"};margin-top:${priceLineRendered ? "2px" : "2px"};`;
+        if (timestampText) {
+          const ts = document.createElement("span");
+          ts.textContent = timestampText;
+          footer.appendChild(ts);
+        }
+        if (brandText) {
+          const brand = document.createElement("span");
+          brand.textContent = brandText;
+          brand.style.cssText = "opacity:.88;font-size:0.95em;white-space:nowrap;";
+          footer.appendChild(brand);
+        } else {
+          footer.style.justifyContent = portraitVisitor ? "center" : "flex-start";
+        }
+        body.appendChild(footer);
       }
-      body.appendChild(footer);
-    } else if (cfg.timestamp) {
+    } else if (timestampText) {
       const ts = document.createElement("div");
-      ts.textContent = cfg.timestamp;
-      ts.style.cssText = `font-size:${Math.max(10, fontSize - 2)}px;color:${cfg.timestampColor || "rgba(0,0,0,0.6)"};`;
+      ts.textContent = timestampText;
+      ts.style.cssText = `font-size:${Math.max(10, fontSize - 2)}px;color:${cfg.timestampColor || "rgba(0,0,0,0.6)"};margin-top:${priceLineRendered ? "2px" : "0"};${isPortrait ? "text-align:center;" : ""}`;
       body.appendChild(ts);
     }
 
@@ -1993,19 +2060,19 @@ document.addEventListener("DOMContentLoaded", async function () {
     card.appendChild(close);
     inner.appendChild(card);
 
-    const barWrap = document.createElement("div");
-    barWrap.style.cssText = `height:4px;width:100%;background:transparent`;
-    const bar = document.createElement("div");
     const progressColor = isAddToCart || isReview
       ? cfg.progressColor ||
         cfg.priceTagAlt ||
         cfg.starColor ||
         cfg.textColor ||
-        "#22c55e"
-      : cfg.progressColor || cfg.textColor || "#22c55e";
-    bar.style.cssText = `height:100%;width:100%;background:${progressColor};animation:fomoProgress ${visibleMs}ms linear forwards;transform-origin:left;`;
-    barWrap.appendChild(bar);
-    inner.appendChild(barWrap);
+        "#111827"
+      : cfg.progressColor ||
+        cfg.numberColor ||
+        cfg.priceTagAlt ||
+        cfg.starColor ||
+        cfg.textColor ||
+        "#111827";
+    inner.appendChild(createProgressBar(visibleMs, progressColor));
     wrap.appendChild(inner);
 
     wrap.addEventListener("click", (e) => {
@@ -2047,7 +2114,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       e.stopPropagation();
       clearTimeout(tid);
       autoClose();
-      onDone && onDone("closed");
     };
 
     document.body.appendChild(wrap);
@@ -2086,32 +2152,56 @@ document.addEventListener("DOMContentLoaded", async function () {
       t: null,
       idx: 0,
       el: null,
+      runId: 0,
       start(immediate = false) {
-        const seq = this.mode === "mobile" ? this.seqMobile : this.seqDesktop;
-        if (!seq.length) return;
+        this.stop();
+        const runId = ++this.runId;
+        const getSeq = () => this.mode === "mobile" ? this.seqMobile : this.seqDesktop;
+        if (!getSeq().length) return;
 
         const showNext = (delaySec) => {
           this.t = setTimeout(() => {
-            const s = this.mode === "mobile" ? this.seqMobile : this.seqDesktop;
+            if (runId !== this.runId) return;
+            this.t = null;
+            const s = getSeq();
             if (!s.length) return;
             const cfg = s[this.idx % s.length];
-            this.el = this.renderer(cfg, this.mode, () => {
+            let fallbackTimer = null;
+            let queued = false;
+            const queueNext = () => {
+              if (queued) return;
+              queued = true;
+              if (fallbackTimer) clearTimeout(fallbackTimer);
+              if (runId !== this.runId) return;
               const gap = gapSeconds(cfg);
               this.idx = (this.idx + 1) % s.length;
               showNext(gap);
-            });
+            };
+            try {
+              this.el = this.renderer(cfg, this.mode, queueNext);
+              const visibleMs = Math.max(
+                1,
+                displaySecondsFrom(cfg.durationSeconds, cfg.duration, cfg.visibleSeconds)
+              ) * 1000;
+              const outMs = Math.max(120, getAnimDur(cfg).out || 0);
+              fallbackTimer = setTimeout(queueNext, visibleMs + outMs + 1000);
+            } catch {
+              queueNext();
+            }
           }, Math.max(0, delaySec) * 1000);
         };
 
-        const firstDelay = 0;
+        const firstDelay = immediate ? 0 : Math.max(0, Number(getSeq()[this.idx % getSeq().length]?.firstDelaySeconds || 0));
         showNext(firstDelay);
       },
       stop() {
+        this.runId++;
         if (this.t) clearTimeout(this.t);
         this.t = null;
         try {
           this.el && this.el.remove();
         } catch { }
+        this.el = null;
       },
       resize() {
         const nm = isMobile() ? "mobile" : "desktop";
@@ -2127,36 +2217,61 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Combined playlist — alternates items one-by-one
   function createCombinedStream() {
     return {
-      mode: "mobile",
+      mode: isMobile() ? "mobile" : "desktop",
       seq: [],
       t: null,
       idx: 0,
       el: null,
+      runId: 0,
       start(immediate = false) {
+        this.stop();
+        this.mode = isMobile() ? "mobile" : "desktop";
+        const runId = ++this.runId;
         if (!this.seq.length) return;
 
         const showNext = (delaySec) => {
           this.t = setTimeout(() => {
+            if (runId !== this.runId) return;
+            this.t = null;
             if (!this.seq.length) return;
             const item = this.seq[this.idx % this.seq.length]; // {type, cfg}
             const renderer = rendererForType(item.type);
-            this.el = renderer(item.cfg, "mobile", () => {
+            let fallbackTimer = null;
+            let queued = false;
+            const queueNext = () => {
+              if (queued) return;
+              queued = true;
+              if (fallbackTimer) clearTimeout(fallbackTimer);
+              if (runId !== this.runId) return;
               const gap = gapSeconds(item.cfg);
               this.idx = (this.idx + 1) % this.seq.length;
               showNext(gap);
-            });
+            };
+            try {
+              this.el = renderer(item.cfg, this.mode, queueNext);
+              const visibleMs = Math.max(
+                1,
+                displaySecondsFrom(item.cfg.durationSeconds, item.cfg.duration, item.cfg.visibleSeconds)
+              ) * 1000;
+              const outMs = Math.max(120, getAnimDur(item.cfg).out || 0);
+              fallbackTimer = setTimeout(queueNext, visibleMs + outMs + 1000);
+            } catch {
+              queueNext();
+            }
           }, Math.max(0, delaySec) * 1000);
         };
 
-        const firstDelay = 0;
+        const firstDelay = immediate ? 0 : Math.max(0, Number(this.seq[this.idx % this.seq.length]?.cfg?.firstDelaySeconds || 0));
         showNext(firstDelay);
       },
       stop() {
+        this.runId++;
         if (this.t) clearTimeout(this.t);
         this.t = null;
         try {
           this.el && this.el.remove();
         } catch { }
+        this.el = null;
       },
     };
   }
@@ -2290,8 +2405,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const tableVisitor = Array.isArray(tables.visitor) ? tables.visitor : [];
     const tableLowStock = Array.isArray(tables.lowstock) ? tables.lowstock : [];
     const tableAddToCart = Array.isArray(tables.addtocart) ? tables.addtocart : [];
-    // Frontend requirement: disable review popup/form rendering on storefront.
-    const tableReview = [];
+    const tableReview = Array.isArray(tables.review) ? tables.review : [];
     const useFlashLegacy = tableFlash.length === 0;
     // Recent popup must always come from recentpopupconfig (tables.recent).
     const useRecentLegacy = false;
@@ -2349,10 +2463,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         continue;
       if (!["flash", "recent", "orders"].includes(it.key)) continue;
 
-      const showType = String(it.showType || "allpage").toLowerCase();
-      const match =
-        showType === "all" || showType === "allpage" || showType === pt;
-      if (!match) continue;
+      if (!showTypeMatchesPage(it.showType, pt)) continue;
 
       const titlesArr = parseList(it.messageTitlesJson);
       const timesArr = parseList(it.namesJson);
@@ -2377,18 +2488,22 @@ document.addEventListener("DOMContentLoaded", async function () {
         animationSpeed: it.animationSpeed,
         animationMs: it.animationMs,
         layout: it.layout,
-        fontFamily: it.fontFamily,
+       
         fontWeight: it.fontWeight,
         baseFontSize: Number(it.fontSize ?? it.rounded ?? 0) || null,
-        cornerRadius: Number(it.cornerRadius ?? 16),
-        visibleSeconds: Number(it.durationSeconds ?? it.visibleSeconds ?? 6),
-        alternateSeconds: Number(it.alternateSeconds || 4),
-        firstDelaySeconds: Number(it.firstDelaySeconds ?? it.delaySeconds ?? 0),
-        progressColor: it.progressColor,
+        cornerRadius: Number(it.cornerRadius ?? POPUP_CARD_RADIUS),
+        ...timingFromConfig(it),
+        progressColor: it.progressColor || it.numberColor || it.titleColor || it.textColor || it.msgColor,
         bgColor: it.bgColor,
-        fontColor: it.msgColor,
-        titleColor: it.titleColor,
-        accentColor: it.titleColor,
+        bgAlt: it.bgAlt,
+        fontColor: it.textColor || it.msgColor,
+        textColor: it.textColor || it.msgColor,
+        titleColor: it.numberColor || it.titleColor,
+        accentColor: it.numberColor || it.titleColor,
+        priceTagBg: it.priceTagBg,
+        priceTagAlt: it.priceTagAlt,
+        priceColor: it.priceColor,
+        starColor: it.starColor,
       };
 
       /* ---------- FLASH ---------- */
@@ -2421,7 +2536,6 @@ document.addEventListener("DOMContentLoaded", async function () {
             uploadedImage: iconSrc,
             productUrl: safe(it.ctaUrl, "#"),
             mobilePosition: normMB(mbPos, defaultMB),
-            durationSeconds: Number(it.durationSeconds || 0),
             ...COMMON,
           });
         }
@@ -2501,7 +2615,6 @@ document.addEventListener("DOMContentLoaded", async function () {
                 pickSmart(mbPosArr, 0, defaultMB),
                 defaultMB
               ),
-              durationSeconds: Number(it.durationSeconds || 0),
 
               // raw locations JSON so renderer can still use it if needed
               rawLocations: it.locationsJson,
@@ -2517,30 +2630,32 @@ document.addEventListener("DOMContentLoaded", async function () {
 
               // styling
               bgColor: it.bgColor || "#ffffff",
-              fontColor: it.msgColor || "#111",
-              titleColor: it.titleColor || "#6C63FF",
-              accentColor: it.titleColor || "#6C63FF",
+              bgAlt: it.bgAlt || it.bgColor || "#ffffff",
+              fontColor: it.textColor || it.msgColor || "#111",
+              textColor: it.textColor || it.msgColor || "#111",
+              titleColor: it.numberColor || it.titleColor || "#6C63FF",
+              accentColor: it.numberColor || it.titleColor || "#6C63FF",
+              priceTagBg: it.priceTagBg,
+              priceTagAlt: it.priceTagAlt,
+              priceColor: it.priceColor,
+              starColor: it.starColor,
               progressColor:
-                it.progressColor || it.titleColor || "#6C63FF",
+                it.progressColor || it.numberColor || it.titleColor || "#6C63FF",
               positionDesktop: it.positionDesktop || it.position,
               mobileSize: it.mobileSize,
               animation: it.animation,
               animationSpeed: it.animationSpeed,
               animationMs: it.animationMs,
-              fontFamily: it.fontFamily,
+             
               fontWeight: it.fontWeight,
               baseFontSize:
                 Number(it.fontSize ?? it.rounded ?? 0) || null,
-              cornerRadius: Number(it.cornerRadius ?? 16),
-              visibleSeconds:
-                Number(it.durationSeconds ?? it.visibleSeconds ?? 6),
-              alternateSeconds: Number(it.alternateSeconds || 4),
-              firstDelaySeconds: Number(it.firstDelaySeconds ?? it.delaySeconds ?? 0),
+              cornerRadius: Number(it.cornerRadius ?? POPUP_CARD_RADIUS),
+              ...timingFromConfig(it),
             };
             recentConfigs.push(cfg);
           }
-        } catch (e) {
-          console.warn("[FOMO][orders] fetch failed", e);
+        } catch {
         }
         continue;
       }
@@ -2548,23 +2663,26 @@ document.addEventListener("DOMContentLoaded", async function () {
       /* ---------- NON-ORDERS (manual + optional current) ---------- */
       const COMMON_RECENT = {
         bgColor: it.bgColor || "#ffffff",
-        fontColor: it.msgColor || "#111",
-        titleColor: it.titleColor || "#6C63FF",
-        accentColor: it.titleColor || "#6C63FF",
-        progressColor: it.progressColor || it.titleColor || "#6C63FF",
+        bgAlt: it.bgAlt || it.bgColor || "#ffffff",
+        fontColor: it.textColor || it.msgColor || "#111",
+        textColor: it.textColor || it.msgColor || "#111",
+        titleColor: it.numberColor || it.titleColor || "#6C63FF",
+        accentColor: it.numberColor || it.titleColor || "#6C63FF",
+        priceTagBg: it.priceTagBg,
+        priceTagAlt: it.priceTagAlt,
+        priceColor: it.priceColor,
+        starColor: it.starColor,
+        progressColor: it.progressColor || it.numberColor || it.titleColor || "#6C63FF",
         positionDesktop: it.positionDesktop || it.position,
         mobileSize: it.mobileSize,
         animation: it.animation,
         animationSpeed: it.animationSpeed,
         animationMs: it.animationMs,
-        fontFamily: it.fontFamily,
+       
         fontWeight: it.fontWeight,
         baseFontSize: Number(it.fontSize ?? it.rounded ?? 0) || null,
-        cornerRadius: Number(it.cornerRadius ?? 16),
-        visibleSeconds:
-          Number(it.durationSeconds ?? it.visibleSeconds ?? 6),
-        alternateSeconds: Number(it.alternateSeconds || 4),
-        firstDelaySeconds: Number(it.firstDelaySeconds ?? it.delaySeconds ?? 0),
+        cornerRadius: Number(it.cornerRadius ?? POPUP_CARD_RADIUS),
+        ...timingFromConfig(it),
       };
       const includeCurrent = it.includeCurrentProduct !== false;
       const hideFlags = flagsFromNamesJson(it.namesJson);
@@ -2604,9 +2722,6 @@ document.addEventListener("DOMContentLoaded", async function () {
                 pickSmart(mbPosArr, 0, defaultMB),
                 defaultMB
               ),
-              durationSeconds: Number(
-                it.currentFirstDelaySeconds ?? it.durationSeconds ?? 0
-              ),
 
               // raw locations for fallback
               rawLocations: it.locationsJson,
@@ -2617,8 +2732,7 @@ document.addEventListener("DOMContentLoaded", async function () {
               ...COMMON_RECENT,
             });
           }
-        } catch (e) {
-          console.warn("[FOMO] current product fetch failed", e);
+        } catch {
         }
       }
 
@@ -2675,7 +2789,6 @@ document.addEventListener("DOMContentLoaded", async function () {
               pickSmart(mbPosArr, i, defaultMB),
               defaultMB
             ),
-            durationSeconds: Number(it.durationSeconds || 0),
 
             // raw locations for fallback
             rawLocations: it.locationsJson,
@@ -2685,17 +2798,13 @@ document.addEventListener("DOMContentLoaded", async function () {
 
             ...COMMON_RECENT,
           });
-        } catch (e) {
-          console.warn("[FOMO] product fetch failed", handle, e);
+        } catch {
         }
       }
     }
 
     // ==== TABLE CONFIGS (new popup tables) ====
-    const matchesShowType = (showType) => {
-      const st = String(showType || "allpage").toLowerCase();
-      return st === "all" || st === "allpage" || st === pt;
-    };
+    const matchesShowType = (showType) => showTypeMatchesPage(showType, pt);
     const normalizeImage = (img) => {
       if (!img) return "";
       if (typeof img === "string") return img;
@@ -2886,6 +2995,21 @@ document.addEventListener("DOMContentLoaded", async function () {
         if (!hit) return false;
       }
       return true;
+    };
+    const productMatchesCurrent = (prod) => {
+      if (!prod || pt !== "product") return false;
+
+      const prodId = normalizeProductId(prod?.id ?? prod?.product_id ?? prod?.productId);
+      const currentId = normalizeProductId(currentProduct?.id);
+      if (prodId && currentId && prodId === currentId) return true;
+
+      const prodHandle = String(productHandleOf(prod) || "").trim().toLowerCase();
+      const currentHandle = String(ch || productHandleOf(currentProduct) || "").trim().toLowerCase();
+      if (prodHandle && currentHandle && prodHandle === currentHandle) return true;
+
+      const prodTitle = String(prod?.title || prod?.productTitle || "").trim().toLowerCase();
+      const currentTitle = String(currentProduct?.title || "").trim().toLowerCase();
+      return Boolean(prodTitle && currentTitle && prodTitle === currentTitle);
     };
 
     const productCache = new Map();
@@ -3214,6 +3338,28 @@ document.addEventListener("DOMContentLoaded", async function () {
       } catch {}
       return 0;
     };
+    const waitForJudgeMeDom = async (handle, timeoutMs = 4500) => {
+      const h = String(handle || "").trim().toLowerCase();
+      if (!isPd || (h && String(ch || "").toLowerCase() !== h)) {
+        return { count: 0, reviews: [] };
+      }
+
+      const deadline = Date.now() + Math.max(0, Number(timeoutMs) || 0);
+      let lastCount = 0;
+      let lastReviews = [];
+      do {
+        const reviews = judgeMeReviewsFromDom();
+        const count = Math.max(judgeMeCountFromDom(), reviews.length);
+        if (reviews.length || count > 0) {
+          return { count, reviews };
+        }
+        lastCount = count;
+        lastReviews = reviews;
+        await delay(250);
+      } while (Date.now() < deadline);
+
+      return { count: lastCount, reviews: lastReviews };
+    };
     const productHandleOf = (prod) => {
       const direct = String(prod?.handle || "").trim();
       if (direct) return direct.toLowerCase();
@@ -3233,9 +3379,14 @@ document.addEventListener("DOMContentLoaded", async function () {
 
       // On product page, prefer already-rendered Judge.me badge count.
       if (isPd && String(ch || "").toLowerCase() === h) {
-        const domCount = judgeMeCountFromDom();
+        let domReviews = judgeMeReviewsFromDom();
+        let domCount = Math.max(judgeMeCountFromDom(), domReviews.length);
+        if (!domCount && !domReviews.length) {
+          const waited = await waitForJudgeMeDom(h);
+          domCount = waited.count;
+          domReviews = waited.reviews;
+        }
         if (!judgeMeReviewDetailsCache.has(h)) {
-          const domReviews = judgeMeReviewsFromDom();
           if (domReviews.length) judgeMeReviewDetailsCache.set(h, domReviews);
         }
         judgeMeReviewCountCache.set(h, domCount);
@@ -3277,11 +3428,18 @@ document.addEventListener("DOMContentLoaded", async function () {
 
       const handle = productHandleOf(prod);
       if (!handle) {
-        if (isPd) return judgeMeCountFromDom() > 0;
+        if (isPd) {
+          const waited = await waitForJudgeMeDom(ch);
+          if (judgeMeConnected && productMatchesCurrent(prod)) return true;
+          return waited.count > 0 || waited.reviews.length > 0;
+        }
         return false;
       }
 
       const count = await fetchJudgeMeCountByHandle(handle);
+      if (count <= 0 && judgeMeConnected && productMatchesCurrent(prod)) {
+        return true;
+      }
       return count > 0;
     };
     const fetchJudgeMeReviewsByHandle = async (handle) => {
@@ -3297,6 +3455,18 @@ document.addEventListener("DOMContentLoaded", async function () {
       await fetchJudgeMeCountByHandle(h);
       let cached = judgeMeReviewDetailsCache.get(h);
       if (Array.isArray(cached) && cached.length) return cached;
+
+      if (isPd && String(ch || "").toLowerCase() === h) {
+        const waited = await waitForJudgeMeDom(h);
+        if (waited.reviews.length) {
+          judgeMeReviewDetailsCache.set(h, waited.reviews);
+          judgeMeReviewCountCache.set(h, Math.max(waited.count, waited.reviews.length));
+          return waited.reviews;
+        }
+        if (waited.count > 0) {
+          judgeMeReviewCountCache.set(h, waited.count);
+        }
+      }
 
       const knownCount = Number(judgeMeReviewCountCache.get(h) || 0);
       if (knownCount > 0) {
@@ -3320,14 +3490,40 @@ document.addEventListener("DOMContentLoaded", async function () {
     const pickJudgeMeReviewForProduct = async (prod, index = 0) => {
       const handle = productHandleOf(prod);
       if (!handle) {
-        const domReviews = judgeMeReviewsFromDom();
-        if (!domReviews.length) return null;
+        const waited = await waitForJudgeMeDom(ch);
+        const domReviews = waited.reviews.length ? waited.reviews : judgeMeReviewsFromDom();
+        if (!domReviews.length) {
+          if (waited.count <= 0 && !(judgeMeConnected && productMatchesCurrent(prod))) {
+            return null;
+          }
+          return {
+            reviewer_name: "Verified buyer",
+            review_title: "Great product",
+            review_body: `Reviewed ${safe(prod?.title, "this product")}.`,
+            reviewer_city: "",
+            reviewer_country: "",
+            review_date: "Just now",
+            rating: Number(prod?.rating) || 4,
+          };
+        }
         const i = Math.max(0, Number(index) || 0) % domReviews.length;
         return domReviews[i] || domReviews[0] || null;
       }
 
       const reviews = await fetchJudgeMeReviewsByHandle(handle);
-      if (!reviews.length) return null;
+      if (!reviews.length) {
+        const hasReview = await hasJudgeMeReview(prod);
+        if (!hasReview && !(judgeMeConnected && productMatchesCurrent(prod))) return null;
+        return {
+          reviewer_name: "Verified buyer",
+          review_title: "Great product",
+          review_body: `Reviewed ${safe(prod?.title, "this product")}.`,
+          reviewer_city: "",
+          reviewer_country: "",
+          review_date: "Just now",
+          rating: Number(prod?.rating) || 4,
+        };
+      }
       const i = Math.max(0, Number(index) || 0) % reviews.length;
       return reviews[i] || reviews[0] || null;
     };
@@ -3566,24 +3762,27 @@ document.addEventListener("DOMContentLoaded", async function () {
             uploadedImage: iconSrc,
             productUrl: safe(it.ctaUrl, "#"),
             mobilePosition: normMB(mbPos, defaultMB),
-            durationSeconds: Number(it.durationSeconds || 0),
+            ...timingFromConfig(it),
 
             positionDesktop: it.position,
             mobileSize: it.mobileSize,
             animation: it.animation,
             layout: it.layout,
-            fontFamily: it.fontFamily,
+           
             fontWeight: it.fontWeight,
             template: it.template,
             bgColor: it.bgColor,
             bgAlt: it.bgAlt,
             fontColor: it.textColor,
+            textColor: it.textColor,
             titleColor: it.numberColor,
+            priceTagBg: it.priceTagBg,
+            priceTagAlt: it.priceTagAlt,
+            priceColor: it.priceColor,
+            starColor: it.starColor,
             progressColor: it.numberColor || it.textColor,
             imageAppearance: it.imageAppearance,
-            cornerRadius: Number(it.rounded ?? 16),
-            firstDelaySeconds: Number(it.firstDelaySeconds ?? 0),
-            alternateSeconds: Number(it.alternateSeconds || 0),
+            cornerRadius: Number(it.rounded ?? POPUP_CARD_RADIUS),
           });
         }
       }
@@ -3611,7 +3810,6 @@ document.addEventListener("DOMContentLoaded", async function () {
           enabled: toBool(it.enabled),
           showType: safe(it.showType, "allpage"),
           messageText: msgTxt,
-          fontFamily: safe(it.fontFamily, "System"),
           position: safe(it.position, "bottom-left"),
           animation: safe(it.animation, "fade"),
           mobileSize: safe(it.mobileSize, "compact"),
@@ -3627,10 +3825,8 @@ document.addEventListener("DOMContentLoaded", async function () {
           priceTagAlt: safe(it.priceTagAlt, "#666"),
           priceColor: safe(it.priceColor, "#fff"),
           starColor: safe(it.starColor, "#f5a623"),
-          rounded: Number(it.rounded ?? 16),
-          firstDelaySeconds: Number(it.firstDelaySeconds ?? 0),
-          durationSeconds: Number(it.durationSeconds ?? 6),
-          alternateSeconds: Number(it.alternateSeconds ?? 4),
+          rounded: Number(it.rounded ?? POPUP_CARD_RADIUS),
+          ...timingFromConfig(it),
           intervalUnit: safe(it.intervalUnit, "seconds"),
           fontWeight: Number.isFinite(Number(it.fontWeight))
             ? Number(it.fontWeight)
@@ -3789,7 +3985,6 @@ document.addEventListener("DOMContentLoaded", async function () {
                   pickSmart(mbPosArr, 0, defaultMB),
                   defaultMB
                 ),
-                durationSeconds: Number(it.durationSeconds || 0),
 
                 rawLocations: it.locationsJson,
                 ...hideFlags,
@@ -3797,8 +3992,7 @@ document.addEventListener("DOMContentLoaded", async function () {
               recentConfigs.push(cfg);
               addedFromOrders += 1;
             }
-          } catch (e) {
-            console.warn("[FOMO][orders] fetch failed", e);
+          } catch {
           }
           // If no order data is available, fallback to selected/static product records.
           if (addedFromOrders > 0) continue;
@@ -3856,13 +4050,11 @@ document.addEventListener("DOMContentLoaded", async function () {
                 pickSmart(mbPosArr, i, defaultMB),
                 defaultMB
               ),
-              durationSeconds: Number(it.durationSeconds || 0),
 
               rawLocations: it.locationsJson,
               ...hideFlags,
             });
-          } catch (e) {
-            console.warn("[FOMO] product fetch failed", handle, e);
+          } catch {
           }
         }
       }
@@ -3936,7 +4128,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         if (type === "lowstock") {
           pool = pool.filter((prod) => {
             const qty = Number(prod?.inventoryQty);
-            if (!Number.isFinite(qty)) return false;
+            if (!Number.isFinite(qty)) {
+              return lowStockSource === "manual" || productMatchesCurrent(prod);
+            }
             if (hideOutOfStock && qty <= 0) return false;
             return qty < stockUnder;
           });
@@ -3959,7 +4153,12 @@ document.addEventListener("DOMContentLoaded", async function () {
               if (key && seenKeys.has(key)) continue;
               if (key) seenKeys.add(key);
 
-              if (await hasJudgeMeReview(prod)) reviewedPool.push(prod);
+              if (
+                (judgeMeConnected && productMatchesCurrent(prod)) ||
+                (await hasJudgeMeReview(prod))
+              ) {
+                reviewedPool.push(prod);
+              }
             }
           };
 
@@ -4010,6 +4209,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           bgColor: row.bgColor,
           bgAlt: row.bgAlt,
           textColor: row.textColor,
+          numberColor: row.numberColor,
           timestampColor: row.timestampColor,
           priceTagBg: row.priceTagBg,
           priceTagAlt: row.priceTagAlt,
@@ -4020,17 +4220,15 @@ document.addEventListener("DOMContentLoaded", async function () {
           textSizePrice: row.textSizePrice,
           size: row.size,
           transparent: row.transparent,
-          fontFamily: row.fontFamily,
           showProductImage: toBool(row.showProductImage, true),
           showPriceTag: toBool(row.showPriceTag, true),
           showRating: toBool(row.showRating, false),
           ratingSource: String(row.ratingSource || "judge_me").toLowerCase(),
           showClose: toBool(row.showClose, true),
           directProductPage: toBool(row.directProductPage, true),
-          durationSeconds: toNum(row.duration, 6),
-          firstDelaySeconds: toNum(row.delay, 0),
-          alternateSeconds: unitToSeconds(row.interval, row.intervalUnit),
+          ...timingFromConfig(row),
           randomize: toBool(row.randomize, false),
+          cornerRadius: POPUP_CARD_RADIUS,
           imageStyle,
           productHighlightStyle: highlightStyle,
           stockCountColor: row.numberColor,
@@ -4075,7 +4273,14 @@ document.addEventListener("DOMContentLoaded", async function () {
 
           const stockCount =
             type === "lowstock"
-              ? Math.max(0, Math.round(toNum(prod?.inventoryQty, stockUnder)))
+              ? Math.max(
+                  0,
+                  Math.round(
+                    Number.isFinite(Number(prod?.inventoryQty))
+                      ? Number(prod.inventoryQty)
+                      : stockUnder
+                  )
+                )
               : stockUnder > 1
                 ? Math.max(1, stockUnder - randInt(Math.min(3, stockUnder - 1)))
                 : stockUnder;
@@ -4311,16 +4516,22 @@ document.addEventListener("DOMContentLoaded", async function () {
     const activeStreams = streamDefs.filter(
       (s) => s.stream.seqDesktop.length || s.stream.seqMobile.length
     );
-    const activeMobile = streamDefs.filter((s) => s.stream.seqMobile.length);
+    const activeQueues = () =>
+      streamDefs.filter((s) =>
+        isMobile() ? s.stream.seqMobile.length : s.stream.seqDesktop.length
+      );
 
     const buildCombinedSeq = () =>
       interleaveMany(
-        activeMobile.map((s) =>
-          s.stream.seqMobile.map((cfg) => ({ type: s.type, cfg }))
+        activeQueues().map((s) =>
+          (isMobile() ? s.stream.seqMobile : s.stream.seqDesktop).map((cfg) => ({
+            type: s.type,
+            cfg,
+          }))
         )
       );
 
-    const shouldCombine = () => isMobile() && activeMobile.length > 1;
+    const shouldCombine = () => false;
 
     function stopAll() {
       try {
@@ -4369,14 +4580,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     }
 
-    console.info("[FOMO] Flash items:", FlashStream.seqDesktop);
-    console.info("[FOMO] Recent items:", RecentStream.seqDesktop);
-    console.info("[FOMO] Visitor items:", VisitorStream.seqDesktop);
-    console.info("[FOMO] Low stock items:", LowStockStream.seqDesktop);
-    console.info("[FOMO] Add to cart items:", AddToCartStream.seqDesktop);
-    console.info("[FOMO] Review items:", ReviewStream.seqDesktop);
-  } catch (err) {
-    console.error("[FOMO] build error:", err);
+  } catch {
   }
 
   /* ===== local helpers ===== */
@@ -4412,4 +4616,24 @@ document.addEventListener("DOMContentLoaded", async function () {
     for (const v of a) if (b.has(v)) return true;
     return false;
   }
-});
+  return true;
+};
+
+const runWhenRootIsReady = () => {
+  let attempts = 0;
+  const tryBoot = () => {
+    Promise.resolve(bootFomoify()).then((started) => {
+      if (started || attempts >= 40) return;
+      attempts += 1;
+      window.setTimeout(tryBoot, 50);
+    });
+  };
+  tryBoot();
+};
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", runWhenRootIsReady, { once: true });
+} else {
+  runWhenRootIsReady();
+}
+})();

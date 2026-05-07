@@ -33,6 +33,16 @@ const TYPE_DEFINITIONS = [
   { key: "lowstock", label: "Low Stock", sourceTypes: ["lowstock"] },
   { key: "flash", label: "Flash Sale", sourceTypes: ["flash", "discount"] },
   { key: "review", label: "Reviews", sourceTypes: ["review", "reviews"] },
+  {
+    key: "visitor-block",
+    label: "Visitor Announcement",
+    sourceTypes: ["visitor-block", "visitorblock", "visitor_announcement"],
+  },
+  {
+    key: "stock-block",
+    label: "Stock Announcement",
+    sourceTypes: ["stock-block", "stockblock", "stock_announcement"],
+  },
 ];
 
 const normalizePopupType = (value) =>

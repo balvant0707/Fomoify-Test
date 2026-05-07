@@ -15,6 +15,7 @@ import {
   TextField,
   Toast,
 } from "@shopify/polaris";
+import { DeleteIcon, EditIcon, ViewIcon } from "@shopify/polaris-icons";
 import {
   Form,
   useFetcher,
@@ -33,6 +34,8 @@ const TITLES = {
   lowstock: "Low Stock Popup",
   addtocart: "Add to Cart Popup",
   review: "Review Notification",
+  "visitor-block": "Visitor Block",
+  "stock-block": "Stock Block",
 };
 const ALLOWED_TYPES = new Set(["all", ...Object.keys(TITLES)]);
 const ALLOWED_STATUSES = new Set(["all", "enabled", "disabled"]);
@@ -53,8 +56,42 @@ function pretty(str) {
 }
 
 function showTypeLabel(val) {
-  const found = pageOptions.find((o) => o.value === val);
-  return found?.label || pretty(val);
+  const raw = String(val || "").trim();
+  const normalized = raw.toLowerCase();
+  if (normalized.includes(",")) {
+    const labels = normalized
+      .split(",")
+      .map((part) => showTypeLabel(part))
+      .filter(Boolean);
+    const unique = [...new Set(labels)];
+    return unique.length ? unique.join(", ") : "All page";
+  }
+  const aliases = {
+    all: "All page",
+    allpage: "All page",
+    "all pages": "All page",
+    "all page": "All page",
+    home: "Home Page",
+    product: "Product Page",
+    collection_list: "Collection List",
+    collectionlist: "Collection List",
+    collection: "Collection Page",
+    pages: "Pages",
+    cart: "Cart Page",
+  };
+  if (aliases[normalized]) return aliases[normalized];
+  if (normalized.includes("product") && normalized.includes("specific")) {
+    return "Product Page (specific)";
+  }
+  if (normalized.includes("collection") && normalized.includes("specific")) {
+    return "Collection Page (specific)";
+  }
+  if (normalized === "product (all)") return "Product Page (all)";
+  if (normalized === "collection (all)") return "Collection Page (all)";
+  const found = pageOptions.find((o) => o.value === normalized);
+  if (found) return found.label;
+  if (!raw) return "All page";
+  return raw;
 }
 
 function formatLines(val) {
@@ -111,6 +148,8 @@ function formatLines(val) {
 
 function getTitleDisplay(row) {
   if (row.key === "recent") return "Recent Order Popup";
+  if (row.key === "visitor-block") return "Visitor Block";
+  if (row.key === "stock-block") return "Stock Block";
   if (row.key === "flash") {
     return (
       (row.messageTitle && row.messageTitle.trim?.()) ||
@@ -218,13 +257,13 @@ export default function NotificationTable({
   const closeDelete = useCallback(() => setDelRow(null), []);
   const confirmDelete = useCallback(() => {
     if (!delRow) return;
-    const id = delRow.id;
     const key = delRow.key;
+    const id = delRow.id;
     setDelRow(null);
     setShowDeleted(true);
     setDeletedIds((prev) => {
       const next = new Set(prev);
-      next.add(id);
+      next.add(`${key}:${id}`);
       return next;
     });
     const fd = new FormData();
@@ -283,13 +322,45 @@ export default function NotificationTable({
     submit(fd, { method: "get", replace: true });
   };
 
+  const editUrlFor = (row) => {
+    if (row.key === "visitor-block") return "/app/visitor-announcement";
+    if (row.key === "stock-block") return "/app/stock-announcement";
+    return `/app/notification/${row.key}/edit/${row.id}`;
+  };
+
+  const themeEditorUrlFor = (row) => {
+    if (!["visitor-block", "stock-block"].includes(row.key)) return "";
+    const apiKey = filters?.apiKey || "";
+    if (!apiKey) return "";
+    const blockHandle =
+      row.key === "stock-block" ? "fomo-stock-block" : "fomo-popup-block";
+    const params = new URLSearchParams({
+      template: "product",
+      addAppBlockId: `${apiKey}/${blockHandle}`,
+      target: "mainSection",
+    });
+    if (filters?.shopDomain) {
+      return `https://${filters.shopDomain}/admin/themes/current/editor?${params.toString()}`;
+    }
+    if (filters?.slug) {
+      return `https://admin.shopify.com/store/${filters.slug}/themes/current/editor?${params.toString()}`;
+    }
+    return "";
+  };
+
+  const openThemeEditorFor = (row) => {
+    const url = themeEditorUrlFor(row);
+    if (!url) return;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   const qLower = (query || "").trim().toLowerCase();
   const safeRows = Array.isArray(rows) ? rows : [];
 
   const filtered = useMemo(() => {
     if (!isIdleReady) return [];
 
-    let list = safeRows.filter((r) => !deletedIds.has(r.id));
+    let list = safeRows.filter((r) => !deletedIds.has(`${r.key}:${r.id}`));
     if (currentType !== "all") {
       list = list.filter((r) => r.key === currentType);
     }
@@ -449,8 +520,8 @@ export default function NotificationTable({
               >
                 {visibleRows.map((row, index) => {
                   const titleDisplay = getTitleDisplay(row);
-                  const textDisplay = getMessageDisplay(row);
                   const nextEnabled = !row.enabled;
+                  const themeEditorUrl = themeEditorUrlFor(row);
 
                   return (
                     <IndexTable.Row
@@ -517,17 +588,24 @@ export default function NotificationTable({
                       <IndexTable.Cell>
                         <InlineStack align="start" gap="200">
                           <Button
-                            onClick={() => navigate(`/app/notification/${row.key}`)}
-                          >
-                            Edit
-                          </Button>
+                            icon={EditIcon}
+                            accessibilityLabel={`Edit ${TITLES[row.key] || "notification"}`}
+                            onClick={() => navigate(editUrlFor(row))}
+                          />
+                          {themeEditorUrl ? (
+                            <Button
+                              icon={ViewIcon}
+                              accessibilityLabel={`Add ${TITLES[row.key] || "block"} to product page`}
+                              onClick={() => openThemeEditorFor(row)}
+                            />
+                          ) : null}
                           <Button
+                            icon={DeleteIcon}
+                            accessibilityLabel={`Delete ${TITLES[row.key] || "notification"}`}
                             tone="critical"
                             variant="secondary"
                             onClick={() => openDelete(row)}
-                          >
-                            Delete
-                          </Button>
+                          />
                         </InlineStack>
                       </IndexTable.Cell>
                     </IndexTable.Row>

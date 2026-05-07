@@ -6,6 +6,7 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { getOrSetCache } from "../utils/serverCache.server";
 import NotificationTable from "../components/dashboard/NotificationTable";
+import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
 const POPUP_KEYS = [
   "recent",
@@ -14,6 +15,8 @@ const POPUP_KEYS = [
   "lowstock",
   "addtocart",
   "review",
+  "visitor-block",
+  "stock-block",
 ];
 const ALLOWED_TYPES = new Set(["all", ...POPUP_KEYS]);
 const ALLOWED_STATUSES = new Set(["all", "enabled", "disabled"]);
@@ -88,6 +91,23 @@ const legacySelectByKey = {
     message: true,
     timestamp: true,
   },
+  "visitor-block": {
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+    enabled: true,
+    template: true,
+    productScope: true,
+  },
+  "stock-block": {
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+    enabled: true,
+    quantityText: true,
+    inStockText: true,
+    productScope: true,
+  },
 };
 
 const hasMissingColumnError = (error) => {
@@ -114,38 +134,64 @@ const tableModel = (key) => {
       return prisma.addtocartpopupconfig || prisma.addToCartPopupConfig || null;
     case "review":
       return prisma.reviewpopupconfig || prisma.reviewPopupConfig || null;
+    case "visitor-block":
+      return prisma.visitorannouncementconfig || prisma.visitorAnnouncementConfig || null;
+    case "stock-block":
+      return prisma.stockannouncementconfig || prisma.stockAnnouncementConfig || null;
     default:
       return null;
   }
 };
 
-const deriveShowType = (row) => {
-  if (!row) return "allpage";
-  const flags = [
-    row.showHome,
-    row.showProduct,
-    row.showCollection,
-    row.showCollectionList,
-    row.showCart,
-  ];
-  const enabledCount = flags.filter(Boolean).length;
-  if (enabledCount === 0) return "allpage";
-  if (enabledCount > 1) return "allpage";
-  if (row.showHome) return "home";
-  if (row.showProduct) return "product";
-  if (row.showCollection || row.showCollectionList) return "collection";
-  if (row.showCart) return "cart";
-  return "allpage";
+const deriveShowType = (row, key) => {
+  if (!row) return "All pages";
+
+  if (key === "visitor-block" || key === "stock-block") {
+    const scope = String(row.productScope || "all").toLowerCase();
+    return scope === "specific" ? "Product (specific)" : "Product (all)";
+  }
+
+  const legacyShowType = String(row.showType || "").trim().toLowerCase();
+  if (legacyShowType && legacyShowType !== "allpage" && legacyShowType !== "all pages") {
+    return row.showType;
+  }
+
+  const pages = [];
+  const allSelected =
+    Boolean(row.showHome) &&
+    Boolean(row.showProduct) &&
+    Boolean(row.showCollectionList) &&
+    Boolean(row.showCollection) &&
+    Boolean(row.showCart);
+  if (allSelected) return "All page";
+
+  if (row.showHome) pages.push("Home page");
+  if (row.showProduct) {
+    const scope = String(row.productScope || "all").toLowerCase();
+    pages.push(scope === "specific" ? "Product page (specific)" : "Product page");
+  }
+  if (row.showCollectionList) pages.push("Collection list");
+  if (row.showCollection) {
+    const scope = String(row.collectionScope || "all").toLowerCase();
+    pages.push(scope === "specific" ? "Collection page (specific)" : "Collection page");
+  }
+  if (row.showCart) pages.push("Cart page");
+
+  if (pages.length === 0) return "All page";
+  return pages.join(", ");
 };
 
 const normalizeRow = (row, key) => ({
   ...row,
   key,
   enabled: row.enabled === true || row.enabled === 1 || row.enabled === "1",
-  showType: row.showType || deriveShowType(row),
+  showType: deriveShowType(row, key),
   messageText:
     row.messageText ||
     row.message ||
+    row.template ||
+    row.quantityText ||
+    row.inStockText ||
     row.name ||
     row.messageTitle ||
     row.title ||
@@ -200,6 +246,15 @@ export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
   const url = new URL(request.url);
   const normalizeShop = (value) => String(value || "").trim().toLowerCase();
+  const toShopSlug = (value) => {
+    const raw = normalizeShop(value).replace(/^https?:\/\//, "");
+    const domainMatch = raw.match(/^([a-z0-9-]+)\.myshopify\.com\b/);
+    if (domainMatch?.[1]) return domainMatch[1];
+    return raw
+      .split(/[/?#]/)[0]
+      .replace(".myshopify.com", "")
+      .trim();
+  };
   const shop =
     normalizeShop(session?.shop) || normalizeShop(url.searchParams.get("shop"));
 
@@ -213,9 +268,17 @@ export const loader = async ({ request }) => {
   const page = Math.max(parseInt(url.searchParams.get("page") || "1", 10), 1);
   const pageSizeRaw = parseInt(url.searchParams.get("pageSize") || "10", 10);
   const pageSize = [10, 25, 50].includes(pageSizeRaw) ? pageSizeRaw : 10;
+  const apiKey =
+    process.env.SHOPIFY_API_KEY ||
+    process.env.SHOPIFY_APP_BRIDGE_APP_ID ||
+    "";
+  const slug = toShopSlug(shop);
+  const shopDomain = slug ? `${slug}.myshopify.com` : "";
 
-  const rowsPromise = getOrSetCache(`notification:rows:${shop}`, 10000, () =>
-    fetchRows(shop)
+  const justSaved = url.searchParams.get("saved") === "1";
+  const rowsPromise = (justSaved
+    ? fetchRows(shop)
+    : getOrSetCache(`notification:rows:${shop}`, 10000, () => fetchRows(shop))
   ).catch((error) => {
     console.error("[notification.manage.loader] Prisma error:", error);
     return {
@@ -226,7 +289,7 @@ export const loader = async ({ request }) => {
   });
 
   return defer({
-    critical: { page, pageSize, filters: { type, status, q } },
+    critical: { page, pageSize, filters: { type, status, q }, shopDomain, slug, apiKey },
     rows: rowsPromise,
   });
 };
@@ -329,48 +392,56 @@ export default function NotificationManagePage() {
       title="Manage Notifications"
       backAction={{ content: "Back", url: "/app/notification" }}
     >
-      <Suspense
-        fallback={
-          <Card>
-            <div
-              style={{
-                padding: 16,
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <Spinner size="small" />
-              <Text as="span" tone="subdued">
-                Loading notifications...
-              </Text>
-            </div>
-          </Card>
-        }
-      >
-        <Await
-          resolve={rows}
-          errorElement={
+      <NotificationPageStyles />
+      <div className="notification-page">
+        <Suspense
+          fallback={
             <Card>
-              <div style={{ padding: 16 }}>
-                <Text as="p" tone="critical">
-                  Failed to load notifications.
+              <div
+                style={{
+                  padding: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <Spinner size="small" />
+                <Text as="span" tone="subdued">
+                  Loading notifications...
                 </Text>
               </div>
             </Card>
           }
         >
-          {(data) => (
-            <NotificationTable
-              rows={data.rows}
-              total={data.total}
-              page={critical.page}
-              pageSize={critical.pageSize}
-              filters={critical.filters}
-            />
-          )}
-        </Await>
-      </Suspense>
+          <Await
+            resolve={rows}
+            errorElement={
+              <Card>
+                <div style={{ padding: 16 }}>
+                  <Text as="p" tone="critical">
+                    Failed to load notifications.
+                  </Text>
+                </div>
+              </Card>
+            }
+          >
+            {(data) => (
+              <NotificationTable
+                rows={data.rows}
+                total={data.total}
+                page={critical.page}
+                pageSize={critical.pageSize}
+                filters={{
+                  ...critical.filters,
+                  shopDomain: critical.shopDomain,
+                  slug: critical.slug,
+                  apiKey: critical.apiKey,
+                }}
+              />
+            )}
+          </Await>
+        </Suspense>
+      </div>
     </Page>
   );
 }

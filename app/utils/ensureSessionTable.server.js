@@ -21,36 +21,87 @@ CREATE TABLE IF NOT EXISTS \`session\` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 `;
 
-export async function ensurePrismaSessionTable(prismaClient) {
-  try {
-    const existingTables = await prismaClient.$queryRaw`
-      SELECT table_name AS tableName
-      FROM information_schema.tables
-      WHERE table_schema = DATABASE()
-        AND table_name IN ('session', 'Session')
-    `;
+const MAX_RETRIES = 3;
 
-    const tableNames = new Set(
-      existingTables.map((row) => String(row.tableName || ""))
-    );
+// Module-level flag: once the table is verified in this process, skip future checks.
+// In serverless (Lambda), each instance checks once then reuses the flag.
+let sessionTableReady = false;
 
-    const hasLowercaseTable = tableNames.has("session");
-    const hasUppercaseTable = tableNames.has("Session");
+export function resetPrismaSessionTableReady() {
+  sessionTableReady = false;
+}
 
-    if (!hasLowercaseTable && hasUppercaseTable) {
-      await prismaClient.$executeRawUnsafe(
-        "RENAME TABLE `Session` TO `session`"
-      );
-      return;
-    }
+function isConnectionLimitError(err) {
+  const msg = err?.message || err?.cause?.message || "";
+  return msg.includes("max_user_connections") || msg.includes("1203");
+}
 
-    if (!hasLowercaseTable) {
-      await prismaClient.$executeRawUnsafe(CREATE_SESSION_TABLE_SQL);
-    }
-  } catch (error) {
-    throw new Error(
-      "Failed to prepare Prisma session table. Run `prisma migrate deploy` or grant CREATE/RENAME permissions.",
-      { cause: error }
-    );
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function runTableCheck(prismaClient) {
+  const existingTables = await prismaClient.$queryRaw`
+    SELECT table_name AS tableName
+    FROM information_schema.tables
+    WHERE table_schema = DATABASE()
+      AND table_name IN ('session', 'Session')
+  `;
+
+  const tableNames = new Set(
+    existingTables.map((row) => String(row.tableName || ""))
+  );
+
+  const hasLowercaseTable = tableNames.has("session");
+  const hasUppercaseTable = tableNames.has("Session");
+
+  if (!hasLowercaseTable && hasUppercaseTable) {
+    await prismaClient.$executeRawUnsafe("RENAME TABLE `Session` TO `session`");
+    return;
   }
+
+  if (!hasLowercaseTable) {
+    await prismaClient.$executeRawUnsafe(CREATE_SESSION_TABLE_SQL);
+  }
+}
+
+export async function ensurePrismaSessionTable(prismaClient, options = {}) {
+  if (sessionTableReady && !options.force) return;
+
+  let lastError;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      await sleep(400 * attempt);
+    }
+    try {
+      await runTableCheck(prismaClient);
+      sessionTableReady = true;
+      return;
+    } catch (error) {
+      // Connection-limit errors won't resolve with retries — fail fast to avoid
+      // compounding the connection count on an already-saturated DB user.
+      if (isConnectionLimitError(error)) {
+        // Connections are saturated, which means the app is already running —
+        // the session table must already exist. Mark ready to stop the cascade
+        // where each retry opens another connection and makes things worse.
+        console.warn(
+          "[SessionTable] DB connections saturated — assuming session table exists and marking ready.",
+          error?.message || error
+        );
+        throw error;
+      }
+      if (attempt < MAX_RETRIES - 1) {
+        lastError = error;
+        continue;
+      }
+      throw new Error(
+        "Failed to prepare Prisma session table. Run `prisma migrate deploy` or grant CREATE/RENAME permissions.",
+        { cause: error }
+      );
+    }
+  }
+  throw new Error(
+    "Failed to prepare Prisma session table. Run `prisma migrate deploy` or grant CREATE/RENAME permissions.",
+    { cause: lastError }
+  );
 }

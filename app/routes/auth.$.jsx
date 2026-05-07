@@ -1,6 +1,6 @@
 // app/routes/auth.$.jsx
 import { redirect } from "@remix-run/node";
-import { authenticate, registerWebhooks } from "../shopify.server";
+import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { ensureShopRow } from "../utils/ensureShop.server";
 import { sendOwnerEmail } from "../utils/sendOwnerEmail.server";
@@ -31,8 +31,7 @@ export const loader = async ({ request }) => {
   // Safety net: even if above silently skips, ensure row exists from session table
   await ensureShopRow(shop);
 
-  // Register all webhooks
-  await registerWebhooks({ session });
+  // Webhook subscriptions are managed by shopify.app.toml.
 
   // 🔔 Send email on every successful auth (install / re-auth)
   // If you only want FIRST install, wrap this block in:

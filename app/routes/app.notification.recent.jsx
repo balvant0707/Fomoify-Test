@@ -32,6 +32,8 @@ import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { saveRecentPopup } from "../models/popup-config.server";
+import { PopupPreviewPanel } from "../components/notification/PopupPreviewPanel";
+import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
 /* ---------------- constants ---------------- */
 const KEY = "recent";
@@ -48,45 +50,41 @@ const initVisibility = (showType) => {
     showCollection: false,
     showCart: false,
   };
-  switch (showType) {
-    case "home":
-      return { ...base, showHome: true };
-    case "product":
-      return { ...base, showProduct: true };
-    case "collection":
-      return { ...base, showCollection: true, showCollectionList: true };
-    case "cart":
-      return { ...base, showCart: true };
-    case "allpage":
-    default:
-      return {
-        ...base,
-        showHome: true,
-        showProduct: true,
-        showCollection: true,
-        showCollectionList: true,
-        showCart: true,
-      };
+  const parts = String(showType || "allpage")
+    .toLowerCase()
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (!parts.length || parts.includes("all") || parts.includes("allpage")) {
+    return {
+      ...base,
+      showHome: true,
+      showProduct: true,
+      showCollection: true,
+      showCollectionList: true,
+      showCart: true,
+    };
   }
+  return {
+    ...base,
+    showHome: parts.includes("home"),
+    showProduct: parts.includes("product"),
+    showCollectionList:
+      parts.includes("collection_list") || parts.includes("collectionlist"),
+    showCollection: parts.includes("collection"),
+    showCart: parts.includes("cart"),
+  };
 };
 
 const visibilityToShowType = (visibility) => {
-  const flags = [
-    visibility.showHome,
-    visibility.showProduct,
-    visibility.showCollection,
-    visibility.showCollectionList,
-    visibility.showCart,
-  ];
-  const enabledCount = flags.filter(Boolean).length;
-  if (enabledCount === 0) return "allpage";
-  if (enabledCount > 1) return "allpage";
-  if (visibility.showHome) return "home";
-  if (visibility.showProduct) return "product";
-  if (visibility.showCollection || visibility.showCollectionList)
-    return "collection";
-  if (visibility.showCart) return "cart";
-  return "allpage";
+  const selected = [];
+  if (visibility.showHome) selected.push("home");
+  if (visibility.showProduct) selected.push("product");
+  if (visibility.showCollectionList) selected.push("collection_list");
+  if (visibility.showCollection) selected.push("collection");
+  if (visibility.showCart) selected.push("cart");
+  if (selected.length === 0 || selected.length === 5) return "allpage";
+  return selected.join(",");
 };
 const HIDE_CHOICES = [
   { label: "Customer Name", value: "name" },
@@ -179,6 +177,26 @@ const RECENT_STYLES = `
   flex: 1;
   min-width: 320px;
 }
+.recent-preview .popup-preview-panel__header {
+  border-bottom: 0;
+}
+.recent-preview .popup-preview-panel__surface {
+  min-height: 300px;
+  padding: 0px 0px 0 30px;
+  align-items: center;
+}
+  .recent-preview.is-layout-portrait .popup-preview-panel__surface {
+    padding: 0 !important;
+}
+.recent-preview.is-fit-image .popup-preview-panel__surface {
+  padding: 0;
+}
+.recent-preview.is-fit-image .popup-preview-panel {
+    padding-right: var(--p-space-400);
+  }
+.recent-preview .popup-preview-panel__content {
+  max-width: 100%;
+}
 .recent-preview-box {
   border-radius: 16px;
   min-height: 320px;
@@ -211,6 +229,13 @@ const RECENT_STYLES = `
   .recent-form,
   .recent-preview {
     min-width: 0;
+  }
+  .recent-preview .popup-preview-panel__surface {
+    min-height: 360px;
+    padding: 40px 12px 32px;
+  }
+  .recent-preview.is-fit-image .popup-preview-panel__surface {
+    padding: 0;
   }
 }
 `;
@@ -301,17 +326,17 @@ const clampDaysParam = (value, fallback = 1) => {
 const DEFAULT_PREVIEW = {
   firstName: "Customer",
   lastName: "Name",
-  city: "Sample City",
+  city: "Lacation",
   state: "",
-  country: "Sample Country",
+  country: "",
   createdAt: new Date().toISOString(),
-  productTitle: "Your product will show here",
+  productTitle: "Product Title",
   productImage: null,
   productPrice: "99.00",
   productCompareAt: "129.00",
   products: [
     {
-      title: "Your product will show here",
+      title: "Product Title",
       image: null,
       handle: "",
       price: "99.00",
@@ -337,6 +362,7 @@ const DEFAULT_SAVED = {
   priceTagAlt: "#E66465",
   priceColor: "#FFFFFF",
   starColor: "#F06663",
+  fontSize: "12",
   rounded: "4",
   firstDelaySeconds: 1,
   durationSeconds: 8,
@@ -590,7 +616,12 @@ async function persistCustomerProductHandles(prismaClient, shop, orders) {
     if (!prismaClient) throw new Error("Prisma not available");
     const table =
       prismaClient.customerproducthandle || prismaClient.customerProductHandle;
-    if (!table) throw new Error("Prisma model missing: customerProductHandle");
+    if (!table) {
+      console.warn(
+        "[persistCustomerProductHandles] skipped: Prisma model missing customerproducthandle"
+      );
+      return { inserted: 0, total: 0, skipped: true };
+    }
     const rows = flattenCustomerProductRows(shop, orders);
     if (!rows.length) return { inserted: 0, total: 0 };
     const CHUNK = 200;
@@ -808,7 +839,8 @@ export async function loader({ request }) {
         priceTagAlt: source?.priceTagAlt ?? "#E66465",
         priceColor: source?.priceColor ?? "#FFFFFF",
         starColor: source?.starColor ?? "#F06663",
-        rounded: String(source?.rounded ?? 14),
+        fontSize: String(source?.fontSize ?? source?.rounded ?? 12),
+        rounded: String(source?.rounded ?? 12),
         firstDelaySeconds: Number(source?.firstDelaySeconds ?? 1),
         durationSeconds: Number(source?.durationSeconds ?? 1),
         alternateSeconds: Number(source?.alternateSeconds ?? 10),
@@ -855,9 +887,14 @@ export async function loader({ request }) {
 
 /* ---------------- action ---------------- */
 export async function action({ request }) {
-  const { admin, session } = await authenticate.admin(request);
+  let admin, session;
+  try {
+    ({ admin, session } = await authenticate.admin(request));
+  } catch {
+    return json({ success: false, error: "Auth temporarily unavailable." }, { status: 503 });
+  }
   const shop = session?.shop;
-  if (!shop) throw new Response("Unauthorized", { status: 401 });
+  if (!shop) return json({ success: false, error: "Unauthorized" }, { status: 401 });
 
   let body;
   try {
@@ -910,30 +947,56 @@ export async function action({ request }) {
 
   // 2) Strong validation: require at least one product handle
   const allHandlesWindow = collectAllProductHandles(orders);
+  const existingProductHandles = Array.isArray(form?.selectedProductsJson)
+    ? form.selectedProductsJson
+    : [];
+  const canReuseExistingRecentData =
+    existingProductHandles.length > 0 ||
+    (Array.isArray(form?.messageTitlesJson) && form.messageTitlesJson.length > 0) ||
+    (Array.isArray(form?.locationsJson) && form.locationsJson.length > 0);
   if (!orders || orders.length === 0 || allHandlesWindow.length === 0) {
-    // No usable orders => 422 validation (not 500)
-    return json(
-      {
-        success: false,
-        error:
-          "No usable orders found in the selected window. Try selecting fewer days or wait until you have some orders with products.",
-        validation: "NO_USABLE_ORDERS",
-      },
-      { status: 422 }
-    );
+    if (!canReuseExistingRecentData) {
+      // No usable orders => 422 validation (not 500)
+      return json(
+        {
+          success: false,
+          error:
+            "No usable orders found in the selected window. Try selecting fewer days or wait until you have some orders with products.",
+          validation: "NO_USABLE_ORDERS",
+        },
+        { status: 422 }
+      );
+    }
   }
 
   // 3) Persist only after validation
-  try {
-    const persistRes = await persistCustomerProductHandles(prisma, shop, orders);
-    if (persistRes?.error)
-      console.warn("[action] persist warning:", persistRes.error);
-  } catch (e) {
-    console.error("[action] persist failed:", e);
+  if (orders.length > 0 && allHandlesWindow.length > 0) {
+    try {
+      const persistRes = await persistCustomerProductHandles(prisma, shop, orders);
+      if (persistRes?.error)
+        console.warn("[action] persist warning:", persistRes.error);
+    } catch (e) {
+      console.error("[action] persist failed:", e);
+    }
   }
 
   // 4) Build save payload
   const { locations, customerNames } = deriveBucketsFromOrders(orders);
+  const nextLocations =
+    locations?.length
+      ? locations
+      : Array.isArray(form?.locationsJson)
+        ? form.locationsJson
+        : [];
+  const nextCustomerNames =
+    customerNames?.length
+      ? customerNames
+      : Array.isArray(form?.messageTitlesJson)
+        ? form.messageTitlesJson
+        : [];
+  const nextProductHandles = allHandlesWindow.length
+    ? allHandlesWindow
+    : existingProductHandles;
   const newestOrderCreatedAtISO =
     orders.length > 0 && orders[0]?.createdAt
       ? trimIso(String(orders[0].createdAt))
@@ -942,14 +1005,15 @@ export async function action({ request }) {
   const recentForm = {
     ...form,
     editId,
-    messageTitlesJson: customerNames || [],
-    locationsJson: locations || [],
+    rounded: form?.fontSize ?? form?.rounded,
+    messageTitlesJson: nextCustomerNames || [],
+    locationsJson: nextLocations || [],
     namesJson: Array.isArray(form?.namesJson) ? form.namesJson : [],
-    selectedProductsJson: allHandlesWindow || [],
+    selectedProductsJson: nextProductHandles || [],
     mobilePosition: Array.isArray(form?.mobilePosition)
       ? form.mobilePosition
       : [form?.mobilePosition || "bottom"],
-    createOrderTime: newestOrderCreatedAtISO ?? null,
+    createOrderTime: newestOrderCreatedAtISO ?? form?.createOrderTime ?? null,
     orderDays: Number(fetchDays),
   };
 
@@ -959,11 +1023,11 @@ export async function action({ request }) {
       success: true,
       id: saved?.id ?? null,
       savedDays: Number(fetchDays),
-      savedCreateOrderTime: newestOrderCreatedAtISO ?? null,
+      savedCreateOrderTime: newestOrderCreatedAtISO ?? form?.createOrderTime ?? null,
       counts: {
-        products: allHandlesWindow.length,
-        locations: (locations || []).length,
-        names: (customerNames || []).length,
+        products: (nextProductHandles || []).length,
+        locations: (nextLocations || []).length,
+        names: (nextCustomerNames || []).length,
       },
       window: { startISO, endISO },
     });
@@ -1151,12 +1215,19 @@ function Bubble({ form, order, isMobile = false }) {
     [form.animation]
   );
   const isPortrait = form.layout === "portrait";
-  const imageFit = form.imageAppearance === "contain" ? "contain" : "cover";
-  const sizeBase = Number(form.rounded ?? 14) || 14;
+  const imageMode = String(form.imageAppearance || "cover")
+    .trim()
+    .toLowerCase();
+  const isContainImage =
+    imageMode === "contain" ||
+    imageMode.includes("contain") ||
+    imageMode.includes("fit");
+  const imageFit = "cover";
+  const sizeBase = Number(form.fontSize ?? form.rounded ?? 12) || 14;
   const sized = Math.max(
-    10,
+    6,
     Math.min(
-      28,
+      72,
       Math.round(sizeBase * (isMobile ? mobileSizeScale(form.mobileSize) : 1))
     )
   );
@@ -1188,13 +1259,16 @@ function Bubble({ form, order, isMobile = false }) {
     : "";
   const moreCount = Math.max(0, products.length - 1);
   const showImage = !!productImg;
-  const imageOverflow =
-    showImage && form.imageAppearance === "cover" && !isPortrait;
+  const showImageSlot = !hide.has("productImage");
+  const imageOverflow = showImageSlot && !isContainImage && !isPortrait;
   const avatarSize = isPortrait ? 56 : 64;
   const avatarOffset = Math.round(avatarSize * 0.45);
   const portraitImageSize = isMobile ? 120 : 160;
   const showPortraitBlock = isPortrait && !hide.has("productImage");
-  const pad = 16;
+  const padY = isMobile ? 10 : 14;
+  const padX = isMobile ? 10 : 10;
+  const contentLeftPad = imageOverflow ? padX + avatarOffset + 8 : padX;
+  const bubbleRadius = isPortrait ? 10 : 10;
 
   const showTime = !hide.has("time");
   const background =
@@ -1221,7 +1295,7 @@ function Bubble({ form, order, isMobile = false }) {
     <div
       style={{
         display: "flex",
-        alignItems: isPortrait ? "flex-start" : "center",
+        alignItems: "center",
         gap: isPortrait ? 10 : 12,
         flexDirection: isPortrait ? "column" : "row",
         fontFamily:
@@ -1230,17 +1304,20 @@ function Bubble({ form, order, isMobile = false }) {
             : form.fontFamily,
         background,
         color: form.textColor,
-        borderRadius: 18,
-        boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-        padding: pad,
-        paddingLeft: imageOverflow ? pad + avatarOffset : pad,
-        border: "1px solid rgba(17,24,39,0.06)",
+        borderRadius: 10,
+        boxShadow: "0 18px 42px rgba(15, 23, 42, 0.10)",
+        padding: `${padY}px ${padX}px ${padY}px ${contentLeftPad}px`,
+        border: "1px solid rgba(15, 23, 42, 0.08)",
+        boxSizing: "border-box",
+        minHeight: isPortrait ? "auto" : 100,
+        width: isMobile ? "100%" : isPortrait ? 340 : "min(100%, 452px)",
         maxWidth: isMobile
           ? mobileSizeToWidth(form.mobileSize)
           : isPortrait
             ? 340
-            : 560,
+            : 452,
         position: "relative",
+        overflow: imageOverflow ? "visible" : "hidden",
         ...animStyle,
       }}
     >
@@ -1285,70 +1362,94 @@ function Bubble({ form, order, isMobile = false }) {
         <div
           style={{
             position: "absolute",
-            left: pad,
+            left: 0,
             top: isPortrait ? 24 : "50%",
             transform: isPortrait
               ? "translate(-50%, 0)"
               : "translate(-50%, -50%)",
             width: avatarSize,
             height: avatarSize,
-            borderRadius: 12,
+            borderRadius: 10,
             overflow: "hidden",
-            background: "#f3f4f6",
             flexShrink: 0,
             display: "grid",
             placeItems: "center",
-            boxShadow: "0 8px 18px rgba(0,0,0,0.18)",
-            border: "2px solid rgba(255,255,255,0.75)",
+            background: "#ffffff",
+            boxShadow: "0 8px 18px rgba(15, 23, 42, 0.12)",
           }}
         >
-          <img
-            src={productImg}
-            alt={productTitle || "Product"}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-            loading="lazy"
-            decoding="async"
-          />
-        </div>
-      ) : (
-        <div>
           {showImage ? (
             <img
               src={productImg}
               alt={productTitle || "Product"}
               style={{
-                width: avatarSize,
-                height: avatarSize,
+                width: "100%",
+                height: "100%",
                 objectFit: imageFit,
-                borderRadius: 6,
-                background: "#f4f4f5",
               }}
               loading="lazy"
               decoding="async"
             />
           ) : (
             <div
+              aria-hidden="true"
               style={{
-                width: avatarSize,
-                height: avatarSize,
-                borderRadius: 6,
-                background: "#f4f4f5",
+                width: "100%",
+                height: "100%",
+                background:
+                  "linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%)",
               }}
             />
           )}
         </div>
+      ) : (
+        showImageSlot && (
+          <div>
+            {showImage ? (
+              <img
+                src={productImg}
+                alt={productTitle || "Product"}
+                style={{
+                  width: avatarSize,
+                  height: avatarSize,
+                  objectFit: imageFit,
+                  borderRadius: 6,
+                  background: "#f4f4f5",
+                }}
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              <div
+                aria-hidden="true"
+                style={{
+                  width: avatarSize,
+                  height: avatarSize,
+                  borderRadius: 6,
+                  background:
+                    "linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%)",
+                }}
+              />
+            )}
+          </div>
+        )
       )}
-      <div style={{ minWidth: 0, margin: "10px" }}>
-        <p style={{ margin: 0, fontSize: sized }}>
+      <div
+        style={{
+          minWidth: 0,
+          flex: 1,
+          width: isPortrait ? "100%" : undefined,
+          textAlign: isPortrait ? "center" : undefined,
+        }}
+      >
+        <p style={{ margin: 0, textAlign: isPortrait ? "center" : undefined }}>
           {!hide.has("name") && (
             <span
               style={{
                 color: form.numberColor,
                 fontWeight: Number(form.fontWeight || 600),
+                fontSize: Math.round(sized * 1.02),
+                lineHeight: 1.35,
               }}
             >
               {name || "Customer Name from Location"}
@@ -1360,14 +1461,22 @@ function Bubble({ form, order, isMobile = false }) {
               style={{
                 color: form.numberColor,
                 fontWeight: Number(form.fontWeight || 600),
+                fontSize: sized,
+                lineHeight: 1.35,
               }}
             >
               {loc}
             </span>
           )}
           <br />
-          <span>
-            {productTitle ? `bought "${productTitle}"` : "placed an order"}
+          <span style={{
+                color: form.textColor,
+                fontSize: Math.round(sized * 0.92),
+                lineHeight: 1.35,
+              }}>
+            {productTitle
+              ? `${form.messageText || "bought this product recently"} "${productTitle}"`
+              : form.messageText || "placed an order"}
             {moreCount > 0 && !hide.has("productTitle")
               ? ` +${moreCount} more`
               : ""}
@@ -1380,6 +1489,7 @@ function Bubble({ form, order, isMobile = false }) {
                   display: "inline-flex",
                   gap: 8,
                   alignItems: "center",
+                  justifyContent: isPortrait ? "center" : "flex-start",
                   flexWrap: "wrap",
                   marginTop: 6,
                 }}
@@ -1420,7 +1530,7 @@ function Bubble({ form, order, isMobile = false }) {
                 style={{
                   opacity: 0.85,
                   fontSize: sized * 0.9,
-                  color: form.numberColor,
+                  color: form.textColor,
                 }}
               >
                 <small>
@@ -1571,16 +1681,7 @@ function shouldShowPreviewCompare(priceText, compareText) {
 
 function LivePreview({ form, order }) {
   return (
-    <BlockStack gap="200">
-      <Text as="h3" variant="headingMd">
-        Live Preview
-      </Text>
-      <DesktopPreview form={form} order={order} />
-      <Text as="p" variant="bodySm" tone="subdued">
-        Orders are pulled strictly by the selected window (shop timezone).
-        Preview may show the latest order only for visual reference.
-      </Text>
-    </BlockStack>
+    <Bubble form={form} order={order} />
   );
 }
 
@@ -1599,8 +1700,16 @@ export default function RecentOrdersPopupPage() {
   } = useLoaderData();
   const navigate = useNavigate();
   const location = useLocation();
-  const notificationUrl = `/app/notification${location.search || ""}`;
-  const notificationManageUrl = `/app/notification/manage${location.search || ""}`;
+  const navigationSearch = (() => {
+    const sp = new URLSearchParams(location.search);
+    sp.delete("editId");
+    sp.delete("id");
+    sp.delete("mode");
+    const qs = sp.toString();
+    return qs ? `?${qs}` : "";
+  })();
+  const notificationUrl = `/app/notification${navigationSearch}`;
+  const notificationManageUrl = `/app/notification/manage${navigationSearch}`;
 
   useEffect(() => {
     console.log(
@@ -1653,6 +1762,7 @@ export default function RecentOrdersPopupPage() {
     priceTagAlt: saved.priceTagAlt ?? "#E66465",
     priceColor: saved.priceColor ?? "#FFFFFF",
     starColor: saved.starColor ?? "#F06663",
+    fontSize: saved.fontSize ?? saved.rounded ?? "14",
     rounded: saved.rounded,
     firstDelaySeconds: saved.firstDelaySeconds ?? 1,
     durationSeconds: saved.durationSeconds,
@@ -1787,8 +1897,9 @@ export default function RecentOrdersPopupPage() {
           disabled: saving || unusable,
         }}
       >
+        <NotificationPageStyles />
         <style>{RECENT_STYLES}</style>
-<div className="recent-shell">
+<div className="recent-shell notification-page">
   <div className="recent-sidebar">
     {NAV_ITEMS.map(({ id, label, Icon }) => (
       <button
@@ -2004,8 +2115,7 @@ export default function RecentOrdersPopupPage() {
                     </Box>
                     <Box width="50%">
                       <Select
-                        label=" "
-                        labelHidden
+                        label="Unit"
                         options={TIME_UNITS}
                         value={intervalUnit}
                         onChange={onIntervalUnitChange}
@@ -2088,7 +2198,7 @@ export default function RecentOrdersPopupPage() {
                     </Box>
                     <Box width="50%">
                       <ColorInput
-                        label="Number color"
+                        label="Heading color"
                         value={form.numberColor}
                         onChange={(v) =>
                           setForm((f) => ({ ...f, numberColor: v }))
@@ -2187,11 +2297,11 @@ export default function RecentOrdersPopupPage() {
                       <TextField
                         type="number"
                         label="Font Size (px)"
-                        value={String(form.rounded)}
+                        value={String(form.fontSize ?? form.rounded ?? "")}
                         onChange={(v) =>
                           setForm((f) => ({
                             ...f,
-                            rounded: String(v),
+                            fontSize: String(v),
                           }))
                         }
                         autoComplete="off"
@@ -2284,14 +2394,21 @@ export default function RecentOrdersPopupPage() {
         </BlockStack>
       </div>
 
-      <div className="recent-preview">
-        <Card>
-          <Box padding="4">
-            <div className="recent-preview-box">
-              <LivePreview form={form} order={preview} />
-            </div>
-          </Box>
-        </Card>
+      <div
+        className={[
+          "recent-preview",
+          "is-popup-type-recent",
+          `is-layout-${form.layout || "landscape"}`,
+          form.imageAppearance === "contain" ? "is-fit-image" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        <PopupPreviewPanel
+          title="Preview"
+        >
+          <LivePreview form={form} order={preview} />
+        </PopupPreviewPanel>
       </div>
     </div>
   </div>

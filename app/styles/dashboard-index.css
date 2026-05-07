@@ -1,0 +1,257 @@
+.dashboard-page-header {
+  min-height: 82px;
+  margin: calc(var(--p-space-400) * -1) calc(var(--p-space-400) * -1) 0;
+  padding: var(--p-space-600);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-space-400);
+  background: #f1f1f1;
+}
+
+.dashboard-page-title {
+  margin: 0;
+  color: #303030;
+  font-size: 24px !important;
+  line-height: 32px !important;
+  font-weight: 700;
+}
+
+.dashboard-index-page .dashboard-page-title {
+  font-size: 24px !important;
+  line-height: 32px !important;
+}
+
+.dashboard-embed-status {
+  font-size: 12px !important;
+  flex-shrink: 0;
+  min-height: 34px;
+  padding: var(--p-space-150) var(--p-space-300);
+  border: var(--p-border-width-025) solid #d6d6d6;
+  border-radius: var(--p-border-radius-200);
+  color: #9f2d13;
+  background: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.dashboard-embed-status--on {
+  color: #0f7b31;
+}
+
+.dashboard-embed-status:focus-visible {
+  outline: var(--p-border-width-050) solid var(--p-color-border-focus);
+  outline-offset: var(--p-space-050);
+}
+
+.popup-slider-window {
+  overflow: hidden;
+}
+
+.popup-slider-track {
+  display: flex;
+  transform: translateX(calc(var(--popup-slide-index, 0) * -100%));
+  transition: transform 260ms ease;
+}
+
+.popup-slide {
+  flex: 0 0 100%;
+}
+
+.popup-dot {
+  width: 8px;
+  height: 8px;
+  border: 0;
+  border-radius: var(--p-border-radius-full);
+  padding: 0;
+  background: var(--p-color-bg-fill-tertiary);
+  cursor: pointer;
+  transition:
+    width 160ms ease,
+    background 160ms ease;
+}
+
+.popup-dot.is-active {
+  width: 22px;
+  background: var(--p-color-bg-fill-brand);
+}
+
+.dashboard-popup-preview {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.dashboard-popup-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.dashboard-popup-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--p-space-200);
+  flex-wrap: nowrap;
+}
+
+.dashboard-popup-actions .Polaris-Button {
+  min-width: 84px;
+}
+
+.review-star-btn {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--p-border-radius-200);
+  padding: 0;
+  color: var(--p-color-icon-disabled);
+  background: transparent;
+  cursor: pointer;
+}
+
+.review-star-btn.is-active {
+  color: #ffb800;
+}
+
+.review-star-btn:focus-visible {
+  outline: var(--p-border-width-050) solid var(--p-color-border-focus);
+  outline-offset: var(--p-space-050);
+}
+
+.dashboard-gradient-panel {
+  background: #ffffff;
+  border-color: #ded8cf;
+  box-shadow:
+    0 1px 2px rgba(35, 31, 28, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.dashboard-review-panel {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--p-space-500);
+}
+
+.dashboard-action-card {
+  width: 100%;
+  min-height: 166px;
+  border: var(--p-border-width-025) solid #ddd7ce;
+  border-radius: var(--p-border-radius-300);
+  padding: var(--p-space-400);
+  color: inherit;
+  text-align: center;
+  background: #ffffff;
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease;
+}
+
+.dashboard-action-card:hover {
+  transform: translateY(-1px);
+  border-color: #b8aa97;
+  box-shadow: 0 8px 18px rgba(54, 47, 39, 0.08);
+}
+
+.dashboard-action-card:focus-visible {
+  outline: var(--p-border-width-050) solid #8f7e66;
+  outline-offset: var(--p-space-050);
+}
+
+.dashboard-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  color: #3b3329;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dashboard-icon--square {
+  border-radius: var(--p-border-radius-300);
+}
+
+.dashboard-icon--circle {
+  border-radius: var(--p-border-radius-full);
+}
+
+.dashboard-icon--info {
+  background: transparent;
+}
+
+.dashboard-icon--critical {
+  color: currentColor;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dashboard-icon .Polaris-Icon {
+  color: currentColor;
+}
+
+.success-help-section {
+  padding: var(--p-space-400);
+}
+
+.success-help-card {
+  min-height: 190px;
+  border: var(--p-border-width-025) solid #ded8cf;
+  border-radius: var(--p-border-radius-300);
+  padding: var(--p-space-400);
+  background: #ffffff;
+  display: flex;
+  align-items: start;
+  justify-content: center;
+  text-align: center;
+}
+
+.success-help-card .dashboard-icon {
+  width: 50px;
+  height: 50px;
+}
+
+.success-help-card .dashboard-icon .Polaris-Icon,
+.success-help-card .dashboard-icon .Polaris-Icon__Svg,
+.success-help-card .dashboard-icon svg {
+  width: 40px;
+  height: 40px;
+}
+
+.success-help-card > * {
+  width: 100%;
+}
+
+.success-help-review-icon {
+  flex-shrink: 0;
+}
+
+.dashboard-promoted-app {
+  max-width: 360px;
+}
+
+.dashboard-app-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.dashboard-app-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dashboard-modal-icon {
+  flex-shrink: 0;
+}
