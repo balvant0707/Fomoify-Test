@@ -189,14 +189,14 @@ const styles = `
   align-items: center;
 }
 .product-info-color-swatch-shell {
-  width: 42px;
-  height: 30px;
-  margin: -4px -8px -4px 0;
-  border-left: 1px solid #c9cccf;
-  border-radius: 0 8px 8px 0;
-  overflow: hidden;
-  background: #ffffff;
-  display: flex;
+    width: 34px;
+    height: 30.5px;
+    margin: -4px -11px -4px 0px;
+    border-left: 1px solid #c9cccf;
+    border-radius: 0 7px 7px 0;
+    overflow: hidden;
+    background: #ffffff;
+    display: flex;
 }
 .product-info-color-swatch {
   width: 100%;
