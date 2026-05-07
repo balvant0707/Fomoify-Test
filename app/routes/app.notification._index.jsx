@@ -48,14 +48,13 @@ const DASHBOARD_STYLES = `
   height: 100%;
 }
 .notify-card-media {
-  width: 82px;
-  height: 82px;
+  width: 62px;
+  height: 62px;
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  border: 1px solid #e3e5e7;
   border-radius: 8px;
-  background: #f8f9fb;
+  background: transparent;
   overflow: hidden;
 }
 .notify-card-media img {
