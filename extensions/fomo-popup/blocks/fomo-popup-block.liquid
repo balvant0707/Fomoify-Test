@@ -24,8 +24,29 @@
   const productId = String(root.dataset.productId || "").trim();
   const productHandle = String(root.dataset.productHandle || "").trim().toLowerCase();
   const blockType = String(root.dataset.fomoifyBlockType || "visitor").toLowerCase();
-  const proxyBase = "/apps/fomo";
+  const proxyBases = ["/apps/fomo", "https://fomoify-test.vercel.app/proxy/fomo"];
   const visitorIdKey = "fomoify_visitor_id";
+
+  const proxyUrl = (base, path) => new URL(`${base}/${path}`, window.location.origin);
+  const fetchWithProxyFallback = async (path, params, options) => {
+    for (let i = 0; i < proxyBases.length; i++) {
+      const url = proxyUrl(proxyBases[i], path);
+      Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          url.searchParams.set(key, value);
+        }
+      });
+      const requestUrl =
+        url.origin === window.location.origin ? `${url.pathname}${url.search}` : url.toString();
+      try {
+        const response = await fetch(requestUrl, options);
+        if (response.ok || i === proxyBases.length - 1) return response;
+      } catch (error) {
+        if (i === proxyBases.length - 1) throw error;
+      }
+    }
+    return null;
+  };
 
   const ensureVisitorId = () => {
     const makeId = () => `v-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -42,9 +63,7 @@
 
   const trackView = () => {
     if (!shop || window.Shopify?.designMode) return;
-    const url = new URL(`${proxyBase}/track`, window.location.origin);
-    if (shop) url.searchParams.set("shop", shop);
-    fetch(`${url.pathname}${url.search}`, {
+    fetchWithProxyFallback("track", { shop }, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
@@ -325,10 +344,7 @@
   };
 
   const fetchRecord = async (table) => {
-    const url = new URL(`${proxyBase}/popup`, window.location.origin);
-    url.searchParams.set("table", table);
-    if (shop) url.searchParams.set("shop", shop);
-    const response = await fetch(`${url.pathname}${url.search}`, {
+    const response = await fetchWithProxyFallback("popup", { table, shop }, {
       credentials: "same-origin",
       cache: "no-store",
     });

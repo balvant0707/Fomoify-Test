@@ -1313,6 +1313,10 @@ export const loader = async ({ request, params }) => {
 
 export const action = async ({ request, params }) => {
   try {
+    if (request.method === "OPTIONS") {
+      return ok({ ok: true });
+    }
+
     const subpath = (params.subpath || "").toLowerCase();
     const allowUnsignedStorefront = PUBLIC_STOREFRONT_PATHS.has(subpath);
     const signatureValid = hasProxySignature(request.url)

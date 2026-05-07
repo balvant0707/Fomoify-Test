@@ -14,12 +14,13 @@ const bootFomoify = async function () {
   const SHOP = String((window.Shopify && window.Shopify.shop) || rootShopDomain)
     .trim()
     .toLowerCase();
-  const PROXY_BASES = ["/apps/fomo"];
+  const DIRECT_PROXY_BASE = "https://fomoify-test.vercel.app/proxy/fomo";
+  const PROXY_BASES = ["/apps/fomo", DIRECT_PROXY_BASE];
   const PROXY_STORE_KEY = "__fomo_proxy_base__";
   const readSavedProxyBase = () => {
     try {
       const v = window.localStorage.getItem(PROXY_STORE_KEY);
-      return v === "/apps/fomo" ? v : null;
+      return PROXY_BASES.includes(v) ? v : null;
     } catch {
       return null;
     }
