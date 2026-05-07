@@ -552,7 +552,7 @@ export default function VisitorBlockConfiguration() {
 
       setToast({ active: true, error: false, msg: "Saved successfully." });
       setTimeout(
-        () => navigate("/app/notification/manage?type=visitor-block&saved=1"),
+        () => navigate("/app/notification/manage?saved=1"),
         900
       );
     } catch (e) {

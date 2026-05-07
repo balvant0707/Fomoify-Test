@@ -235,8 +235,6 @@ const weightOptions = [
 ];
 
 const dotAnimationOptions = [
-  { label: "Ping (scale pulse)", value: "ping" },
-  { label: "Beat (heartbeat)", value: "beat" },
   { label: "None", value: "none" },
 ];
 
@@ -393,7 +391,7 @@ export default function StockBlockConfiguration() {
   const [selectedStockProductIds, setSelectedStockProductIds] = useState([]);
 
   const [lowStockThreshold, setLowStockThreshold] = useState(10);
-  const [dotAnimationStyle, setDotAnimationStyle] = useState("ping");
+  const [dotAnimationStyle, setDotAnimationStyle] = useState("none");
   const [dotIcon, setDotIcon]                     = useState("none");
   const [highlightBg, setHighlightBg]             = useState("");
   const [hideOnMobile, setHideOnMobile]           = useState(false);
@@ -433,7 +431,7 @@ export default function StockBlockConfiguration() {
     if (saved.bottomMargin != null) setBottomMargin(saved.bottomMargin);
     if (saved.customClass != null) setCustomClass(saved.customClass);
     if (saved.lowStockThreshold != null) setLowStockThreshold(saved.lowStockThreshold);
-    if (saved.dotAnimationStyle != null) setDotAnimationStyle(saved.dotAnimationStyle);
+    if (saved.dotAnimationStyle != null) setDotAnimationStyle("none");
     if (saved.dotIcon           != null) setDotIcon(saved.dotIcon);
     if (saved.highlightBg       != null) setHighlightBg(saved.highlightBg);
     if (saved.hideOnMobile      != null) setHideOnMobile(saved.hideOnMobile);
@@ -453,8 +451,7 @@ export default function StockBlockConfiguration() {
   const stockDot = (() => {
     if (isPreviewOut) return outStockDotColor;
     const threshold = Math.max(0, Number(lowStockThreshold) || 0);
-    if (threshold > 0 && previewStockCount <= threshold) return lowStockDotColor;
-    if (showProductQuantity) return lowStockDotColor;
+    if (threshold > 0 && previewStockCount > threshold) return lowStockDotColor;
     return inStockDotColor;
   })();
   const previewHideStock = isPreviewOut && hideOutOfStock;
@@ -510,7 +507,7 @@ export default function StockBlockConfiguration() {
 
       setToast({ active: true, error: false, msg: "Saved successfully." });
       setTimeout(
-        () => navigate("/app/notification/manage?type=stock-block&saved=1"),
+        () => navigate("/app/notification/manage?saved=1"),
         900
       );
     } catch (e) {
@@ -679,7 +676,7 @@ export default function StockBlockConfiguration() {
                             <DotIconSvg name={dotIcon} color={stockDot} size={dotSize} />
                           ) : (
                             <span
-                              className={`product-info-dot${dotAnimationStyle === "ping" ? " sa-dot-ping" : dotAnimationStyle === "beat" ? " sa-dot-beat" : ""}`}
+                              className="product-info-dot"
                               style={{ width: dotSize, height: dotSize, background: stockDot }}
                             />
                           )}

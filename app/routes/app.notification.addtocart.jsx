@@ -481,7 +481,7 @@ export async function loader({ request }) {
           delay: toStr(source.delay, "1"),
           duration: toStr(source.duration, "10"),
           interval: toStr(source.interval, "5"),
-          intervalUnit: toStr(source.intervalUnit, "seconds"),
+          intervalUnit: normalizeIntervalUnit(source.intervalUnit),
           randomize: toBool(source.randomize, true),
         },
         selectedDataProducts: dataProducts,
@@ -585,10 +585,13 @@ const POSITIONS = [
   { label: "Top left", value: "top-left" },
 ];
 const TIME_UNITS = [
-  { label: "seconds", value: "seconds" },
-  { label: "mins", value: "mins" },
-  { label: "hours", value: "hours" },
+  { label: "Seconds", value: "seconds" },
+  { label: "Minutes", value: "minutes" },
 ];
+const normalizeIntervalUnit = (value) => {
+  const unit = String(value || "seconds").trim().toLowerCase();
+  return unit.startsWith("min") ? "minutes" : "seconds";
+};
 
 const CONTENT_TOKENS = [
   "full_name",
@@ -2247,6 +2250,9 @@ export default function AddToCartPopupPage() {
                             </Text>
                             <TextField
                               label="Delay before first notification"
+                              type="number"
+                              min={0}
+                              step={1}
                               value={behavior.delay}
                               onChange={(v) =>
                                 setBehavior((b) => ({ ...b, delay: v }))
@@ -2256,6 +2262,9 @@ export default function AddToCartPopupPage() {
                             />
                             <TextField
                               label="Display duration"
+                              type="number"
+                              min={1}
+                              step={1}
                               value={behavior.duration}
                               onChange={(v) =>
                                 setBehavior((b) => ({ ...b, duration: v }))
@@ -2267,6 +2276,9 @@ export default function AddToCartPopupPage() {
                               <Box width="50%">
                                 <TextField
                                   label="Interval time"
+                                  type="number"
+                                  min={0}
+                                  step={1}
                                   value={behavior.interval}
                                   onChange={(v) =>
                                     setBehavior((b) => ({ ...b, interval: v }))
