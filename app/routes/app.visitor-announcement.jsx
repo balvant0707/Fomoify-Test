@@ -191,6 +191,28 @@ const styles = `
   width: 100%;
   height: 100%;
 }
+@keyframes va-icon-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.22); }
+}
+@keyframes va-icon-ping {
+  0% { transform: scale(1); opacity: 1; }
+  70% { transform: scale(1.6); opacity: 0; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+@keyframes va-icon-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-10deg); }
+  75% { transform: rotate(10deg); }
+}
+@keyframes va-icon-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.va-icon-anim-pulse { animation: va-icon-pulse 0.9s ease-in-out infinite; }
+.va-icon-anim-ping { animation: va-icon-ping 1.2s ease-out infinite; }
+.va-icon-anim-wiggle { animation: va-icon-wiggle 0.7s ease-in-out infinite; }
+.va-icon-anim-float { animation: va-icon-float 1.4s ease-in-out infinite; }
 .product-info-color-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -286,6 +308,14 @@ const animationSpeedOptions = [
   { label: "Fast (0.25s)", value: "fast" },
   { label: "Normal (0.45s)", value: "normal" },
   { label: "Slow (0.8s)", value: "slow" },
+];
+
+const iconAnimationOptions = [
+  { label: "None", value: "none" },
+  { label: "Pulse", value: "pulse" },
+  { label: "Ping", value: "ping" },
+  { label: "Wiggle", value: "wiggle" },
+  { label: "Float", value: "float" },
 ];
 
 const editorSections = [
@@ -412,6 +442,7 @@ export default function VisitorBlockConfiguration() {
 
   const [animationStyle, setAnimationStyle] = useState("slide");
   const [animationSpeed, setAnimationSpeed] = useState("normal");
+  const [iconAnimationStyle, setIconAnimationStyle] = useState("none");
   const [countInterval, setCountInterval]   = useState(0);
   const [hideOnMobile, setHideOnMobile]     = useState(false);
 
@@ -450,6 +481,7 @@ export default function VisitorBlockConfiguration() {
     if (saved.bottomMargin  != null) setBottomMargin(saved.bottomMargin);
     if (saved.animationStyle != null) setAnimationStyle(saved.animationStyle);
     if (saved.animationSpeed != null) setAnimationSpeed(saved.animationSpeed);
+    if (saved.iconAnimationStyle != null) setIconAnimationStyle(saved.iconAnimationStyle);
     if (saved.countInterval  != null) setCountInterval(saved.countInterval);
     if (saved.hideOnMobile   != null) setHideOnMobile(saved.hideOnMobile);
     try {
@@ -486,6 +518,10 @@ export default function VisitorBlockConfiguration() {
 
   const visitorText = visitorTemplate.replace("{count}", previewCount);
   const justify = alignment === "center" ? "center" : alignment === "right" ? "flex-end" : "flex-start";
+  const iconAnimationClass =
+    iconAnimationStyle && iconAnimationStyle !== "none"
+      ? `va-icon-anim-${iconAnimationStyle}`
+      : "";
 
   const previewAnimDuration = animationSpeed === "fast" ? "0.25s" : animationSpeed === "slow" ? "0.8s" : "0.45s";
   const previewAnimName = (() => {
@@ -519,6 +555,7 @@ export default function VisitorBlockConfiguration() {
         behavior:         visitorBehavior,
         animationStyle,
         animationSpeed,
+        iconAnimationStyle,
         countInterval:    Number(countInterval) || 0,
         prefixText:        "",
         suffixText:        "",
@@ -620,10 +657,13 @@ export default function VisitorBlockConfiguration() {
                       />
                       <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
                         <VisitorIconField value={visitorIcon} onChange={setVisitorIcon} />
-                        <TextField label="Refresh every (seconds)" value={visitorRefresh} onChange={setVisitorRefresh} type="number" autoComplete="off" />
+                        <Select label="Icon Animation" options={iconAnimationOptions} value={iconAnimationStyle} onChange={setIconAnimationStyle} />
                       </InlineGrid>
                       <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                        <TextField label="Refresh every (seconds)" value={visitorRefresh} onChange={setVisitorRefresh} type="number" autoComplete="off" />
                         <NumberField label="Count update interval (s)" value={countInterval} onChange={setCountInterval} min={0} max={300} />
+                      </InlineGrid>
+                      <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
                         <Select label="Count behavior" options={behaviorOptions} value={visitorBehavior} onChange={setVisitorBehavior} />
                       </InlineGrid>
                     </BlockStack>
@@ -709,7 +749,7 @@ export default function VisitorBlockConfiguration() {
                             >
                               {visitorIcon !== "none" && (
                                 <span
-                                  className="product-info-icon"
+                                  className={`product-info-icon ${iconAnimationClass}`.trim()}
                                   style={{ color: visitorIconColor, width: iconSize, height: iconSize }}
                                 >
                                   <Icon source={iconSourceFor(visitorIcon)} tone="inherit" />

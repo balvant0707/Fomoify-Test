@@ -165,7 +165,29 @@
     return null;
   };
 
-  const dotAnimCSS = () => "";
+  const dotAnimCSS = (key) => {
+    const value = String(key || "none").toLowerCase();
+    if (value === "ping") {
+      return `
+        @keyframes fomoifyStockDotPing {
+          0% { transform: scale(1); opacity: 1; }
+          70% { transform: scale(1.7); opacity: 0; }
+          100% { transform: scale(1.7); opacity: 0; }
+        }
+        .fomoify-stock-dot--ping { animation: fomoifyStockDotPing 1.2s ease-out infinite; }
+      `;
+    }
+    if (value === "beat" || value === "pulse") {
+      return `
+        @keyframes fomoifyStockDotBeat {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.28); }
+        }
+        .fomoify-stock-dot--beat { animation: fomoifyStockDotBeat 0.75s ease-in-out infinite; }
+      `;
+    }
+    return "";
+  };
 
   const renderStock = (record) => {
     if (!record || !toBool(record.enabled, true) || !productMatches(record)) return "";
@@ -186,7 +208,7 @@
     let dotColor;
     if (isOut) {
       dotColor = record.outStockDotColor || "#EF4444";
-    } else if (threshold > 0 && count > threshold) {
+    } else if (threshold > 0 && count <= threshold) {
       dotColor = record.lowStockDotColor || "#F59E0B";
     } else {
       dotColor = record.inStockDotColor || "#42D66B";
@@ -197,11 +219,18 @@
     const hideOnMobile = toBool(record.hideOnMobile, false);
     const highlightBg = String(record.highlightBg || "").trim();
     const iconSvg = dotIconSvg(record.dotIcon);
-    const animCSS = dotAnimCSS(record.dotAnimationStyle);
+    const animationStyle = String(record.dotAnimationStyle || "none").toLowerCase();
+    const animCSS = dotAnimCSS(animationStyle);
+    const animClass =
+      animationStyle === "ping"
+        ? " fomoify-stock-dot--ping"
+        : (animationStyle === "beat" || animationStyle === "pulse")
+          ? " fomoify-stock-dot--beat"
+          : "";
 
     const dotOrIcon = iconSvg
-      ? `<span aria-hidden="true" class="fomoify-stock-dot" style="color:${escapeHtml(dotColor)};width:var(--fomoify-product-info-size);height:var(--fomoify-product-info-size);display:inline-grid;place-items:center;flex:0 0 auto;">${iconSvg}</span>`
-      : `<span aria-hidden="true" class="fomoify-stock-dot" style="width:var(--fomoify-product-info-size);height:var(--fomoify-product-info-size);display:inline-block;border-radius:999px;background:${escapeHtml(dotColor)};box-shadow:inset 0 0 0 2px rgba(255,255,255,.72);"></span>`;
+      ? `<span aria-hidden="true" class="fomoify-stock-dot${animClass}" style="color:${escapeHtml(dotColor)};width:var(--fomoify-product-info-size);height:var(--fomoify-product-info-size);display:inline-grid;place-items:center;flex:0 0 auto;">${iconSvg}</span>`
+      : `<span aria-hidden="true" class="fomoify-stock-dot${animClass}" style="width:var(--fomoify-product-info-size);height:var(--fomoify-product-info-size);display:inline-block;border-radius:999px;background:${escapeHtml(dotColor)};box-shadow:inset 0 0 0 2px rgba(255,255,255,.72);"></span>`;
 
     return `
       <style>

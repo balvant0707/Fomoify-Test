@@ -236,6 +236,8 @@ const weightOptions = [
 
 const dotAnimationOptions = [
   { label: "None", value: "none" },
+  { label: "Ping", value: "ping" },
+  { label: "Pulse", value: "beat" },
 ];
 
 const dotIconOptions = [
@@ -309,20 +311,20 @@ const editorSections = [
   { id: "display", label: "Display", Icon: DisplayIcon },
 ];
 
-function DotIconSvg({ name, color, size }) {
+function DotIconSvg({ name, color, size, className = "" }) {
   const wrapStyle = {
     width: size, height: size, display: "inline-grid",
     placeItems: "center", flex: "0 0 auto", color,
   };
   const p = { viewBox: "0 0 20 20", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", width: "100%", height: "100%", "aria-hidden": true };
   if (name === "check")
-    return <span style={wrapStyle}><svg {...p}><path d="m4 10 4.5 4.5 7.5-8"/></svg></span>;
+    return <span className={className} style={wrapStyle}><svg {...p}><path d="m4 10 4.5 4.5 7.5-8"/></svg></span>;
   if (name === "alert")
-    return <span style={wrapStyle}><svg {...p}><circle cx="10" cy="10" r="7.25"/><path d="M10 5.75v5"/><path d="M10 14.25h.01"/></svg></span>;
+    return <span className={className} style={wrapStyle}><svg {...p}><circle cx="10" cy="10" r="7.25"/><path d="M10 5.75v5"/><path d="M10 14.25h.01"/></svg></span>;
   if (name === "star")
-    return <span style={wrapStyle}><svg {...p} fill="currentColor" stroke="none"><path d="m10 2.6 2.15 4.35 4.8.7-3.48 3.4.82 4.78L10 13.58l-4.29 2.25.82-4.78-3.48-3.4 4.8-.7L10 2.6Z"/></svg></span>;
+    return <span className={className} style={wrapStyle}><svg {...p} fill="currentColor" stroke="none"><path d="m10 2.6 2.15 4.35 4.8.7-3.48 3.4.82 4.78L10 13.58l-4.29 2.25.82-4.78-3.48-3.4 4.8-.7L10 2.6Z"/></svg></span>;
   if (name === "flame")
-    return <span style={wrapStyle}><svg {...p} fill="currentColor" stroke="none"><path d="M10 2s-4 3.5-4 7.5a4 4 0 0 0 8 0C14 5.5 10 2 10 2Zm0 10a2 2 0 0 1-2-2c0-2 2-4 2-4s2 2 2 4a2 2 0 0 1-2 2Z"/></svg></span>;
+    return <span className={className} style={wrapStyle}><svg {...p} fill="currentColor" stroke="none"><path d="M10 2s-4 3.5-4 7.5a4 4 0 0 0 8 0C14 5.5 10 2 10 2Zm0 10a2 2 0 0 1-2-2c0-2 2-4 2-4s2 2 2 4a2 2 0 0 1-2 2Z"/></svg></span>;
   return null;
 }
 
@@ -431,7 +433,7 @@ export default function StockBlockConfiguration() {
     if (saved.bottomMargin != null) setBottomMargin(saved.bottomMargin);
     if (saved.customClass != null) setCustomClass(saved.customClass);
     if (saved.lowStockThreshold != null) setLowStockThreshold(saved.lowStockThreshold);
-    if (saved.dotAnimationStyle != null) setDotAnimationStyle("none");
+    if (saved.dotAnimationStyle != null) setDotAnimationStyle(saved.dotAnimationStyle);
     if (saved.dotIcon           != null) setDotIcon(saved.dotIcon);
     if (saved.highlightBg       != null) setHighlightBg(saved.highlightBg);
     if (saved.hideOnMobile      != null) setHideOnMobile(saved.hideOnMobile);
@@ -451,9 +453,15 @@ export default function StockBlockConfiguration() {
   const stockDot = (() => {
     if (isPreviewOut) return outStockDotColor;
     const threshold = Math.max(0, Number(lowStockThreshold) || 0);
-    if (threshold > 0 && previewStockCount > threshold) return lowStockDotColor;
+    if (threshold > 0 && previewStockCount <= threshold) return lowStockDotColor;
     return inStockDotColor;
   })();
+  const dotAnimationClass =
+    dotAnimationStyle === "ping"
+      ? "sa-dot-ping"
+      : dotAnimationStyle === "beat"
+        ? "sa-dot-beat"
+        : "";
   const previewHideStock = isPreviewOut && hideOutOfStock;
   const justify =
     alignment === "center" ? "center" : alignment === "right" ? "flex-end" : "flex-start";
@@ -573,6 +581,14 @@ export default function StockBlockConfiguration() {
                   <TextField label="Quantity text" value={quantityText} onChange={setQuantityText} autoComplete="off" />
                   <TextField label="Out-of-stock text" value={outOfStockText} onChange={setOutOfStockText} autoComplete="off" />
                 </InlineGrid>
+                <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                  <TextField label="Custom CSS class" value={customClass} onChange={setCustomClass} autoComplete="off" />
+                  <NumberField label="Low stock threshold" value={lowStockThreshold} onChange={setLowStockThreshold} min={0} max={999} />
+                </InlineGrid>
+                <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                  <Select label="Dot animation" options={dotAnimationOptions} value={dotAnimationStyle} onChange={setDotAnimationStyle} />
+                  <Select label="Replace dot with icon" options={dotIconOptions} value={dotIcon} onChange={setDotIcon} />
+                </InlineGrid>
               </BlockStack>
             </Card>
             )}
@@ -593,21 +609,13 @@ export default function StockBlockConfiguration() {
                 </BlockStack>
                 <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
                   <Select label="Text weight" options={weightOptions} value={textWeight} onChange={setTextWeight} />
-                  <TextField label="Custom CSS class" value={customClass} onChange={setCustomClass} autoComplete="off" />
+                  <ColorField label="Highlight background" value={highlightBg || "#FFFBEB"} onChange={setHighlightBg} fallback="#FFFBEB" />
                 </InlineGrid>
                 <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
                   <NumberField label="Font size (px)" value={fontSize} onChange={setFontSize} min={12} max={32} />
                   <NumberField label="Mobile font size (px)" value={mobileFontSize} onChange={setMobileFontSize} min={10} max={24} />
                   <NumberField label="Icon size (px)" value={dotSize} onChange={setDotSize} min={8} max={30} />
                   <NumberField label="Field spacing (px)" value={spacing} onChange={setSpacing} min={4} max={28} />
-                </InlineGrid>
-                <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
-                  <Select label="Dot animation" options={dotAnimationOptions} value={dotAnimationStyle} onChange={setDotAnimationStyle} />
-                  <Select label="Replace dot with icon" options={dotIconOptions} value={dotIcon} onChange={setDotIcon} />
-                </InlineGrid>
-                <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
-                  <ColorField label="Highlight background" value={highlightBg || "#FFFBEB"} onChange={setHighlightBg} fallback="#FFFBEB" />
-                  <NumberField label="Low stock threshold" value={lowStockThreshold} onChange={setLowStockThreshold} min={0} max={999} />
                 </InlineGrid>
               </BlockStack>
             </Card>
@@ -664,7 +672,7 @@ export default function StockBlockConfiguration() {
                       <style>{`.notification-page .product-info-preview-card .product-info-line .sa-preview-text { font-size: ${fontSize}px !important; }`}</style>
                       <div style={{ display: "flex", justifyContent: justify, marginTop: topMargin, marginBottom: bottomMargin, fontSize: `${fontSize}px` }}>
                         <span
-                          className="product-info-line"
+                          className={`product-info-line ${customClass || ""}`.trim()}
                           style={{
                             color: textColor,
                             fontWeight: textWeight,
@@ -673,10 +681,10 @@ export default function StockBlockConfiguration() {
                           }}
                         >
                           {dotIcon && dotIcon !== "none" ? (
-                            <DotIconSvg name={dotIcon} color={stockDot} size={dotSize} />
+                            <DotIconSvg name={dotIcon} color={stockDot} size={dotSize} className={dotAnimationClass} />
                           ) : (
                             <span
-                              className="product-info-dot"
+                              className={`product-info-dot ${dotAnimationClass}`.trim()}
                               style={{ width: dotSize, height: dotSize, background: stockDot }}
                             />
                           )}

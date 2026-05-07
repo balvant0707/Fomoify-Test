@@ -219,6 +219,50 @@
     `;
   };
 
+  const iconAnimationCSS = (style) => {
+    const value = String(style || "none").toLowerCase();
+    if (!value || value === "none") return "";
+    if (value === "pulse") {
+      return `
+        @keyframes fomoifyVisitorIconPulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.22); }
+        }
+        .fomoify-visitor-icon--pulse { animation: fomoifyVisitorIconPulse 0.9s ease-in-out infinite; }
+      `;
+    }
+    if (value === "ping") {
+      return `
+        @keyframes fomoifyVisitorIconPing {
+          0% { transform: scale(1); opacity: 1; }
+          70% { transform: scale(1.6); opacity: 0; }
+          100% { transform: scale(1.6); opacity: 0; }
+        }
+        .fomoify-visitor-icon--ping { animation: fomoifyVisitorIconPing 1.2s ease-out infinite; }
+      `;
+    }
+    if (value === "wiggle") {
+      return `
+        @keyframes fomoifyVisitorIconWiggle {
+          0%, 100% { transform: rotate(0deg); }
+          25% { transform: rotate(-10deg); }
+          75% { transform: rotate(10deg); }
+        }
+        .fomoify-visitor-icon--wiggle { animation: fomoifyVisitorIconWiggle 0.7s ease-in-out infinite; }
+      `;
+    }
+    if (value === "float") {
+      return `
+        @keyframes fomoifyVisitorIconFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-4px); }
+        }
+        .fomoify-visitor-icon--float { animation: fomoifyVisitorIconFloat 1.4s ease-in-out infinite; }
+      `;
+    }
+    return "";
+  };
+
   const renderVisitor = (record) => {
     if (!record || !toBool(record.enabled, true) || !productMatches(record)) return "";
     const min = Math.max(0, toNumber(record.visitorMin, 12));
@@ -244,13 +288,20 @@
     const hideOnMobile = toBool(record.hideOnMobile, false);
     const animStyle = String(record.animationStyle || "slide").toLowerCase();
     const animSpeed = String(record.animationSpeed || "normal").toLowerCase();
+    const iconAnimStyle = String(record.iconAnimationStyle || "none").toLowerCase();
     const countInterval = Math.max(0, toNumber(record.countInterval, 0));
 
     const rowAnim = rowAnimationCSS(animStyle, animSpeed);
+    const iconAnim = iconAnimationCSS(iconAnimStyle);
+    const iconAnimClass =
+      iconAnimStyle && iconAnimStyle !== "none"
+        ? ` fomoify-visitor-icon--${escapeHtml(iconAnimStyle)}`
+        : "";
 
     const html = `
       <style>
         ${rowAnim}
+        ${iconAnim}
         .fomoify-visitor-icon {
           transform-origin: center;
         }
@@ -262,7 +313,7 @@
       </style>
       <div class="fomoify-visitor-row-wrap" style="${lineStyle(record, iconSize)}">
         <span id="fomoify-visitor-row" class="fomoify-visitor-row ${customClass}" style="${textStyle(record)}">
-          ${icon ? `<span aria-hidden="true" class="fomoify-visitor-icon" style="color:${escapeHtml(record.iconColor || "#6B4B7A")};width:var(--fomoify-product-info-size);height:var(--fomoify-product-info-size);display:inline-grid;place-items:center;flex:0 0 auto;">${icon}</span>` : ""}
+          ${icon ? `<span aria-hidden="true" class="fomoify-visitor-icon${iconAnimClass}" style="color:${escapeHtml(record.iconColor || "#6B4B7A")};width:var(--fomoify-product-info-size);height:var(--fomoify-product-info-size);display:inline-grid;place-items:center;flex:0 0 auto;">${icon}</span>` : ""}
           <span id="fomoify-visitor-text">${escapeHtml(buildText(count))}</span>
         </span>
       </div>

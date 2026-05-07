@@ -463,6 +463,7 @@ model visitorannouncementconfig {
 
   animationStyle       String?
   animationSpeed       String?
+  iconAnimationStyle   String?
   countInterval        Int?
   prefixText           String?
   suffixText           String?

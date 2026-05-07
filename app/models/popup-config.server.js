@@ -265,6 +265,7 @@ export async function saveVisitorAnnouncement(shop, form) {
     behavior:        toStr(form?.behavior),
     animationStyle:  toStr(form?.animationStyle),
     animationSpeed:  toStr(form?.animationSpeed),
+    iconAnimationStyle: toStr(form?.iconAnimationStyle),
     countInterval:   toInt(form?.countInterval),
     prefixText:      toStr(form?.prefixText),
     suffixText:      toStr(form?.suffixText),
