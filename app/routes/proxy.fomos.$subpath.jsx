@@ -47,14 +47,13 @@ const POPUPS = new Set([
   "visitor-block",
   "stock-block",
 ]);
+// Only paths that expose NO sensitive merchant/customer data may skip signature validation.
+// orders, customers, products MUST require a valid Shopify proxy HMAC — they return PII.
 const PUBLIC_STOREFRONT_PATHS = new Set([
-  "session",
-  "embed-status",
-  "popup",
-  "orders",
-  "customers",
-  "products",
-  "track",
+  "session",      // returns only installed:true/false
+  "embed-status", // write-only ping
+  "popup",        // UI display config, no PII
+  "track",        // write-only analytics
 ]);
 const CACHE_TTL = {
   session: 5 * 1000,

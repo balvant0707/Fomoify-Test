@@ -14,58 +14,14 @@ const bootFomoify = async function () {
   const SHOP = String((window.Shopify && window.Shopify.shop) || rootShopDomain)
     .trim()
     .toLowerCase();
-  const DIRECT_PROXY_BASE = "https://fomoify-test.vercel.app/proxy/fomo";
-  const PROXY_BASES = ["/apps/fomo", DIRECT_PROXY_BASE];
-  const PROXY_STORE_KEY = "__fomo_proxy_base__";
-  const readSavedProxyBase = () => {
+  const ACTIVE_PROXY_BASE = "/apps/fomo";
+  const fetchWithProxyFallback = async (url, options) => {
     try {
-      const v = window.localStorage.getItem(PROXY_STORE_KEY);
-      return PROXY_BASES.includes(v) ? v : null;
+      const res = await fetch(url, options);
+      return res;
     } catch {
       return null;
     }
-  };
-  let ACTIVE_PROXY_BASE = readSavedProxyBase() || PROXY_BASES[0];
-  const setActiveProxyBase = (base) => {
-    if (!PROXY_BASES.includes(base)) return;
-    ACTIVE_PROXY_BASE = base;
-    try {
-      window.localStorage.setItem(PROXY_STORE_KEY, base);
-    } catch {}
-  };
-  const proxyCandidates = (url) => {
-    const matchedBase = PROXY_BASES.find((b) => url.startsWith(b));
-    if (!matchedBase) return [url];
-    const suffix = url.slice(matchedBase.length);
-    const orderedBases = [
-      ACTIVE_PROXY_BASE,
-      ...PROXY_BASES.filter((b) => b !== ACTIVE_PROXY_BASE),
-    ];
-    return orderedBases.map((b) => `${b}${suffix}`);
-  };
-  const fetchWithProxyFallback = async (url, options) => {
-    const candidates = proxyCandidates(url);
-    for (let i = 0; i < candidates.length; i++) {
-      const candidate = candidates[i];
-      try {
-        const res = await fetch(candidate, options);
-        const isLast = i === candidates.length - 1;
-        const contentType = res.headers?.get("content-type") || "";
-        const isProxyApi = /\/(session|popup|orders|customers|products|track|embed-status)(\?|$)/.test(candidate);
-
-        if (!res.ok && !isLast) continue;
-        if (res.ok && isProxyApi && !contentType.includes("application/json") && !isLast) {
-          continue;
-        }
-
-        const matchedBase = PROXY_BASES.find((b) => candidate.startsWith(b));
-        if (matchedBase && res.ok) setActiveProxyBase(matchedBase);
-        return res;
-      } catch {
-        if (i === candidates.length - 1) return null;
-      }
-    }
-    return null;
   };
 
   const appendShopQuery = (path, shop) => {
