@@ -22,7 +22,6 @@ import {
   useLocation,
   useNavigate,
   useNavigation,
-  useRevalidator,
   useSubmit,
 } from "@remix-run/react";
 import { useIdle } from "../../utils/useIdle";
@@ -210,7 +209,6 @@ export default function NotificationTable({
   const navigate = useNavigate();
   const location = useLocation();
   const delFetcher = useFetcher();
-  const { revalidate } = useRevalidator();
   const isIdleReady = useIdle(200);
 
   const isBusy = navigation.state !== "idle";
@@ -246,11 +244,6 @@ export default function NotificationTable({
   }, [showDeleted, location.pathname, location.search, navigate]);
 
   const [deletedIds, setDeletedIds] = useState(new Set());
-  useEffect(() => {
-    if (delFetcher.state === "idle" && delFetcher.data?.ok) {
-      revalidate();
-    }
-  }, [delFetcher.state, delFetcher.data, revalidate]);
 
   const [delRow, setDelRow] = useState(null);
   const openDelete = useCallback((row) => setDelRow(row), []);
