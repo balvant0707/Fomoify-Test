@@ -1,6 +1,6 @@
 // app/routes/proxy.fomo.$subpath.jsx
 import { json } from "@remix-run/node";
-import prisma, { ensureConnected } from "../db.server";  // <-- default import (IMPORTANT)
+import prisma, { ensureConnected, scheduleDisconnect } from "../db.server";  // <-- default import (IMPORTANT)
 import { ensureShopRow } from "../utils/ensureShop.server";
 import { touchEmbedPing } from "../utils/embedPingWrite.server";
 import { normalizeShopDomain } from "../utils/shopDomain.server";
@@ -1321,6 +1321,8 @@ export const loader = async ({ request, params }) => {
   } catch (err) {
     console.error("[FOMO Loader Error]:", err);
     return bad({ error: "Internal Server Error" }, 500);
+  } finally {
+    scheduleDisconnect();
   }
 };
 
@@ -1369,5 +1371,7 @@ export const action = async ({ request, params }) => {
   } catch (err) {
     console.error("[FOMO Track Action Error]:", err);
     return bad({ error: "Internal Server Error" }, 500);
+  } finally {
+    scheduleDisconnect();
   }
 };
