@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { Card, Page, Spinner, Text } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { getOrSetCache } from "../utils/serverCache.server";
+import { deleteCache, getOrSetCache } from "../utils/serverCache.server";
 import NotificationTable from "../components/dashboard/NotificationTable";
 import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
@@ -319,6 +319,7 @@ export async function action({ request }) {
       if (id && model?.deleteMany) {
         await model.deleteMany({ where: { id, shop } });
       }
+      deleteCache(`notification:rows:${shop}`);
       if (isFetch) return safeJson({ ok: true });
       search.set("deleted", "1");
       return redirect(toSelf());

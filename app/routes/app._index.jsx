@@ -41,6 +41,7 @@ import {
 import { APP_EMBED_HANDLE } from "../utils/themeEmbed.shared";
 import { sendOwnerEmail } from "../utils/sendOwnerEmail.server";
 import { maybeSendAnnouncementEmail } from "../utils/sendAnnouncementEmail.server";
+import { getNotificationManageVisibility } from "../utils/notificationConfigStatus.server";
 import { getDashboardReviewPopupStatus } from "../utils/reviewPopupStatus.server";
 
 export const links = () => [{ rel: "stylesheet", href: dashboardStyles }];
@@ -160,7 +161,6 @@ const POPUP_CARD_DATA = [
   },
 ];
 
-
 function splitIntoSlides(items, perSlide) {
   const out = [];
   for (let idx = 0; idx < items.length; idx += perSlide) {
@@ -184,7 +184,15 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 }
 
-function PopupSliderCard({ title, desc, imageName, onCreate, onManage, loading }) {
+function PopupSliderCard({
+  title,
+  desc,
+  imageName,
+  onCreate,
+  onManage,
+  showManage,
+  loading,
+}) {
   const imageSrc = `/images/${encodeURIComponent(imageName)}`;
   return (
     <Box borderWidth="025" borderRadius="300" borderColor="border" padding="400" background="bg-surface">
@@ -196,7 +204,9 @@ function PopupSliderCard({ title, desc, imageName, onCreate, onManage, loading }
             <Button variant="primary" onClick={onCreate} loading={loading} disabled={loading}>
               {loading ? "Opening..." : "Create"}
             </Button>
-            <Button onClick={onManage} disabled={loading}>Manage</Button>
+            {showManage && (
+              <Button onClick={onManage} disabled={loading}>Manage</Button>
+            )}
           </div>
         </BlockStack>
         <Box className="dashboard-popup-preview" borderRadius="200">
@@ -352,6 +362,10 @@ export const loader = async ({ request }) => {
     getEmbedPingStatus(shopDomain || shop),
   ]);
   const dashboardReviewPopupStatus = await getDashboardReviewPopupStatus(shop);
+  const popupManageByKey = await getNotificationManageVisibility(
+    shop,
+    POPUP_CARD_DATA.map((card) => card.key)
+  );
 
   return json({
     slug,
@@ -359,6 +373,7 @@ export const loader = async ({ request }) => {
     apiKey,
     extId,
     dashboardReviewPopupStatus,
+    popupManageByKey,
     embedContext,
     embedPingStatus,
   });
@@ -637,6 +652,7 @@ export default function AppIndex() {
     apiKey,
     extId,
     dashboardReviewPopupStatus,
+    popupManageByKey,
     embedContext,
     embedPingStatus,
   } = useLoaderData();
@@ -981,6 +997,7 @@ export default function AppIndex() {
                             imageName={card.imageName}
                             onCreate={() => goPopupCreate(card.path, card.key)}
                             onManage={() => goPopupManage(card.key, card.managePath)}
+                            showManage={Boolean(popupManageByKey?.[card.key])}
                             loading={
                               popupLoadingKey === `${card.key}-create` ||
                               popupLoadingKey === `${card.key}-manage`

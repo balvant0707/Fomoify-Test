@@ -1,8 +1,10 @@
 // app/routes/app.notification._index.jsx
 import React, { useState, useCallback } from "react";
+import { json } from "@remix-run/node";
 import { Page, Button, Loading, BlockStack, InlineStack, Text, Box } from "@shopify/polaris";
-import { useNavigate } from "@remix-run/react";
+import { useLoaderData, useNavigate } from "@remix-run/react";
 import { authenticate } from "../shopify.server";
+import { getNotificationManageVisibility } from "../utils/notificationConfigStatus.server";
 import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
 export const links = () => [
@@ -13,8 +15,16 @@ export const links = () => [
 ];
 
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
-  return null;
+  const { session } = await authenticate.admin(request);
+  const shop = String(session?.shop || "").trim().toLowerCase();
+  if (!shop) throw new Response("Unauthorized", { status: 401 });
+
+  const hasManageByKey = await getNotificationManageVisibility(
+    shop,
+    CARD_DATA.map((card) => card.key)
+  );
+
+  return json({ hasManageByKey });
 };
 
 const DASHBOARD_STYLES = `
@@ -84,6 +94,7 @@ function DashboardCard({
   imageName,
   onCreate,
   onManage,
+  showManage,
   loading,
 }) {
   const imageSrc = `/images/${encodeURIComponent(imageName)}`;
@@ -105,9 +116,11 @@ function DashboardCard({
               <Button variant="primary" onClick={onCreate} loading={loading} disabled={loading}>
                 {loading ? "Opening..." : "Create"}
               </Button>
-              <Button onClick={onManage} disabled={loading}>
-                Manage
-              </Button>
+              {showManage && (
+                <Button onClick={onManage} disabled={loading}>
+                  Manage
+                </Button>
+              )}
             </div>
           </BlockStack>
         </Box>
@@ -181,6 +194,7 @@ const CARD_DATA = [
 ];
 
 export default function NotificationDashboardIndex() {
+  const { hasManageByKey = {} } = useLoaderData();
   const navigate = useNavigate();
   const [loadingKey, setLoadingKey] = useState(null);
 
@@ -219,6 +233,7 @@ export default function NotificationDashboardIndex() {
                 imageName={card.imageName}
                 onCreate={() => go(card.path, `${card.key}-create`)}
                 onManage={() => goManage(card.key, card.managePath)}
+                showManage={Boolean(hasManageByKey[card.key])}
                 loading={
                   loadingKey === `${card.key}-create` ||
                   loadingKey === `${card.key}-manage`
