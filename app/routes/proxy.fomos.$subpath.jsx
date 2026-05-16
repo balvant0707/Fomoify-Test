@@ -1,6 +1,10 @@
 // app/routes/proxy.fomo.$subpath.jsx
 import { json } from "@remix-run/node";
-import prisma, { ensureConnected, scheduleDisconnect } from "../db.server";  // <-- default import (IMPORTANT)
+import prisma, {
+  ensureConnected,
+  scheduleDisconnect,
+  withPrismaConnectionRetry,
+} from "../db.server";  // <-- default import (IMPORTANT)
 import { ensureShopRow } from "../utils/ensureShop.server";
 import { touchEmbedPing } from "../utils/embedPingWrite.server";
 import { normalizeShopDomain } from "../utils/shopDomain.server";
@@ -68,12 +72,13 @@ const TRACK_DEDUPE_LIMIT = 1000;
 const TRACK_DEDUPE_CACHE = new Map();
 const analyticsModel = () =>
   prisma.popupanalyticsevent || prisma.popupAnalyticsEvent || null;
-const getProxyShopRecord = async (shop) => {
-  const existing = await prisma.shop.findUnique({ where: { shop } });
-  if (existing?.installed && existing?.accessToken) return existing;
-  const healed = await ensureShopRow(shop);
-  return healed || existing || null;
-};
+const getProxyShopRecord = async (shop) =>
+  withPrismaConnectionRetry(async () => {
+    const existing = await prisma.shop.findUnique({ where: { shop } });
+    if (existing?.installed && existing?.accessToken) return existing;
+    const healed = await ensureShopRow(shop);
+    return healed || existing || null;
+  });
 const tableModel = (key) => {
   switch (key) {
     case "visitor":
@@ -816,17 +821,19 @@ async function saveTrackEvent({ shop, body }) {
   }
 
   try {
-    await model.create({
-      data: {
-        shop,
-        popupType,
-        eventType,
-        visitorId,
-        productHandle,
-        pagePath,
-        sourceUrl,
-      },
-    });
+    await withPrismaConnectionRetry(() =>
+      model.create({
+        data: {
+          shop,
+          popupType,
+          eventType,
+          visitorId,
+          productHandle,
+          pagePath,
+          sourceUrl,
+        },
+      })
+    );
     return { ok: true };
   } catch (err) {
     if (isDbConnectionError(err)) {
