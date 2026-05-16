@@ -43,13 +43,21 @@ if (!globalForPrisma.prisma && globalForPrisma.__prisma) {
 
 if (!globalForPrisma.prisma) {
   globalForPrisma.prisma = new PrismaClient(buildPrismaOptions());
-  // Eagerly start the engine so the first Lambda query doesn't race on connect.
-  globalForPrisma.prisma.$connect().catch(() => {});
 }
 
 globalForPrisma.__prisma = globalForPrisma.prisma;
 
 const prisma = globalForPrisma.prisma;
+let _connectPromise = null;
+
+export function isPrismaEngineDisconnectedError(error) {
+  const name = error?.name || error?.constructor?.name || "";
+  const message = `${error?.message || ""} ${error?.cause?.message || ""}`.toLowerCase();
+  return (
+    name === "PrismaClientUnknownRequestError" &&
+    message.includes("engine is not yet connected")
+  );
+}
 
 // In serverless environments each Lambda instance holds its own connection.
 // Disconnecting when the event loop drains releases the MySQL connection before
@@ -60,15 +68,45 @@ export function scheduleDisconnect(delayMs = 2000) {
   if (_disconnectTimer) clearTimeout(_disconnectTimer);
   _disconnectTimer = setTimeout(() => {
     _disconnectTimer = null;
-    prisma.$disconnect().catch(() => {});
+    prisma
+      .$disconnect()
+      .then(() => {
+        _connectPromise = null;
+      })
+      .catch(() => {});
   }, delayMs);
 }
 
 // Call before any query in serverless loaders to ensure the engine is ready.
 // $connect() is a no-op when already connected.
 export async function ensureConnected() {
-  await prisma.$connect();
+  if (!_connectPromise) {
+    _connectPromise = prisma.$connect().finally(() => {
+      _connectPromise = null;
+    });
+  }
+  await _connectPromise;
 }
+
+async function resetPrismaEngine() {
+  _connectPromise = null;
+  await prisma.$disconnect().catch(() => {});
+}
+
+export async function withPrismaConnectionRetry(operation) {
+  await ensureConnected();
+  try {
+    return await operation();
+  } catch (error) {
+    if (!isPrismaEngineDisconnectedError(error)) throw error;
+    await resetPrismaEngine();
+    await ensureConnected();
+    return operation();
+  }
+}
+
+// Eagerly start the engine so the first Lambda query doesn't race on connect.
+ensureConnected().catch(() => {});
 
 export { prisma };        // named export
 export default prisma;    // optional default
