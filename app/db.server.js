@@ -49,12 +49,17 @@ globalForPrisma.__prisma = globalForPrisma.prisma;
 
 const prisma = globalForPrisma.prisma;
 let _connectPromise = null;
+let _connected = false;
 
+// Matches both error types Prisma emits for a disconnected engine.
+// PrismaClientUnknownRequestError is the common form; PrismaClientKnownRequestError
+// with code GenericFailure + same message is emitted by the session-storage adapter.
 export function isPrismaEngineDisconnectedError(error) {
   const name = error?.name || error?.constructor?.name || "";
   const message = `${error?.message || ""} ${error?.cause?.message || ""}`.toLowerCase();
   return (
-    name === "PrismaClientUnknownRequestError" &&
+    (name === "PrismaClientUnknownRequestError" ||
+      name === "PrismaClientKnownRequestError") &&
     message.includes("engine is not yet connected")
   );
 }
@@ -68,12 +73,9 @@ export function scheduleDisconnect(delayMs = 2000) {
   if (_disconnectTimer) clearTimeout(_disconnectTimer);
   _disconnectTimer = setTimeout(() => {
     _disconnectTimer = null;
-    prisma
-      .$disconnect()
-      .then(() => {
-        _connectPromise = null;
-      })
-      .catch(() => {});
+    _connected = false;
+    _connectPromise = null;
+    prisma.$disconnect().catch(() => {});
   }, delayMs);
 }
 
@@ -86,15 +88,21 @@ export async function ensureConnected() {
     _disconnectTimer = null;
   }
   if (!_connectPromise) {
-    _connectPromise = prisma.$connect().finally(() => {
-      _connectPromise = null;
-    });
+    _connectPromise = prisma
+      .$connect()
+      .then(() => {
+        _connected = true;
+      })
+      .finally(() => {
+        _connectPromise = null;
+      });
   }
   await _connectPromise;
 }
 
 async function resetPrismaEngine() {
   _connectPromise = null;
+  _connected = false;
   await prisma.$disconnect().catch(() => {});
 }
 

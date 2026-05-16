@@ -7,7 +7,7 @@ import {
   DeliveryMethod,
 } from "@shopify/shopify-app-remix/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
-import prisma from "./db.server";
+import prisma, { ensureConnected } from "./db.server";
 import { upsertInstalledShop } from "./utils/upsertShop.server";
 import {
   ensurePrismaSessionTable,
@@ -55,7 +55,8 @@ function isPrismaEngineDisconnectedError(error) {
   const name = error?.name || error?.constructor?.name || "";
   const message = `${error?.message || ""} ${error?.cause?.message || ""}`;
   return (
-    name === "PrismaClientUnknownRequestError" &&
+    (name === "PrismaClientUnknownRequestError" ||
+      name === "PrismaClientKnownRequestError") &&
     message.includes("Engine is not yet connected")
   );
 }
@@ -79,7 +80,7 @@ function createSessionStorage(prismaClient) {
       return await operation(storage);
     } catch (error) {
       if (isPrismaEngineDisconnectedError(error)) {
-        await prismaClient.$connect();
+        await ensureConnected();
         return operation(storage);
       }
 
