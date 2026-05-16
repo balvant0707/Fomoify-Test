@@ -1339,6 +1339,8 @@ export const action = async ({ request, params }) => {
       return ok({ ok: true });
     }
 
+    await ensureConnected();
+
     const subpath = (params.subpath || "").toLowerCase();
     const allowUnsignedStorefront = PUBLIC_STOREFRONT_PATHS.has(subpath);
     const signatureValid = hasProxySignature(request.url)
