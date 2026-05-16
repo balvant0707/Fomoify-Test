@@ -64,20 +64,19 @@ export function isPrismaEngineDisconnectedError(error) {
   );
 }
 
-// In serverless environments each Lambda instance holds its own connection.
-// Disconnecting when the event loop drains releases the MySQL connection before
-// the container is frozen, preventing max_user_connections exhaustion on the
-// next burst of concurrent invocations.
+// Disconnect cleanly when the Lambda receives SIGTERM (Vercel/AWS shutdown signal).
+// Do NOT call $disconnect() inside request handlers — on Prisma 6 the client
+// cannot reliably reconnect after $disconnect() within the same Lambda instance,
+// which causes "Engine is not yet connected" errors on all subsequent requests.
 let _disconnectTimer = null;
-export function scheduleDisconnect(delayMs = 2000) {
-  if (_disconnectTimer) clearTimeout(_disconnectTimer);
-  _disconnectTimer = setTimeout(() => {
-    _disconnectTimer = null;
-    _connected = false;
-    _connectPromise = null;
-    prisma.$disconnect().catch(() => {});
-  }, delayMs);
+export function scheduleDisconnect() {
+  // intentional no-op — kept for import compatibility during the transition
 }
+process.once("SIGTERM", () => {
+  _connected = false;
+  _connectPromise = null;
+  prisma.$disconnect().catch(() => {});
+});
 
 // Call before any query in serverless handlers to ensure the engine is ready.
 // Cancels any pending scheduleDisconnect timer so it cannot fire mid-request,
