@@ -77,9 +77,14 @@ export function scheduleDisconnect(delayMs = 2000) {
   }, delayMs);
 }
 
-// Call before any query in serverless loaders to ensure the engine is ready.
-// $connect() is a no-op when already connected.
+// Call before any query in serverless handlers to ensure the engine is ready.
+// Cancels any pending scheduleDisconnect timer so it cannot fire mid-request,
+// then deduplicates concurrent $connect() calls via _connectPromise.
 export async function ensureConnected() {
+  if (_disconnectTimer) {
+    clearTimeout(_disconnectTimer);
+    _disconnectTimer = null;
+  }
   if (!_connectPromise) {
     _connectPromise = prisma.$connect().finally(() => {
       _connectPromise = null;
