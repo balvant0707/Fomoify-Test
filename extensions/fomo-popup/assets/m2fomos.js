@@ -371,13 +371,16 @@ const bootFomoify = async function () {
   };
   const hasMoneySymbol = (value) =>
     /[^\d\s,.-]/.test(String(value || ""));
+  const normalizeCurrencyCode = (value) =>
+    String(value || "").trim().toUpperCase();
   const activeCurrencyCode = () =>
-    String(
+    normalizeCurrencyCode(
       window.Shopify?.currency?.active ||
         window.Shopify?.currency?.current ||
+        window.FOMOIFY?.shopCurrency ||
         ROOT?.dataset.shopCurrency ||
         ""
-    ).toUpperCase();
+    );
   const activeMoneyFormat = () =>
     String(
       window.Shopify?.money_format ||
@@ -385,11 +388,11 @@ const bootFomoify = async function () {
         ROOT?.dataset.moneyFormat ||
         ""
     ).trim();
-  const formatStoreMoneyMajor = (amountMajor) => {
+  const formatStoreMoneyMajor = (amountMajor, currencyCode = activeCurrencyCode()) => {
     const n = Number(amountMajor);
     if (!Number.isFinite(n)) return "";
     const cents = Math.round(n * 100);
-    const activeCurrency = activeCurrencyCode();
+    const activeCurrency = normalizeCurrencyCode(currencyCode) || activeCurrencyCode();
     if (window.Shopify && typeof window.Shopify.formatMoney === "function") {
       const fmt = activeMoneyFormat() || "${{amount}}";
       const rendered = String(window.Shopify.formatMoney(cents, fmt) || "").trim();
@@ -398,13 +401,19 @@ const bootFomoify = async function () {
     }
     return formatCurrencyByCode(n, activeCurrency) || n.toFixed(2);
   };
-  const ensureMoneySymbol = (value) => {
+  const ensureMoneySymbol = (value, currencyCode = activeCurrencyCode()) => {
+    if (value && typeof value === "object") {
+      return formatStoreMoneyMajor(
+        value.amount ?? value.price ?? value.value,
+        value.currencyCode || value.currency || currencyCode
+      );
+    }
     const raw = String(value ?? "").trim();
     if (!raw) return "";
     if (hasMoneySymbol(raw)) return raw;
     const n = parseMoneyValue(raw);
     if (!Number.isFinite(n)) return raw;
-    return formatStoreMoneyMajor(n) || raw;
+    return formatStoreMoneyMajor(n, currencyCode) || raw;
   };
   const alignCompareCurrency = (priceText, compareText) => {
     const price = String(priceText || "").trim();
@@ -2353,6 +2362,7 @@ const bootFomoify = async function () {
     const cachedConfig = await fetchJson(ENDPOINT, "config", 10000);
     if (cachedConfig) data = cachedConfig;
     window.FOMOIFY = window.FOMOIFY || {};
+    window.FOMOIFY.shopCurrency = normalizeCurrencyCode(data?.shopCurrency);
     window.FOMOIFY.popupTables = data?.tables || {};
     window.FOMOIFY.notificationRecords = data?.records || [];
 
@@ -2773,15 +2783,20 @@ const bootFomoify = async function () {
       }
       return "";
     };
-    const normalizePrice = (v) => {
+    const moneyCurrencyCode = (v, fallbackCurrency = activeCurrencyCode()) =>
+      normalizeCurrencyCode(
+        v?.currencyCode ||
+          v?.currency ||
+          v?.presentmentCurrencyCode ||
+          fallbackCurrency
+      );
+    const normalizePrice = (v, fallbackCurrency = activeCurrencyCode()) => {
       if (v === undefined || v === null || v === "") return "";
       if (typeof v === "string" && /[^\d.]/.test(v)) return v;
       const rawAmount = v?.amount ?? v;
       const n = Number(rawAmount);
       if (!Number.isFinite(n)) return String(v);
-      const activeCurrency = String(
-        window.Shopify?.currency?.active || window.Shopify?.currency?.current || ""
-      ).toUpperCase();
+      const currencyCode = moneyCurrencyCode(v, fallbackCurrency);
 
       // GraphQL `amount` and decimal strings are major currency units.
       const fromAmountField =
@@ -2791,7 +2806,7 @@ const bootFomoify = async function () {
 
       if (fromAmountField || fromDecimalString || !Number.isInteger(n)) {
         return (
-          formatCurrencyByCode(n, activeCurrency) ||
+          formatCurrencyByCode(n, currencyCode) ||
           (Number.isFinite(n) ? n.toFixed(2) : "")
         );
       }
@@ -2799,11 +2814,15 @@ const bootFomoify = async function () {
       // Shopify AJAX `/products/*.js` typically returns integer cents.
       return formatMoney(n);
     };
-    const normalizeOrderPrice = (v) => {
+    const normalizeOrderPrice = (v, fallbackCurrency = activeCurrencyCode()) => {
       if (v === undefined || v === null || v === "") return "";
       if (typeof v === "string" && /[^\d.]/.test(v)) return v;
       const n = Number(v?.amount ?? v);
       if (!Number.isFinite(n)) return "";
+      const currencyCode = moneyCurrencyCode(v, fallbackCurrency);
+      if (currencyCode) {
+        return formatCurrencyByCode(n, currencyCode) || "";
+      }
       return formatMoney(Math.round(n * 100));
     };
     const normalizeInventory = (p) => {
@@ -2860,11 +2879,22 @@ const bootFomoify = async function () {
         "";
       const rawUrl = String(p.url || p.productUrl || "").trim();
       const url = rawUrl && rawUrl !== "#" ? rawUrl : handle ? `/products/${handle}` : "";
+      const priceCurrency =
+        p.priceCurrencyCode ||
+        p.currencyCode ||
+        p.priceRange?.minVariantPrice?.currencyCode ||
+        p.currency;
+      const compareCurrency =
+        p.compareAtCurrencyCode ||
+        p.compareAtPriceCurrencyCode ||
+        p.currencyCode ||
+        p.currency ||
+        priceCurrency;
       const price =
         p.price ||
         p.price_min ||
         p.priceMax ||
-        p.priceRange?.minVariantPrice?.amount ||
+        p.priceRange?.minVariantPrice ||
         "";
       const compareAt =
         p.compareAt ||
@@ -2879,8 +2909,10 @@ const bootFomoify = async function () {
         handle,
         image,
         url,
-        price: normalizePrice(price),
-        compareAt: normalizePrice(compareAt),
+        price: normalizePrice(price, priceCurrency),
+        compareAt: normalizePrice(compareAt, compareCurrency),
+        priceCurrencyCode: normalizeCurrencyCode(priceCurrency),
+        compareAtCurrencyCode: normalizeCurrencyCode(compareCurrency),
         rating: p.rating,
         inventoryQty,
       };
@@ -3891,13 +3923,31 @@ const bootFomoify = async function () {
                 lineImage || resolvedProduct?.image,
                 ""
               );
+              const linePriceCurrency = normalizeCurrencyCode(
+                line?.priceCurrencyCode ||
+                  line?.price_currency_code ||
+                  line?.price_set?.shop_money?.currency_code ||
+                  line?.final_price_set?.shop_money?.currency_code ||
+                  resolvedProduct?.priceCurrencyCode ||
+                  ""
+              );
+              const lineCompareCurrency = normalizeCurrencyCode(
+                line?.compareAtCurrencyCode ||
+                  line?.compare_at_price_currency_code ||
+                  line?.compare_at_price_set?.shop_money?.currency_code ||
+                  resolvedProduct?.compareAtCurrencyCode ||
+                  linePriceCurrency
+              );
               const pPrice = safe(
                 normalizeOrderPrice(
                   line?.price_set?.shop_money?.amount ||
                     line?.final_price_set?.shop_money?.amount ||
-                    line?.price ||
+                    (line?.priceCurrencyCode
+                      ? { amount: line?.price, currencyCode: line.priceCurrencyCode }
+                      : line?.price) ||
                     line?.final_price ||
-                    ""
+                    "",
+                  linePriceCurrency
                 ) || resolvedProduct?.price,
                 ""
               );
@@ -3906,7 +3956,8 @@ const bootFomoify = async function () {
                   line?.compare_at_price_set?.shop_money?.amount ||
                     line?.compare_at_price ||
                     line?.compareAtPrice ||
-                    ""
+                    "",
+                  lineCompareCurrency
                 ) ||
                   resolvedProduct?.compareAt ||
                   resolvedProduct?.compare_at_price,
@@ -4201,8 +4252,18 @@ const bootFomoify = async function () {
             row.productNameMode,
             row.productNameLimit
           );
-          const price = normalizePrice(prod.price);
-          const compareAt = normalizePrice(prod.compareAt);
+          const price = normalizePrice(
+            prod.price,
+            prod.priceCurrencyCode || prod.currencyCode || prod.currency
+          );
+          const compareAt = normalizePrice(
+            prod.compareAt,
+            prod.compareAtCurrencyCode ||
+              prod.compareAtPriceCurrencyCode ||
+              prod.currencyCode ||
+              prod.currency ||
+              prod.priceCurrencyCode
+          );
           let effectiveShowRating = baseCfg.showRating;
           if (effectiveShowRating && baseCfg.ratingSource === "judge_me") {
             if (!judgeMeConnected) {

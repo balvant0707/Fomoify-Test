@@ -626,7 +626,7 @@ const toProductNumericId = (gidOrId) => {
   return Number.isFinite(n) && n > 0 ? Math.trunc(n) : null;
 };
 
-const normalizeLowStockProductFromNode = (node) => {
+const normalizeLowStockProductFromNode = (node, currencyCode = "") => {
   const id = toProductNumericId(node?.id);
   const handle = String(node?.handle || "").trim();
   const title = String(node?.title || "").trim();
@@ -634,6 +634,7 @@ const normalizeLowStockProductFromNode = (node) => {
   const variants = Array.isArray(node?.variants?.nodes) ? node.variants.nodes : [];
   const firstVariant = variants[0] || null;
   const inventoryQtyRaw = Number(node?.totalInventory);
+  const normalizedCurrency = String(currencyCode || "").trim().toUpperCase();
 
   return {
     id,
@@ -645,10 +646,12 @@ const normalizeLowStockProductFromNode = (node) => {
       firstVariant?.price === undefined || firstVariant?.price === null
         ? ""
         : String(firstVariant.price),
+    priceCurrencyCode: normalizedCurrency,
     compareAt:
       firstVariant?.compareAtPrice === undefined || firstVariant?.compareAtPrice === null
         ? ""
         : String(firstVariant.compareAtPrice),
+    compareAtCurrencyCode: normalizedCurrency,
     inventoryQty: Number.isFinite(inventoryQtyRaw)
       ? Math.round(inventoryQtyRaw)
       : null,
@@ -683,7 +686,7 @@ const LOW_STOCK_PRODUCTS_QUERY = `
   }
 `;
 
-async function fetchLowStockProductsFromAdmin({ shop, accessToken, limit = 1000 }) {
+async function fetchLowStockProductsFromAdmin({ shop, accessToken, limit = 1000, currencyCode = "" }) {
   const endpoint = `https://${shop}/admin/api/2025-07/graphql.json`;
   const maxItems = Number.isFinite(Number(limit))
     ? Math.max(1, Math.min(2000, Math.trunc(Number(limit))))
@@ -725,7 +728,7 @@ async function fetchLowStockProductsFromAdmin({ shop, accessToken, limit = 1000 
       ? payload.data.products.edges
       : [];
     for (const edge of edges) {
-      const normalized = normalizeLowStockProductFromNode(edge?.node);
+      const normalized = normalizeLowStockProductFromNode(edge?.node, currencyCode);
       if (!normalized?.id && !normalized?.handle && !normalized?.title) continue;
       out.push(normalized);
     }
@@ -993,6 +996,7 @@ export const loader = async ({ request, params }) => {
                       originalUnitPriceSet {
                         presentmentMoney {
                           amount
+                          currencyCode
                         }
                       }
                       image {
@@ -1087,6 +1091,8 @@ export const loader = async ({ request, params }) => {
                 title: item.title || "",
                 quantity: item.quantity || 1,
                 price: item.originalUnitPriceSet?.presentmentMoney?.amount || "",
+                priceCurrencyCode:
+                  item.originalUnitPriceSet?.presentmentMoney?.currencyCode || "",
                 product_id: item.product?.id ? toProductNumericId(item.product.id) : null,
                 image: normalizeImageUrl(item.image),
                 product_handle: "",
@@ -1105,6 +1111,7 @@ export const loader = async ({ request, params }) => {
             orders,
             sessionReady: true,
             shop,
+            shopCurrency: shopRecord.currency || "",
             timestamp,
           };
         }
@@ -1203,11 +1210,13 @@ export const loader = async ({ request, params }) => {
               shop,
               accessToken: shopRecord.accessToken,
               limit,
+              currencyCode: shopRecord.currency || "",
             });
             return {
               products,
               sessionReady: true,
               shop,
+              shopCurrency: shopRecord.currency || "",
               timestamp,
             };
           } catch (err) {
@@ -1296,6 +1305,7 @@ export const loader = async ({ request, params }) => {
               records: rows,
               integrations: { judgeMeConnected },
               shop,
+              shopCurrency: shopRecord.currency || "",
               timestamp,
             };
           }
@@ -1315,6 +1325,7 @@ export const loader = async ({ request, params }) => {
             tables,
             integrations: { judgeMeConnected },
             shop,
+            shopCurrency: shopRecord.currency || "",
             timestamp,
           };
         }
