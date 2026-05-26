@@ -393,6 +393,9 @@ const bootFomoify = async function () {
     if (!Number.isFinite(n)) return "";
     const cents = Math.round(n * 100);
     const activeCurrency = normalizeCurrencyCode(currencyCode) || activeCurrencyCode();
+    if (activeCurrency) {
+      return formatCurrencyByCode(n, activeCurrency) || n.toFixed(2);
+    }
     if (window.Shopify && typeof window.Shopify.formatMoney === "function") {
       const fmt = activeMoneyFormat() || "${{amount}}";
       const rendered = String(window.Shopify.formatMoney(cents, fmt) || "").trim();
@@ -2820,9 +2823,7 @@ const bootFomoify = async function () {
       const n = Number(v?.amount ?? v);
       if (!Number.isFinite(n)) return "";
       const currencyCode = moneyCurrencyCode(v, fallbackCurrency);
-      if (currencyCode) {
-        return formatCurrencyByCode(n, currencyCode) || "";
-      }
+      if (currencyCode) return formatCurrencyByCode(n, currencyCode) || "";
       return formatMoney(Math.round(n * 100));
     };
     const normalizeInventory = (p) => {
