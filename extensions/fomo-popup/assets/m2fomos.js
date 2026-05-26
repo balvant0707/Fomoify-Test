@@ -455,6 +455,53 @@ const bootFomoify = async function () {
     return formatCurrencyByCode(major, activeCurrency) || major.toFixed(2);
   };
 
+  // Detects the visitor's local currency via IP geo-lookup.
+  // Returns a 3-letter ISO code (e.g. "EUR") or null.
+  // Skips detection when Shopify Markets has already set window.Shopify.currency.active.
+  const detectGeoCurrency = async () => {
+    if (normalizeCurrencyCode(window.Shopify?.currency?.active)) return null;
+    try {
+      const cached = sessionStorage.getItem("fomo_geo_currency");
+      if (cached && /^[A-Z]{3}$/.test(cached)) return cached;
+    } catch {}
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 3000);
+      const res = await fetch("https://ipapi.co/currency/", { signal: ctrl.signal });
+      clearTimeout(timer);
+      const code = (await res.text()).trim().toUpperCase();
+      if (/^[A-Z]{3}$/.test(code)) {
+        try { sessionStorage.setItem("fomo_geo_currency", code); } catch {}
+        return code;
+      }
+    } catch {}
+    return null;
+  };
+
+  // Fetches the exchange rate from `from` currency to `to` currency.
+  // Results are cached in localStorage for 1 hour.
+  const fetchGeoExchangeRate = async (from, to) => {
+    if (!from || !to || from === to) return 1;
+    const rateKey = `fomo_rate_${from}_${to}`;
+    try {
+      const cached = JSON.parse(localStorage.getItem(rateKey) || "null");
+      if (cached?.rate && cached?.ts && Date.now() - cached.ts < 3600000) return cached.rate;
+    } catch {}
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 5000);
+      const res = await fetch(`https://open.er-api.com/v6/latest/${from}`, { signal: ctrl.signal });
+      clearTimeout(timer);
+      const data = await res.json();
+      const rate = data?.rates?.[to];
+      if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) {
+        try { localStorage.setItem(rateKey, JSON.stringify({ rate, ts: Date.now() })); } catch {}
+        return rate;
+      }
+    } catch {}
+    return 1;
+  };
+
   const cacheKey = (k) =>
     `fomo:v1:${SHOP || window.location.hostname}:${k}`;
   const cache = {
@@ -2388,6 +2435,22 @@ const bootFomoify = async function () {
     window.FOMOIFY.popupTables = data?.tables || {};
     window.FOMOIFY.notificationRecords = data?.records || [];
 
+    // Geo-currency: detect visitor's local currency and pre-fetch exchange rate.
+    // Only runs when Shopify Markets is NOT active (window.Shopify.currency.active not set).
+    const shopCurrencyBase = normalizeCurrencyCode(data?.shopCurrency);
+    window.FOMOIFY.geo = null;
+    try {
+      const geoCurrency = await detectGeoCurrency();
+      if (geoCurrency && geoCurrency !== shopCurrencyBase) {
+        const geoRate = await fetchGeoExchangeRate(shopCurrencyBase, geoCurrency);
+        if (Number.isFinite(geoRate) && geoRate > 0 && geoRate !== 1) {
+          window.FOMOIFY.geo = { currency: geoCurrency, rate: geoRate, shopCurrency: shopCurrencyBase };
+          // Override shopCurrency so activeCurrencyCode() returns the visitor's currency.
+          window.FOMOIFY.shopCurrency = geoCurrency;
+        }
+      }
+    } catch {}
+
     const recs = Array.isArray(data?.records) ? data.records : [];
     const tables = data?.tables || {};
     const judgeMeConnected = toBool(data?.integrations?.judgeMeConnected, false);
@@ -2816,15 +2879,25 @@ const bootFomoify = async function () {
       if (v === undefined || v === null || v === "") return "";
       if (typeof v === "string" && /[^\d.]/.test(v)) return v;
       const rawAmount = v?.amount ?? v;
-      const n = Number(rawAmount);
+      let n = Number(rawAmount);
       if (!Number.isFinite(n)) return String(v);
-      const currencyCode = moneyCurrencyCode(v, fallbackCurrency);
+      let currencyCode = moneyCurrencyCode(v, fallbackCurrency);
 
       // GraphQL `amount` and decimal strings are major currency units.
       const fromAmountField =
         v && typeof v === "object" && v.amount !== undefined && v.amount !== null;
       const fromDecimalString =
         typeof rawAmount === "string" && String(rawAmount).includes(".");
+
+      // Geo-currency: convert catalog prices from shop base currency to visitor's local currency.
+      // Skips order presentment prices (those carry their own currencyCode, not shopCurrencyBase).
+      const geo = window.FOMOIFY?.geo;
+      if (geo?.currency && geo?.shopCurrency && Number.isFinite(geo.rate) && geo.rate > 0 &&
+          currencyCode === geo.shopCurrency && geo.currency !== geo.shopCurrency) {
+        const major = (fromAmountField || fromDecimalString || !Number.isInteger(n)) ? n : n / 100;
+        const converted = major * geo.rate;
+        return formatCurrencyByCode(converted, geo.currency) || converted.toFixed(2);
+      }
 
       if (fromAmountField || fromDecimalString || !Number.isInteger(n)) {
         return (
