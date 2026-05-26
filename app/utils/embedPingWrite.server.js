@@ -1,4 +1,4 @@
-import prisma from "../db.server";
+import prisma, { withPrismaConnectionRetry } from "../db.server";
 
 const DEFAULT_WRITE_WINDOW_MS = 60 * 1000;
 const MAX_CACHE_ENTRIES = 5000;
@@ -69,11 +69,13 @@ export async function touchEmbedPing(shopDomain) {
   }
 
   const doUpsert = () =>
-    model.upsert({
-      where: { shop },
-      create: { shop, lastPingAt: new Date(nowMs) },
-      update: { lastPingAt: new Date(nowMs) },
-    });
+    withPrismaConnectionRetry(() =>
+      model.upsert({
+        where: { shop },
+        create: { shop, lastPingAt: new Date(nowMs) },
+        update: { lastPingAt: new Date(nowMs) },
+      })
+    );
 
   try {
     await doUpsert();
@@ -106,33 +108,19 @@ export async function touchEmbedPing(shopDomain) {
     }
 
     if (isEngineNotConnectedError(error)) {
-      try {
-        await prisma.$connect();
-        await doUpsert();
-        writeCache.set(shop, nowMs);
-        pruneCache(nowMs);
-        return {
-          ok: true,
-          shop,
-          lastPingAt: nowIso,
-          skipped: false,
-          persisted: true,
-        };
-      } catch (retryError) {
-        writeCache.set(shop, nowMs);
-        pruneCache(nowMs);
-        console.warn("[embed-status] engine reconnect failed, using in-memory ping:", {
-          shop,
-          error: retryError?.message,
-        });
-        return {
-          ok: true,
-          shop,
-          lastPingAt: nowIso,
-          skipped: true,
-          persisted: false,
-        };
-      }
+      writeCache.set(shop, nowMs);
+      pruneCache(nowMs);
+      console.warn("[embed-status] engine unavailable, using in-memory ping:", {
+        shop,
+        error: error?.message,
+      });
+      return {
+        ok: true,
+        shop,
+        lastPingAt: nowIso,
+        skipped: true,
+        persisted: false,
+      };
     }
 
     throw error;

@@ -15,6 +15,10 @@
 //
 // ── Edit the email content below before running ───────────────────────────────
 
+import "dotenv/config";
+import nodemailer from "nodemailer";
+import { PrismaClient } from "@prisma/client";
+
 // Author email for testing. Set to null to send to all installed users.
 const AUTHOR_TEST_EMAIL = "balvant@pryxotech.com";
 
@@ -233,10 +237,6 @@ const EMAIL_HTML_BODY = /* html */ `
 const SEND_DELAY_MS = 300;
 
 // ── Script logic (no edits needed below) ─────────────────────────────────────
-
-import "dotenv/config";
-import nodemailer from "nodemailer";
-import { PrismaClient } from "@prisma/client";
 
 const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM_EMAIL, SMTP_FROM_NAME } = process.env;
 const SMTP_PORT = Number(process.env.SMTP_PORT ?? 587);
