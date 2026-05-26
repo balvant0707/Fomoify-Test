@@ -443,6 +443,9 @@ const bootFomoify = async function () {
     if (!Number.isFinite(n)) return String(cents || "");
     const major = n / 100;
     const activeCurrency = activeCurrencyCode();
+    if (activeCurrency) {
+      return formatCurrencyByCode(major, activeCurrency) || major.toFixed(2);
+    }
     if (window.Shopify && typeof window.Shopify.formatMoney === "function") {
       const fmt = activeMoneyFormat() || "${{amount}}";
       const rendered = String(window.Shopify.formatMoney(n, fmt) || "").trim();
@@ -1438,14 +1441,23 @@ const bootFomoify = async function () {
     body.appendChild(textFlow);
 
     const hidePrice = toBool(cfg.hidePrice, false);
-    const priceText = hidePrice ? "" : ensureMoneySymbol(safe(cfg.price, "").trim());
-    const compareCandidateRaw = safe(
-      cfg.compareAt || cfg.compareAtPrice,
-      ""
-    ).trim();
+    const priceCurrency = cfg.priceCurrencyCode || cfg.currencyCode || cfg.currency;
+    const compareCurrency =
+      cfg.compareAtCurrencyCode ||
+      cfg.compareAtPriceCurrencyCode ||
+      cfg.currencyCode ||
+      cfg.currency ||
+      priceCurrency;
+    const priceText = hidePrice
+      ? ""
+      : ensureMoneySymbol(cfg.price, priceCurrency);
+    const compareCandidateRaw = cfg.compareAt || cfg.compareAtPrice || "";
     const compareCandidate = hidePrice
       ? ""
-      : alignCompareCurrency(priceText, ensureMoneySymbol(compareCandidateRaw));
+      : alignCompareCurrency(
+          priceText,
+          ensureMoneySymbol(compareCandidateRaw, compareCurrency)
+        );
     const compareText =
       !hidePrice && shouldShowComparePrice(priceText, compareCandidate)
         ? compareCandidate
@@ -1876,10 +1888,17 @@ const bootFomoify = async function () {
 
     const appendPriceLine = () => {
       if (toBool(cfg.hidePrice, false)) return false;
-      const priceText = ensureMoneySymbol(safe(cfg.price, "").trim());
+      const priceCurrency = cfg.priceCurrencyCode || cfg.currencyCode || cfg.currency;
+      const compareCurrency =
+        cfg.compareAtCurrencyCode ||
+        cfg.compareAtPriceCurrencyCode ||
+        cfg.currencyCode ||
+        cfg.currency ||
+        priceCurrency;
+      const priceText = ensureMoneySymbol(cfg.price, priceCurrency);
       const compareCandidate = alignCompareCurrency(
         priceText,
-        ensureMoneySymbol(safe(cfg.compareAt || cfg.compareAtPrice, "").trim())
+        ensureMoneySymbol(cfg.compareAt || cfg.compareAtPrice, compareCurrency)
       );
       const compareText = shouldShowComparePrice(priceText, compareCandidate)
         ? compareCandidate
