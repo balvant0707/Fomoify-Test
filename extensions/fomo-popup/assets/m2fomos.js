@@ -596,6 +596,7 @@ const bootFomoify = async function () {
       hideCountry: has("country"),
       hideProductTitle: has("productname", "producttitle"),
       hideProductImage: has("productimage", "image"),
+      hidePrice: has("price", "pricehide", "hideprice"),
       hideTime: has("ordertime", "time"),
     };
   }
@@ -1424,18 +1425,19 @@ const bootFomoify = async function () {
     textFlow.innerHTML = `${leadingHtml}${leadingHtml ? " " : ""}${boughtTxt}`;
     body.appendChild(textFlow);
 
-    const priceText = ensureMoneySymbol(safe(cfg.price, "").trim());
+    const hidePrice = toBool(cfg.hidePrice, false);
+    const priceText = hidePrice ? "" : ensureMoneySymbol(safe(cfg.price, "").trim());
     const compareCandidateRaw = safe(
       cfg.compareAt || cfg.compareAtPrice,
       ""
     ).trim();
-    const compareCandidate = alignCompareCurrency(
-      priceText,
-      ensureMoneySymbol(compareCandidateRaw)
-    );
-    const compareText = shouldShowComparePrice(priceText, compareCandidate)
-      ? compareCandidate
-      : "";
+    const compareCandidate = hidePrice
+      ? ""
+      : alignCompareCurrency(priceText, ensureMoneySymbol(compareCandidateRaw));
+    const compareText =
+      !hidePrice && shouldShowComparePrice(priceText, compareCandidate)
+        ? compareCandidate
+        : "";
     const recentTimeText = !cfg.hideTime
       ? relOrderDaysAgo(cfg.createOrderTime) ||
         safe(cfg.createOrderTime, "") ||
@@ -1861,6 +1863,7 @@ const bootFomoify = async function () {
       safe(cfg.timestamp || cfg.timeText || cfg.timeAbsolute, "").trim();
 
     const appendPriceLine = () => {
+      if (toBool(cfg.hidePrice, false)) return false;
       const priceText = ensureMoneySymbol(safe(cfg.price, "").trim());
       const compareCandidate = alignCompareCurrency(
         priceText,
@@ -2582,6 +2585,7 @@ const bootFomoify = async function () {
               hideCountry: hide.hideCountry,
               hideProductTitle: hide.hideProductTitle,
               hideProductImage: hide.hideProductImage,
+              hidePrice: hide.hidePrice,
               hideTime: hide.hideTime,
 
               // styling
