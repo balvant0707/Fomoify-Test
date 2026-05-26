@@ -381,6 +381,10 @@ const bootFomoify = async function () {
         ROOT?.dataset.shopCurrency ||
         ""
     );
+  const selectedStorefrontCurrencyCode = () =>
+    normalizeCurrencyCode(
+      window.Shopify?.currency?.active || window.Shopify?.currency?.current || ""
+    );
   const activeMoneyFormat = () =>
     String(
       window.Shopify?.money_format ||
@@ -404,18 +408,32 @@ const bootFomoify = async function () {
     }
     return formatCurrencyByCode(n, activeCurrency) || n.toFixed(2);
   };
+  const geoConvertAmount = (amount, fromCurrency) => {
+    const geo = window.FOMOIFY?.geo;
+    if (
+      !geo?.currency || !geo?.shopCurrency || !Number.isFinite(geo.rate) ||
+      geo.rate <= 0 || fromCurrency !== geo.shopCurrency || geo.currency === geo.shopCurrency
+    ) return null;
+    const converted = amount * geo.rate;
+    return formatCurrencyByCode(converted, geo.currency) || converted.toFixed(2);
+  };
   const ensureMoneySymbol = (value, currencyCode = activeCurrencyCode()) => {
     if (value && typeof value === "object") {
-      return formatStoreMoneyMajor(
-        value.amount ?? value.price ?? value.value,
-        value.currencyCode || value.currency || currencyCode
-      );
+      const objCurrency = value.currencyCode || value.currency || currencyCode;
+      const objAmount = Number(value.amount ?? value.price ?? value.value);
+      if (Number.isFinite(objAmount)) {
+        const geo = geoConvertAmount(objAmount, objCurrency);
+        if (geo) return geo;
+      }
+      return formatStoreMoneyMajor(value.amount ?? value.price ?? value.value, objCurrency);
     }
     const raw = String(value ?? "").trim();
     if (!raw) return "";
     if (hasMoneySymbol(raw)) return raw;
     const n = parseMoneyValue(raw);
     if (!Number.isFinite(n)) return raw;
+    const geo = geoConvertAmount(n, currencyCode);
+    if (geo) return geo;
     return formatStoreMoneyMajor(n, currencyCode) || raw;
   };
   const alignCompareCurrency = (priceText, compareText) => {
@@ -455,11 +473,32 @@ const bootFomoify = async function () {
     return formatCurrencyByCode(major, activeCurrency) || major.toFixed(2);
   };
 
-  // Detects the visitor's local currency via IP geo-lookup.
-  // Returns a 3-letter ISO code (e.g. "EUR") or null.
-  // Skips detection when Shopify Markets has already set window.Shopify.currency.active.
+  // Reads the visitor's currently-selected currency from every known Shopify / theme source.
+  const readSelectedCurrency = () => {
+    const code = normalizeCurrencyCode(
+      window.Shopify?.currency?.active ||
+      window.Shopify?.currency?.current ||
+      window.Currency?.currentCurrency ||
+      window.theme?.currency
+    );
+    if (code && /^[A-Z]{3}$/.test(code)) return code;
+    try {
+      const urlCode = normalizeCurrencyCode(
+        new URLSearchParams(window.location.search).get("currency")
+      );
+      if (urlCode && /^[A-Z]{3}$/.test(urlCode)) return urlCode;
+    } catch {}
+    try {
+      const m = document.cookie.match(/(?:^|;\s*)(?:cart_currency|_shopify_currency)=([A-Z]{3})(?:;|$)/);
+      if (m?.[1]) return m[1];
+    } catch {}
+    return null;
+  };
+
+  // Detects the visitor's effective currency: selected > cached geo > live IP lookup.
   const detectGeoCurrency = async () => {
-    if (normalizeCurrencyCode(window.Shopify?.currency?.active)) return null;
+    const selected = readSelectedCurrency();
+    if (selected) return selected;
     try {
       const cached = sessionStorage.getItem("fomo_geo_currency");
       if (cached && /^[A-Z]{3}$/.test(cached)) return cached;
@@ -478,8 +517,8 @@ const bootFomoify = async function () {
     return null;
   };
 
-  // Fetches the exchange rate from `from` currency to `to` currency.
-  // Results are cached in localStorage for 1 hour.
+  // Fetches the exchange rate from `from` to `to`, cached 1 hour in localStorage.
+  // Races 4 free APIs in parallel — first valid response wins (max 4s wait).
   const fetchGeoExchangeRate = async (from, to) => {
     if (!from || !to || from === to) return 1;
     const rateKey = `fomo_rate_${from}_${to}`;
@@ -487,19 +526,33 @@ const bootFomoify = async function () {
       const cached = JSON.parse(localStorage.getItem(rateKey) || "null");
       if (cached?.rate && cached?.ts && Date.now() - cached.ts < 3600000) return cached.rate;
     } catch {}
-    try {
+    const saveRate = (rate) => {
+      try { localStorage.setItem(rateKey, JSON.stringify({ rate, ts: Date.now() })); } catch {}
+      return rate;
+    };
+    const tryOne = async (url, extract) => {
       const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 5000);
-      const res = await fetch(`https://open.er-api.com/v6/latest/${from}`, { signal: ctrl.signal });
-      clearTimeout(timer);
-      const data = await res.json();
-      const rate = data?.rates?.[to];
-      if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) {
-        try { localStorage.setItem(rateKey, JSON.stringify({ rate, ts: Date.now() })); } catch {}
-        return rate;
+      const timer = setTimeout(() => ctrl.abort(), 4000);
+      try {
+        const r = await fetch(url, { signal: ctrl.signal });
+        const d = await r.json();
+        clearTimeout(timer);
+        const v = extract(d);
+        return typeof v === "number" && Number.isFinite(v) && v > 0 ? v : null;
+      } catch {
+        clearTimeout(timer);
+        return null;
       }
-    } catch {}
-    return 1;
+    };
+    const f = from.toLowerCase(), t = to.toLowerCase();
+    const attempts = await Promise.all([
+      tryOne(`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${f}.json`, (d) => d?.[f]?.[t]),
+      tryOne(`https://latest.currency-api.pages.dev/v1/currencies/${f}.json`, (d) => d?.[f]?.[t]),
+      tryOne(`https://api.frankfurter.app/latest?from=${from}&to=${to}`, (d) => d?.rates?.[to]),
+      tryOne(`https://open.er-api.com/v6/latest/${from}`, (d) => d?.rates?.[to]),
+    ]);
+    const rate = attempts.find((v) => Number.isFinite(v) && v > 0);
+    return rate ? saveRate(rate) : 1;
   };
 
   const cacheKey = (k) =>
@@ -2435,21 +2488,38 @@ const bootFomoify = async function () {
     window.FOMOIFY.popupTables = data?.tables || {};
     window.FOMOIFY.notificationRecords = data?.records || [];
 
-    // Geo-currency: detect visitor's local currency and pre-fetch exchange rate.
-    // Only runs when Shopify Markets is NOT active (window.Shopify.currency.active not set).
+    // Geo-currency: detect visitor's local currency (Shopify Markets, theme picker, or IP geo)
+    // and fetch the exchange rate so catalog prices convert to the visitor's currency.
     const shopCurrencyBase = normalizeCurrencyCode(data?.shopCurrency);
     window.FOMOIFY.geo = null;
+    const applyGeoCurrency = async (targetCurrency) => {
+      if (!targetCurrency || targetCurrency === shopCurrencyBase) {
+        window.FOMOIFY.geo = null;
+        window.FOMOIFY.shopCurrency = shopCurrencyBase;
+        return;
+      }
+      const rate = await fetchGeoExchangeRate(shopCurrencyBase, targetCurrency);
+      if (Number.isFinite(rate) && rate > 0 && rate !== 1) {
+        window.FOMOIFY.geo = { currency: targetCurrency, rate, shopCurrency: shopCurrencyBase };
+        window.FOMOIFY.shopCurrency = targetCurrency;
+      }
+    };
     try {
       const geoCurrency = await detectGeoCurrency();
-      if (geoCurrency && geoCurrency !== shopCurrencyBase) {
-        const geoRate = await fetchGeoExchangeRate(shopCurrencyBase, geoCurrency);
-        if (Number.isFinite(geoRate) && geoRate > 0 && geoRate !== 1) {
-          window.FOMOIFY.geo = { currency: geoCurrency, rate: geoRate, shopCurrency: shopCurrencyBase };
-          // Override shopCurrency so activeCurrencyCode() returns the visitor's currency.
-          window.FOMOIFY.shopCurrency = geoCurrency;
-        }
-      }
+      await applyGeoCurrency(geoCurrency);
     } catch {}
+
+    // Watch for runtime currency changes (theme currency picker that doesn't reload the page).
+    let _lastActiveCurrency = readSelectedCurrency() || shopCurrencyBase;
+    setInterval(async () => {
+      try {
+        const cur = readSelectedCurrency();
+        if (!cur || cur === _lastActiveCurrency) return;
+        _lastActiveCurrency = cur;
+        try { sessionStorage.removeItem("fomo_geo_currency"); } catch {}
+        await applyGeoCurrency(cur);
+      } catch {}
+    }, 500);
 
     const recs = Array.isArray(data?.records) ? data.records : [];
     const tables = data?.tables || {};
@@ -2875,7 +2945,7 @@ const bootFomoify = async function () {
           v?.presentmentCurrencyCode ||
           fallbackCurrency
       );
-    const normalizePrice = (v, fallbackCurrency = activeCurrencyCode()) => {
+    const normalizePrice = (v, fallbackCurrency = window.FOMOIFY?.geo?.shopCurrency || activeCurrencyCode()) => {
       if (v === undefined || v === null || v === "") return "";
       if (typeof v === "string" && /[^\d.]/.test(v)) return v;
       const rawAmount = v?.amount ?? v;
@@ -2909,12 +2979,14 @@ const bootFomoify = async function () {
       // Shopify AJAX `/products/*.js` typically returns integer cents.
       return formatMoney(n);
     };
-    const normalizeOrderPrice = (v, fallbackCurrency = activeCurrencyCode()) => {
+    const normalizeOrderPrice = (v, fallbackCurrency = window.FOMOIFY?.geo?.shopCurrency || activeCurrencyCode()) => {
       if (v === undefined || v === null || v === "") return "";
       if (typeof v === "string" && /[^\d.]/.test(v)) return v;
       const n = Number(v?.amount ?? v);
       if (!Number.isFinite(n)) return "";
       const currencyCode = moneyCurrencyCode(v, fallbackCurrency);
+      const geo = geoConvertAmount(n, currencyCode);
+      if (geo) return geo;
       if (currencyCode) return formatCurrencyByCode(n, currencyCode) || "";
       return formatMoney(Math.round(n * 100));
     };
@@ -3631,14 +3703,20 @@ const bootFomoify = async function () {
         productHandleFromUrl(raw) || raw.replace(/^\/?products\//i, "");
       const h = String(parsedHandle || "").trim();
       if (!h || /^gid:\/\//i.test(h)) return null;
-      if (productCache.has(h)) return productCache.get(h);
-      const p = await fetchJson(`/products/${h}.js`, `prod:${h}`, 600000);
+      const currencyKey = selectedStorefrontCurrencyCode() || activeCurrencyCode() || "default";
+      const cacheKeyForProduct = `${currencyKey}:${h}`;
+      if (productCache.has(cacheKeyForProduct)) return productCache.get(cacheKeyForProduct);
+      const p = await fetchJson(
+        `/products/${h}.js`,
+        `prod:${currencyKey}:${h}`,
+        600000
+      );
       const normalized = normalizeProduct(p) || {
         title: h,
         handle: h,
         url: `/products/${h}`,
       };
-      productCache.set(h, normalized);
+      productCache.set(cacheKeyForProduct, normalized);
       return normalized;
     };
     const fetchStoreProductsForLowStock = async () => {
@@ -4031,29 +4109,41 @@ const bootFomoify = async function () {
                   resolvedProduct?.compareAtCurrencyCode ||
                   linePriceCurrency
               );
+              const selectedCurrency = selectedStorefrontCurrencyCode();
+              const shouldUseStorefrontPrice =
+                selectedCurrency &&
+                linePriceCurrency &&
+                selectedCurrency !== linePriceCurrency &&
+                safe(resolvedProduct?.price, "");
+              const orderLinePrice = normalizeOrderPrice(
+                line?.price_set?.shop_money?.amount ||
+                  line?.final_price_set?.shop_money?.amount ||
+                  (line?.priceCurrencyCode
+                    ? { amount: line?.price, currencyCode: line.priceCurrencyCode }
+                    : line?.price) ||
+                  line?.final_price ||
+                  "",
+                linePriceCurrency
+              );
               const pPrice = safe(
-                normalizeOrderPrice(
-                  line?.price_set?.shop_money?.amount ||
-                    line?.final_price_set?.shop_money?.amount ||
-                    (line?.priceCurrencyCode
-                      ? { amount: line?.price, currencyCode: line.priceCurrencyCode }
-                      : line?.price) ||
-                    line?.final_price ||
-                    "",
-                  linePriceCurrency
-                ) || resolvedProduct?.price,
+                shouldUseStorefrontPrice
+                  ? resolvedProduct?.price
+                  : orderLinePrice || resolvedProduct?.price,
                 ""
               );
+              const orderLineCompare = normalizeOrderPrice(
+                line?.compare_at_price_set?.shop_money?.amount ||
+                  line?.compare_at_price ||
+                  line?.compareAtPrice ||
+                  "",
+                lineCompareCurrency
+              );
               const pCompareCandidate = safe(
-                normalizeOrderPrice(
-                  line?.compare_at_price_set?.shop_money?.amount ||
-                    line?.compare_at_price ||
-                    line?.compareAtPrice ||
-                    "",
-                  lineCompareCurrency
-                ) ||
-                  resolvedProduct?.compareAt ||
-                  resolvedProduct?.compare_at_price,
+                shouldUseStorefrontPrice
+                  ? resolvedProduct?.compareAt || resolvedProduct?.compare_at_price
+                  : orderLineCompare ||
+                      resolvedProduct?.compareAt ||
+                      resolvedProduct?.compare_at_price,
                 ""
               );
               const pCompareAt =
