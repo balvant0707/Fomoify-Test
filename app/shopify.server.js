@@ -7,7 +7,7 @@ import {
   DeliveryMethod,
 } from "@shopify/shopify-app-remix/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
-import prisma, { ensureConnected } from "./db.server";
+import prisma, { withPrismaConnectionRetry } from "./db.server";
 import { upsertInstalledShop } from "./utils/upsertShop.server";
 import {
   ensurePrismaSessionTable,
@@ -33,7 +33,7 @@ const sessionConnectionRetryIntervalMs = toPositiveInt(
 // The storage constructor starts a background readiness timer that throws an
 // unhandled rejection if the table is missing, so we must create the table first.
 const createPrismaSessionStorage = async (prismaClient) => {
-  await ensurePrismaSessionTable(prismaClient);
+  await withPrismaConnectionRetry(() => ensurePrismaSessionTable(prismaClient));
   return new PrismaSessionStorage(prismaClient, {
     connectionRetries: sessionConnectionRetries,
     connectionRetryIntervalMs: sessionConnectionRetryIntervalMs,
@@ -48,16 +48,6 @@ function isMissingSessionTableError(error) {
     message.includes("MissingSessionTableError") ||
     message.includes("The table `session` does not exist") ||
     message.includes("The table `Session` does not exist")
-  );
-}
-
-function isPrismaEngineDisconnectedError(error) {
-  const name = error?.name || error?.constructor?.name || "";
-  const message = `${error?.message || ""} ${error?.cause?.message || ""}`;
-  return (
-    (name === "PrismaClientUnknownRequestError" ||
-      name === "PrismaClientKnownRequestError") &&
-    message.includes("Engine is not yet connected")
   );
 }
 
@@ -77,20 +67,17 @@ function createSessionStorage(prismaClient) {
   const runWithStorageRetry = async (operation) => {
     const storage = await getStorage();
     try {
-      return await operation(storage);
+      return await withPrismaConnectionRetry(() => operation(storage));
     } catch (error) {
-      if (isPrismaEngineDisconnectedError(error)) {
-        await ensureConnected();
-        return operation(storage);
-      }
-
       if (!isMissingSessionTableError(error)) throw error;
 
       storagePromise = undefined;
       resetPrismaSessionTableReady();
-      await ensurePrismaSessionTable(prismaClient, { force: true });
+      await withPrismaConnectionRetry(() =>
+        ensurePrismaSessionTable(prismaClient, { force: true })
+      );
       const nextStorage = await getStorage();
-      return operation(nextStorage);
+      return withPrismaConnectionRetry(() => operation(nextStorage));
     }
   };
 

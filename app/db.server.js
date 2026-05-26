@@ -35,21 +35,27 @@ function buildPrismaOptions() {
   }
 }
 
-const globalForPrisma = globalThis;
+const globalForPrisma = global;
 
-if (!globalForPrisma.prisma && globalForPrisma.__prisma) {
-  globalForPrisma.prisma = globalForPrisma.__prisma;
+if (!globalForPrisma.__prismaRaw) {
+  globalForPrisma.__prismaRaw =
+    globalForPrisma.__prismaRaw ||
+    globalForPrisma.__prismaClient ||
+    (globalForPrisma.prisma?.$connect ? globalForPrisma.prisma : null) ||
+    new PrismaClient(buildPrismaOptions());
 }
 
-if (!globalForPrisma.prisma) {
-  globalForPrisma.prisma = new PrismaClient(buildPrismaOptions());
-}
-
-globalForPrisma.__prisma = globalForPrisma.prisma;
-
-const prisma = globalForPrisma.prisma;
+const rawPrisma = globalForPrisma.__prismaRaw;
 let _connectPromise = null;
 let _connected = false;
+let _disconnectTimer = null;
+let _activeOperations = 0;
+
+function cancelScheduledDisconnect() {
+  if (!_disconnectTimer) return;
+  clearTimeout(_disconnectTimer);
+  _disconnectTimer = null;
+}
 
 // Matches both error types Prisma emits for a disconnected engine.
 // PrismaClientUnknownRequestError is the common form; PrismaClientKnownRequestError
@@ -68,7 +74,6 @@ export function isPrismaEngineDisconnectedError(error) {
 // Do NOT call $disconnect() inside request handlers — on Prisma 6 the client
 // cannot reliably reconnect after $disconnect() within the same Lambda instance,
 // which causes "Engine is not yet connected" errors on all subsequent requests.
-let _disconnectTimer = null;
 export function scheduleDisconnect() {
   // intentional no-op — kept for import compatibility during the transition
 }
@@ -82,12 +87,10 @@ process.once("SIGTERM", () => {
 // Cancels any pending scheduleDisconnect timer so it cannot fire mid-request,
 // then deduplicates concurrent $connect() calls via _connectPromise.
 export async function ensureConnected() {
-  if (_disconnectTimer) {
-    clearTimeout(_disconnectTimer);
-    _disconnectTimer = null;
-  }
+  cancelScheduledDisconnect();
+  if (_connected) return;
   if (!_connectPromise) {
-    _connectPromise = prisma
+    _connectPromise = rawPrisma
       .$connect()
       .then(() => {
         _connected = true;
@@ -100,22 +103,53 @@ export async function ensureConnected() {
 }
 
 async function resetPrismaEngine() {
+  cancelScheduledDisconnect();
   _connectPromise = null;
   _connected = false;
-  await prisma.$disconnect().catch(() => {});
+  await rawPrisma.$disconnect().catch(() => {});
 }
 
 export async function withPrismaConnectionRetry(operation) {
-  await ensureConnected();
+  cancelScheduledDisconnect();
+  _activeOperations += 1;
   try {
-    return await operation();
-  } catch (error) {
-    if (!isPrismaEngineDisconnectedError(error)) throw error;
-    await resetPrismaEngine();
     await ensureConnected();
-    return operation();
+    try {
+      return await operation();
+    } catch (error) {
+      if (!isPrismaEngineDisconnectedError(error)) throw error;
+      await resetPrismaEngine();
+      await ensureConnected();
+      return operation();
+    }
+  } finally {
+    _activeOperations = Math.max(0, _activeOperations - 1);
   }
 }
+
+function createPrismaClientWithRetry(client) {
+  if (typeof client.$extends !== "function") return client;
+
+  return client.$extends({
+    query: {
+      $allModels: {
+        async $allOperations({ args, query }) {
+          return withPrismaConnectionRetry(() => query(args));
+        },
+      },
+    },
+  });
+}
+
+if (!globalForPrisma.__prismaWithRetry) {
+  globalForPrisma.__prismaWithRetry = createPrismaClientWithRetry(rawPrisma);
+}
+
+globalForPrisma.__prismaClient = rawPrisma;
+globalForPrisma.__prisma = globalForPrisma.__prismaWithRetry;
+globalForPrisma.prisma = globalForPrisma.__prismaWithRetry;
+
+const prisma = globalForPrisma.__prismaWithRetry;
 
 // Eagerly start the engine so the first Lambda query doesn't race on connect.
 ensureConnected().catch(() => {});

@@ -93,6 +93,7 @@ const HIDE_CHOICES = [
   { label: "Country", value: "country" },
   { label: "Product Name", value: "productTitle" },
   { label: "Product Image", value: "productImage" },
+  { label: "Price Hide", value: "price" },
   { label: "Order Time", value: "time" },
 ];
 const DEFAULT_PRODUCT_NAME_LIMIT = "15";
@@ -1250,13 +1251,17 @@ function Bubble({ form, order, isMobile = false }) {
   const productImg = hide.has("productImage")
     ? null
     : first?.image || order?.productImage || null;
-  const priceText = formatPreviewMoney(first?.price || order?.productPrice);
-  const compareCandidate = formatPreviewMoney(
-    first?.compareAt || order?.productCompareAt || ""
-  );
-  const compareText = shouldShowPreviewCompare(priceText, compareCandidate)
-    ? alignPreviewCompareCurrency(priceText, compareCandidate)
-    : "";
+  const hidePrice = hide.has("price") || hide.has("priceHide");
+  const priceText = hidePrice
+    ? ""
+    : formatPreviewMoney(first?.price || order?.productPrice);
+  const compareCandidate = hidePrice
+    ? ""
+    : formatPreviewMoney(first?.compareAt || order?.productCompareAt || "");
+  const compareText =
+    !hidePrice && shouldShowPreviewCompare(priceText, compareCandidate)
+      ? alignPreviewCompareCurrency(priceText, compareCandidate)
+      : "";
   const moreCount = Math.max(0, products.length - 1);
   const showImage = !!productImg;
   const showImageSlot = !hide.has("productImage");

@@ -596,6 +596,7 @@ const bootFomoify = async function () {
       hideCountry: has("country"),
       hideProductTitle: has("productname", "producttitle"),
       hideProductImage: has("productimage", "image"),
+      hidePrice: has("price", "pricehide", "hideprice"),
       hideTime: has("ordertime", "time"),
     };
   }
@@ -1077,7 +1078,7 @@ const bootFomoify = async function () {
         ? "min(calc(100vw - 32px), 340px)"
         : "min(calc(100vw - 32px), 420px)";
     wrap.style.cssText = `
-      position:fixed; z-index:9999; box-sizing:border-box;
+      position:fixed; z-index:19; box-sizing:border-box;
       width:${wrapWidth}; max-width:calc(100vw - 32px); overflow:${imageOverflow ? "visible" : "hidden"}; cursor:pointer;
       border-radius:${cardRadius}px;
       background:${bgFlash}; color:${flashTextColor};
@@ -1313,7 +1314,7 @@ const bootFomoify = async function () {
         ? "min(calc(100vw - 32px), 360px)"
         : "min(calc(100vw - 32px), 420px)";
     wrap.style.cssText = `
-    position:fixed; z-index:9999; box-sizing:border-box;
+    position:fixed; z-index:19; box-sizing:border-box;
     width:${wrapWidth}; max-width:calc(100vw - 32px); overflow:${imageOverflow ? "visible" : "hidden"}; cursor:pointer;
     border-radius:${cardRadius}px;
     background:${bgRecent}; color:${cfg.fontColor || "#111"};
@@ -1424,18 +1425,19 @@ const bootFomoify = async function () {
     textFlow.innerHTML = `${leadingHtml}${leadingHtml ? " " : ""}${boughtTxt}`;
     body.appendChild(textFlow);
 
-    const priceText = ensureMoneySymbol(safe(cfg.price, "").trim());
+    const hidePrice = toBool(cfg.hidePrice, false);
+    const priceText = hidePrice ? "" : ensureMoneySymbol(safe(cfg.price, "").trim());
     const compareCandidateRaw = safe(
       cfg.compareAt || cfg.compareAtPrice,
       ""
     ).trim();
-    const compareCandidate = alignCompareCurrency(
-      priceText,
-      ensureMoneySymbol(compareCandidateRaw)
-    );
-    const compareText = shouldShowComparePrice(priceText, compareCandidate)
-      ? compareCandidate
-      : "";
+    const compareCandidate = hidePrice
+      ? ""
+      : alignCompareCurrency(priceText, ensureMoneySymbol(compareCandidateRaw));
+    const compareText =
+      !hidePrice && shouldShowComparePrice(priceText, compareCandidate)
+        ? compareCandidate
+        : "";
     const recentTimeText = !cfg.hideTime
       ? relOrderDaysAgo(cfg.createOrderTime) ||
         safe(cfg.createOrderTime, "") ||
@@ -1628,7 +1630,7 @@ const bootFomoify = async function () {
 
     const wrap = document.createElement("div");
     wrap.style.cssText = `
-      position:fixed; z-index:9999; box-sizing:border-box;
+      position:fixed; z-index:19; box-sizing:border-box;
       width:${mode === "mobile" ? "min(92vw,420px)" : ""};
       overflow:visible; cursor:pointer;
       animation:${inAnim} ${DUR.in}ms ease-out both;
@@ -1861,6 +1863,7 @@ const bootFomoify = async function () {
       safe(cfg.timestamp || cfg.timeText || cfg.timeAbsolute, "").trim();
 
     const appendPriceLine = () => {
+      if (toBool(cfg.hidePrice, false)) return false;
       const priceText = ensureMoneySymbol(safe(cfg.price, "").trim());
       const compareCandidate = alignCompareCurrency(
         priceText,
@@ -2582,6 +2585,7 @@ const bootFomoify = async function () {
               hideCountry: hide.hideCountry,
               hideProductTitle: hide.hideProductTitle,
               hideProductImage: hide.hideProductImage,
+              hidePrice: hide.hidePrice,
               hideTime: hide.hideTime,
 
               // styling
