@@ -2,7 +2,6 @@
 import { json } from "@remix-run/node";
 import prisma, {
   ensureConnected,
-  scheduleDisconnect,
   withPrismaConnectionRetry,
 } from "../db.server";  // <-- default import (IMPORTANT)
 import { ensureShopRow } from "../utils/ensureShop.server";
@@ -1328,8 +1327,6 @@ export const loader = async ({ request, params }) => {
   } catch (err) {
     console.error("[FOMO Loader Error]:", err);
     return bad({ error: "Internal Server Error" }, 500);
-  } finally {
-    scheduleDisconnect();
   }
 };
 
@@ -1338,6 +1335,8 @@ export const action = async ({ request, params }) => {
     if (request.method === "OPTIONS") {
       return ok({ ok: true });
     }
+
+    await ensureConnected();
 
     const subpath = (params.subpath || "").toLowerCase();
     const allowUnsignedStorefront = PUBLIC_STOREFRONT_PATHS.has(subpath);
@@ -1378,7 +1377,5 @@ export const action = async ({ request, params }) => {
   } catch (err) {
     console.error("[FOMO Track Action Error]:", err);
     return bad({ error: "Internal Server Error" }, 500);
-  } finally {
-    scheduleDisconnect();
   }
 };
