@@ -1,4 +1,87 @@
 (function () {
+/* ============================================================================
+ * Mobile back-navigation scroll-restoration safeguard
+ * ----------------------------------------------------------------------------
+ * On mobile (iOS Safari + Android Chrome) this embed was defeating the browser's
+ * native scroll restoration: returning to a collection page after visiting a
+ * product landed the visitor at the TOP instead of their previous position.
+ *
+ * This safeguard saves the scroll offset when leaving a page and, on return,
+ * ONLY corrects scroll when the browser/theme left the visitor stuck at the top.
+ * It is deliberately additive and yields to the theme/user, so it cannot fight
+ * a theme that already restores scroll correctly. See plan + memory
+ * (storefront-changes-theme-agnostic) for the conflict-avoidance rationale.
+ * ========================================================================== */
+(function installScrollGuard() {
+  if (window.__fomoScrollGuard) return;
+  window.__fomoScrollGuard = true;
+  if (window.Shopify && window.Shopify.designMode) return; // skip theme editor
+
+  // Escape hatch: a theme/merchant can opt out via the embed root attribute.
+  const root = document.getElementById("fomo-embed-root");
+  if (root && root.getAttribute("data-scroll-restore") === "false") return;
+
+  // Never change history.scrollRestoration — leave whatever the theme set.
+  const key = () => `fomo:scroll:${location.pathname}${location.search}`;
+  const save = () => {
+    try {
+      sessionStorage.setItem(key(), String(window.scrollY || window.pageYOffset || 0));
+    } catch (e) {}
+  };
+
+  // Reliable "leaving the page" signals on mobile.
+  window.addEventListener("pagehide", save);
+  document.addEventListener(
+    "visibilitychange",
+    () => {
+      if (document.visibilityState === "hidden") save();
+    },
+    { passive: true }
+  );
+
+  window.addEventListener("pageshow", (e) => {
+    if (e.persisted) return; // bfcache already restored everything natively
+    if (location.hash) return; // theme is anchoring to #section — don't override
+
+    let y = 0;
+    try {
+      y = parseInt(sessionStorage.getItem(key()) || "0", 10);
+    } catch (e) {}
+    if (!y || y < 50) return;
+
+    let aborted = false;
+    let lastSet = 0;
+    let attempts = 0;
+    const stop = () => {
+      aborted = true;
+    };
+    // If the theme or the user moves the page, immediately yield control.
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach((ev) =>
+      window.addEventListener(ev, stop, { once: true, passive: true })
+    );
+
+    const tryRestore = () => {
+      if (aborted) return;
+      const cur = window.scrollY || 0;
+      // cur>5 but not from us => something else already restored/scrolled. Yield.
+      if (cur > 5 && Math.abs(cur - lastSet) > 4) return;
+      const max =
+        (document.documentElement.scrollHeight || document.body.scrollHeight) -
+        window.innerHeight;
+      if (max >= y) {
+        window.scrollTo(0, y); // page is tall enough -> done
+        lastSet = y;
+        return;
+      }
+      window.scrollTo(0, Math.max(0, max)); // best effort while lazy content loads
+      lastSet = Math.max(0, max);
+      if (attempts++ < 12) setTimeout(tryRestore, 150); // ~1.8s budget for lazy/paginated grids
+    };
+    // Run after the theme's own restoration attempt.
+    requestAnimationFrame(() => setTimeout(tryRestore, 0));
+  });
+})();
+
 const bootFomoify = async function () {
   if (window.__fomoOneFile) return true;
 
