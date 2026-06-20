@@ -8,6 +8,7 @@ import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import appSharedStyles from "./styles.modules.css?url";
 import { authenticate } from "../shopify.server";
 import LcpObserver from "../components/LcpObserver";
+import TawkChat from "../components/TawkChat";
 import { upsertInstalledShop } from "../utils/upsertShop.server";
 import prisma from "../db.server";
 
@@ -119,11 +120,14 @@ export const loader = async ({ request }) => {
     "";
   const shopDomain = toShopDomain(shop);
 
-  return { apiKey, slug, shopDomain };
+  // Full Tawk.to embed URL, e.g. https://embed.tawk.to/<PROPERTY_ID>/<WIDGET_ID>
+  const tawkSrc = process.env.TAWK_SRC || "";
+
+  return { apiKey, slug, shopDomain, tawkSrc };
 };
 
 export default function App() {
-  const { apiKey } = useLoaderData();
+  const { apiKey, tawkSrc } = useLoaderData();
   const location = useLocation();
   const search = location.search || "";
   const appUrl = (path) => `${path}${search}`;
@@ -137,6 +141,7 @@ export default function App() {
         <a href={appUrl("/app/integrations")}>Integrations</a>
       </NavMenu>
       <LcpObserver />
+      <TawkChat src={tawkSrc} />
       <Outlet />
     </AppProvider>
   );
