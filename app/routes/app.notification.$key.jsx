@@ -26,20 +26,16 @@ function repairedSearchFromPathToken(key, currentSearch = "") {
   return query ? `?${query}` : "";
 }
 
-function notificationRedirectFor(request, key) {
+function targetFor(request, key) {
   const url = new URL(request.url);
   const cleanKey = String(key || "").split("&")[0];
 
-  if (cleanKey === "notification") {
-    return `/app/notification${repairedSearchFromPathToken(key, url.search)}`;
+  if (NOTIFICATION_KEYS.has(cleanKey)) {
+    return `/app/notification/${cleanKey}${url.search || ""}`;
   }
 
   if (cleanKey.startsWith("notification")) {
     return `/app/notification${repairedSearchFromPathToken(key, url.search)}`;
-  }
-
-  if (NOTIFICATION_KEYS.has(cleanKey)) {
-    return `/app/notification/${cleanKey}${url.search || ""}`;
   }
 
   return `/app/notification${url.search || ""}`;
@@ -47,18 +43,14 @@ function notificationRedirectFor(request, key) {
 
 export async function loader({ request, params }) {
   await authenticate.admin(request);
-  const key = String(params?.key || "");
-  if (!key) throw new Response("Missing key", { status: 400 });
-  return redirect(notificationRedirectFor(request, key));
+  return redirect(targetFor(request, params?.key));
 }
 
 export async function action({ request, params }) {
   await authenticate.admin(request);
-  const key = String(params?.key || "");
-  if (!key) throw new Response("Missing key", { status: 400 });
-  return redirect(notificationRedirectFor(request, key));
+  return redirect(targetFor(request, params?.key));
 }
 
-export default function NotificationRedirect() {
+export default function NotificationFallbackRedirect() {
   return null;
 }

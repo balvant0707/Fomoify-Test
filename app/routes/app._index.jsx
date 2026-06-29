@@ -31,11 +31,9 @@ import {
 } from "@shopify/polaris";
 import {
   AppsIcon,
-  CalendarIcon,
   ChatIcon,
   ExternalIcon,
   HeartIcon,
-  PageHeartIcon,
   StarIcon,
 } from "@shopify/polaris-icons";
 import { APP_EMBED_HANDLE } from "../utils/themeEmbed.shared";
@@ -1030,87 +1028,82 @@ export default function AppIndex() {
 
         {/* Success help section */}
         {showSuccessHelpSection && (
-          <Card padding="0">
-            <Box className="success-help-section">
-              <BlockStack gap="400">
-                <InlineStack gap="300" blockAlign="center">
-                  <DashboardIcon source={PageHeartIcon} tone="info" />
-                  <Text as="h3" fontWeight="bold" style={{ fontWeight: "bold",fontSize: "14px !important" }}>
-                    We&apos;re Here to Help You Succeed
+          <div className="dashboard-support-row">
+            <Card padding="0">
+              <Box className="dashboard-support-panel">
+                <BlockStack gap="400">
+                  <Text as="h2" variant="headingMd" fontWeight="bold">
+                    Support
                   </Text>
-                </InlineStack>
-                <Divider />
-                <InlineGrid columns={{ xs: 1, md: 2, lg: 3 }} gap="400">
-                  <Box className="success-help-card">
-                    <BlockStack gap="300">
-                      <BlockStack gap="200" inlineAlign="center">
-                        <DashboardIcon source={CalendarIcon} tone="info" />
-                        <Text fontWeight="bold">Book a Free 30-Minute Setup Call</Text>
-                      </BlockStack>
-                      <Text tone="subdued">Get personalized guidance to accelerate your growth.</Text>
-                      <InlineStack gap="300" align="center" blockAlign="center" wrap>
-                        <Button
-                          variant="primary"
-                          icon={CalendarIcon}
-                          onClick={() => window.open(SCHEDULE_CALL_URL, "_blank", "noopener,noreferrer")}
-                        >
-                          Schedule Free Call
-                        </Button>
-                        <Text tone="subdued" fontWeight="semibold">Free | 30 mins | No commitment</Text>
-                      </InlineStack>
-                    </BlockStack>
-                  </Box>
-
-                  <Box className="success-help-card">
-                    <BlockStack gap="300">
-                      <BlockStack gap="200" inlineAlign="center">
-                        <DashboardIcon source={ChatIcon} tone="info" />
-                        <Text fontWeight="bold">Need Quick Help?</Text>
-                      </BlockStack>
-                      <Text tone="subdued">Reach out anytime for support, feedback, or just to share your progress.</Text>
-                      <InlineStack gap="200" align="center" wrap>
-                        <Button
-                          icon={ChatIcon}
-                          onClick={() =>
-                            window.open(whatsappSupportUrl, "_blank", "noopener,noreferrer")
-                          }
-                        >
-                          WhatsApp
-                        </Button>
-                        <Button icon={ExternalIcon} onClick={() => window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")}>
-                          Knowledge Base
-                        </Button>
-                      </InlineStack>
-                    </BlockStack>
-                  </Box>
-
-                  <Box className="success-help-card success-help-card--review">
-                    <BlockStack gap="300" inlineAlign="center">
-                      <BlockStack gap="200" inlineAlign="center">
-                        <Box className="success-help-review-icon">
-                          <DashboardIcon source={HeartIcon} tone="critical" shape="circle" />
-                        </Box>
-                        <Text fontWeight="semibold">
-                          Help us improve future features!
+                  <div className="dashboard-support-card-grid">
+                    <button
+                      type="button"
+                      className="dashboard-support-card"
+                      onClick={() =>
+                        window.open(whatsappSupportUrl, "_blank", "noopener,noreferrer")
+                      }
+                    >
+                      <InlineStack gap="200" blockAlign="center" wrap={false}>
+                        <span className="dashboard-support-card-icon">
+                          <Icon source={ChatIcon} />
+                        </span>
+                        <Text as="span" fontWeight="bold" tone="magic">
+                          Live chat
                         </Text>
-                      </BlockStack>
-                       <Text tone="subdued">Share your thoughts to help us improve and build better features ahead.</Text>
-                      <InlineStack gap="200" align="center" blockAlign="center" wrap>
-                        <Button
-                          variant="primary"
-                          icon={StarIcon}
-                          onClick={() => window.open(WRITE_REVIEW_URL, "_blank", "noopener,noreferrer")}
-                        >
-                          Write a review
-                        </Button>
-                        <Button icon={ChatIcon} onClick={openContactModal}>Report an issue</Button>
                       </InlineStack>
-                    </BlockStack>
-                  </Box>
-                </InlineGrid>
-              </BlockStack>
+                      <Text as="p" tone="subdued">
+                        Support, reply, and assist instantly in office hours
+                      </Text>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="dashboard-support-card"
+                      onClick={() =>
+                        window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")
+                      }
+                    >
+                      <InlineStack gap="200" blockAlign="center" wrap={false}>
+                        <span className="dashboard-support-card-icon">
+                          <Icon source={ExternalIcon} />
+                        </span>
+                        <Text as="span" fontWeight="bold" tone="magic">
+                          Knowledge base
+                        </Text>
+                      </InlineStack>
+                      <Text as="p" tone="subdued">
+                        Find a solution for your problem with our documents.
+                      </Text>
+                    </button>
+                  </div>
+                </BlockStack>
+              </Box>
+            </Card>
+
+            <Box className="dashboard-review-cta-panel">
+              <div className="dashboard-review-heart" aria-hidden>
+                <Icon source={HeartIcon} />
+              </div>
+              <Text as="h2" variant="headingMd" fontWeight="bold">
+                Motivate our team
+              </Text>
+              <Text as="p" fontWeight="bold">
+                for future app development
+              </Text>
+              <div className="dashboard-review-cta-actions">
+                <Button
+                  variant="primary"
+                  icon={StarIcon}
+                  onClick={() => window.open(WRITE_REVIEW_URL, "_blank", "noopener,noreferrer")}
+                >
+                  Write a review
+                </Button>
+                <Button icon={ChatIcon} onClick={openContactModal}>
+                  Report an issue
+                </Button>
+              </div>
             </Box>
-          </Card>
+          </div>
         )}
 
         {/* Growth / promoted app */}

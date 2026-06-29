@@ -232,6 +232,177 @@
   flex-shrink: 0;
 }
 
+.dashboard-support-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+  gap: var(--p-space-500);
+  align-items: stretch;
+}
+
+.dashboard-support-row > .Polaris-ShadowBevel,
+.dashboard-support-row > .Polaris-ShadowBevel > .Polaris-Box,
+.dashboard-support-row > .Polaris-ShadowBevel .Polaris-Card {
+  height: 100%;
+}
+
+.dashboard-support-panel {
+  height: 100%;
+  padding: var(--p-space-500);
+}
+
+.dashboard-support-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--p-space-500);
+}
+
+.dashboard-support-card {
+  min-height: 126px;
+  padding: var(--p-space-500);
+  border: var(--p-border-width-025) solid #dedede;
+  border-radius: 12px;
+  background: #ffffff;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.dashboard-support-card:hover {
+  border-color: #bfdbfe;
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.12);
+  transform: translateY(-1px);
+}
+
+.dashboard-support-card:focus-visible {
+  outline: var(--p-border-width-050) solid var(--p-color-border-focus);
+  outline-offset: var(--p-space-050);
+}
+
+.dashboard-support-card p {
+  margin-top: var(--p-space-300);
+}
+
+.dashboard-support-card-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  color: #1a73e8;
+  flex: 0 0 auto;
+}
+
+.dashboard-support-card-icon .Polaris-Icon,
+.dashboard-support-card-icon .Polaris-Icon__Svg,
+.dashboard-support-card-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.dashboard-review-cta-panel {
+  min-height: 210px;
+  position: relative;
+  overflow: hidden;
+  padding: var(--p-space-600) var(--p-space-400) var(--p-space-300);
+  border: var(--p-border-width-025) solid #9fca95;
+  border-radius: 12px;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+    linear-gradient(135deg, #cde4bf 0%, #9fc98f 100%);
+  background-size: 48px 48px, 48px 48px, auto;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 1px 2px rgba(15, 23, 42, 0.16);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.dashboard-review-cta-panel::before,
+.dashboard-review-cta-panel::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  background: rgba(220, 82, 113, 0.45);
+}
+
+.dashboard-review-cta-panel::before {
+  width: 7px;
+  height: 7px;
+  top: 38px;
+  left: 32%;
+}
+
+.dashboard-review-cta-panel::after {
+  width: 8px;
+  height: 8px;
+  top: 64px;
+  right: 27%;
+}
+
+.dashboard-review-heart {
+  position: absolute;
+  top: 26px;
+  left: 50%;
+  width: 58px;
+  height: 58px;
+  transform: translateX(-50%) rotate(-4deg);
+  display: grid;
+  place-items: center;
+  border-radius: 18px 18px 18px 4px;
+  color: #ffffff;
+  background: linear-gradient(145deg, #ff746e, #e32f2f);
+  box-shadow:
+    inset 0 3px 6px rgba(255, 255, 255, 0.38),
+    0 12px 18px rgba(120, 53, 15, 0.24);
+}
+
+.dashboard-review-heart .Polaris-Icon,
+.dashboard-review-heart .Polaris-Icon__Svg,
+.dashboard-review-heart svg {
+  width: 30px;
+  height: 30px;
+}
+
+.dashboard-review-cta-panel h2,
+.dashboard-review-cta-panel p,
+.dashboard-review-cta-actions {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-review-cta-actions {
+  width: 100%;
+  margin-top: var(--p-space-300);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--p-space-300);
+}
+
+.dashboard-review-cta-actions .Polaris-Button {
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .dashboard-support-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-support-card-grid,
+  .dashboard-review-cta-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
 .dashboard-promoted-app {
   max-width: 360px;
 }
