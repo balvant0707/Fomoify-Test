@@ -65,7 +65,7 @@ const DASHBOARD_STYLES = `
 }
 .notify-card-preview {
   position: relative;
-  min-height: 224px;
+  min-height: 150px;
   overflow: hidden;
   background:
     radial-gradient(circle at 20% 12%, rgba(255, 255, 255, 0.94), transparent 26%),
@@ -167,10 +167,10 @@ const DASHBOARD_STYLES = `
 }
 .notify-image-pop--lowstock,
 .notify-image-pop--stock-block {
-  right: 12px;
-  top: 50px;
-  width: 82%;
-  height: 124px;
+    right: 0;
+    top: 0;
+    width: 150px;
+    height: 100%;
 }
 .notify-card-body {
   min-height: 94px;
