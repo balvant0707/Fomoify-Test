@@ -39,8 +39,8 @@ redirect_urls = [
 ]
 
 [app_proxy]
-url = "https://fomoify-test.vercel.app/proxy/fomo"
-subpath = "fomo"
+url = "https://fomoify-test.vercel.app/proxy/fomos"
+subpath = "fomos"
 prefix = "apps"
 
 [pos]

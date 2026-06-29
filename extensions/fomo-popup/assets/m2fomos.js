@@ -97,8 +97,8 @@ const bootFomoify = async function () {
   const SHOP = String((window.Shopify && window.Shopify.shop) || rootShopDomain)
     .trim()
     .toLowerCase();
-  const ACTIVE_PROXY_BASE = "/apps/fomo";
-  const PUBLIC_PROXY_BASE = "https://fomoify-test.vercel.app/proxy/fomo";
+  const ACTIVE_PROXY_BASE = "/apps/fomos";
+  const PUBLIC_PROXY_BASE = "https://fomoify-test.vercel.app/proxy/fomos";
   const fetchWithProxyFallback = async (url, options) => {
     try {
       const res = await fetch(url, options);
@@ -458,17 +458,25 @@ const bootFomoify = async function () {
   const normalizeCurrencyCode = (value) =>
     String(value || "").trim().toUpperCase();
   let storefrontCurrencyHint = "";
+  const KNOWN_CURRENCY_CODES = (() => {
+    try {
+      if (typeof Intl.supportedValuesOf === "function") {
+        return new Set(Intl.supportedValuesOf("currency"));
+      }
+    } catch {}
+    return new Set(
+      "AED AFN ALL AMD ANG AOA ARS AUD AWG AZN BAM BBD BDT BGN BHD BIF BMD BND BOB BRL BSD BTN BWP BYN BZD CAD CDF CHF CLP CNY COP CRC CUP CVE CZK DJF DKK DOP DZD EGP ERN ETB EUR FJD FKP GBP GEL GHS GIP GMD GNF GTQ GYD HKD HNL HTG HUF IDR ILS INR IQD IRR ISK JMD JOD JPY KES KGS KHR KMF KRW KWD KYD KZT LAK LBP LKR LRD LSL LYD MAD MDL MGA MKD MMK MNT MOP MRU MUR MVR MWK MXN MYR MZN NAD NGN NIO NOK NPR NZD OMR PAB PEN PGK PHP PKR PLN PYG QAR RON RSD RUB RWF SAR SBD SCR SDG SEK SGD SHP SLE SOS SRD SSP STN SYP SZL THB TJS TMT TND TOP TRY TTD TWD TZS UAH UGX USD UYU UZS VES VND VUV WST XAF XCD XOF XPF YER ZAR ZMW".split(" ")
+    );
+  })();
+  const isKnownCurrencyCode = (code) =>
+    /^[A-Z]{3}$/.test(String(code || "")) && KNOWN_CURRENCY_CODES.has(code);
   const validCurrencyCodes = (value) => {
     const matches = String(value || "").toUpperCase().match(/\b[A-Z]{3}\b/g) || [];
     const out = [];
     for (const code of matches) {
-      try {
-        new Intl.NumberFormat(undefined, {
-          style: "currency",
-          currency: code,
-        }).format(1);
+      if (isKnownCurrencyCode(code)) {
         if (!out.includes(code)) out.push(code);
-      } catch {}
+      }
     }
     return out;
   };
@@ -611,7 +619,7 @@ const bootFomoify = async function () {
       const urlCode = normalizeCurrencyCode(
         new URLSearchParams(window.location.search).get("currency")
       );
-      if (urlCode && /^[A-Z]{3}$/.test(urlCode)) return urlCode;
+      if (isKnownCurrencyCode(urlCode)) return urlCode;
     } catch {}
     try {
       const selectors = [
@@ -756,7 +764,8 @@ const bootFomoify = async function () {
     if (selected) return selected;
     try {
       const cached = sessionStorage.getItem("fomo_geo_currency");
-      if (cached && /^[A-Z]{3}$/.test(cached)) return cached;
+      const cachedCode = normalizeCurrencyCode(cached);
+      if (isKnownCurrencyCode(cachedCode)) return cachedCode;
     } catch {}
     try {
       const ctrl = new AbortController();
@@ -764,7 +773,7 @@ const bootFomoify = async function () {
       const res = await fetch("https://ipapi.co/currency/", { signal: ctrl.signal });
       clearTimeout(timer);
       const code = (await res.text()).trim().toUpperCase();
-      if (/^[A-Z]{3}$/.test(code)) {
+      if (isKnownCurrencyCode(code)) {
         try { sessionStorage.setItem("fomo_geo_currency", code); } catch {}
         return code;
       }
@@ -775,7 +784,7 @@ const bootFomoify = async function () {
   // Fetches the exchange rate from `from` to `to`, cached 1 hour in localStorage.
   // Races 4 free APIs in parallel — first valid response wins (max 4s wait).
   const fetchGeoExchangeRate = async (from, to) => {
-    if (!from || !to || from === to) return 1;
+    if (!isKnownCurrencyCode(from) || !isKnownCurrencyCode(to) || from === to) return 1;
     const rateKey = `fomo_rate_${from}_${to}`;
     try {
       const cached = JSON.parse(localStorage.getItem(rateKey) || "null");

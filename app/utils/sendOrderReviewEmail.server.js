@@ -83,7 +83,7 @@ export async function sendOrderReviewEmail({
   const displayEmail = fmt(customerEmail) || "—";
 
   const reviewRequestUrl = [
-    `https://${shop}/apps/fomo/review-request`,
+    `https://${shop}/apps/fomos/review-request`,
     `?shop=${encodeURIComponent(shop)}`,
     `&orderId=${encodeURIComponent(displayOrderId)}`,
     `&email=${encodeURIComponent(displayEmail)}`,
