@@ -86,7 +86,7 @@ const DASHBOARD_STYLES = `
   background: #ffffff;
 }
 .notify-card-top-row {
-  display: flex;
+  display: block;
   align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
@@ -160,8 +160,6 @@ const DASHBOARD_STYLES = `
 .notify-image-pop--flash,
 .notify-image-pop--lowstock,
 .notify-image-pop--stock-block {
-    right: 0;
-    top: 0;
     width: 150px;
     height: 100%;
 }
