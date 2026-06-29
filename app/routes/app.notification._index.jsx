@@ -64,11 +64,8 @@ const DASHBOARD_STYLES = `
 }
 .notify-card-preview {
   position: relative;
-  min-height: 150px;
+  min-height: 130px;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 20% 12%, rgba(255, 255, 255, 0.94), transparent 26%),
-    linear-gradient(180deg, #edfff2 0%, #eefcf3 58%, #f7fbf8 100%);
 }
 .notify-card-preview::after {
   content: "";
@@ -81,7 +78,6 @@ const DASHBOARD_STYLES = `
 }
 .notify-card-top-content {
     padding: 0 20px 15px;
-    border-bottom: 1px solid #eef3ef;
     background: #ffffff;
 }
 .notify-card-top-row {
@@ -149,7 +145,6 @@ const DASHBOARD_STYLES = `
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 13px 22px rgba(15, 23, 42, 0.18));
 }
 .notify-image-pop--recent,
 .notify-image-pop--addtocart,
@@ -170,7 +165,7 @@ const DASHBOARD_STYLES = `
 }
 .notify-card-title-row {
   min-width: 0;
-  display: flex;
+  display: block;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
