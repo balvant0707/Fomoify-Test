@@ -236,6 +236,16 @@ function DashboardCard({
             <img src={imageSrc} alt="" />
           </div>
         </div>
+        <Box className="notify-card-body">
+          <BlockStack gap="200">
+            <div className="notify-card-title-row">
+              <Text as="h3" variant="headingMd" fontWeight="bold">
+                {title}
+              </Text>
+              {badge ? <Badge tone="info">{badge}</Badge> : null}
+            </div>
+          </BlockStack>
+        </Box>
         <div className="notify-card-top-content">
           <div className="notify-card-top-row">
             <Text as="p" tone="subdued" variant="bodyMd">
@@ -253,16 +263,7 @@ function DashboardCard({
             </div>
           </div>
         </div>
-        <Box className="notify-card-body">
-          <BlockStack gap="200">
-            <div className="notify-card-title-row">
-              <Text as="h3" variant="headingMd" fontWeight="bold">
-                {title}
-              </Text>
-              {badge ? <Badge tone="info">{badge}</Badge> : null}
-            </div>
-          </BlockStack>
-        </Box>
+
       </div>
     </Card>
   );
