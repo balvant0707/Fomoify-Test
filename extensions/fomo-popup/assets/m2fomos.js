@@ -373,6 +373,33 @@ const bootFomoify = async function () {
     /[^\d\s,.-]/.test(String(value || ""));
   const normalizeCurrencyCode = (value) =>
     String(value || "").trim().toUpperCase();
+  let storefrontCurrencyHint = "";
+  const validCurrencyCodes = (value) => {
+    const matches = String(value || "").toUpperCase().match(/\b[A-Z]{3}\b/g) || [];
+    const out = [];
+    for (const code of matches) {
+      try {
+        new Intl.NumberFormat(undefined, {
+          style: "currency",
+          currency: code,
+        }).format(1);
+        if (!out.includes(code)) out.push(code);
+      } catch {}
+    }
+    return out;
+  };
+  const validCurrencyCode = (value) => validCurrencyCodes(value)[0] || "";
+  const singleCurrencyCode = (value) => {
+    const codes = validCurrencyCodes(value);
+    return codes.length === 1 ? codes[0] : "";
+  };
+  const baseShopCurrencyCode = () =>
+    normalizeCurrencyCode(
+      window.FOMOIFY?.baseShopCurrency ||
+        window.FOMOIFY?.geo?.shopCurrency ||
+        ROOT?.dataset.shopCurrency ||
+        ""
+    );
   const activeCurrencyCode = () =>
     normalizeCurrencyCode(
       window.Shopify?.currency?.active ||
@@ -383,7 +410,10 @@ const bootFomoify = async function () {
     );
   const selectedStorefrontCurrencyCode = () =>
     normalizeCurrencyCode(
-      window.Shopify?.currency?.active || window.Shopify?.currency?.current || ""
+      readSelectedCurrency() ||
+        window.Shopify?.currency?.active ||
+        window.Shopify?.currency?.current ||
+        ""
     );
   const activeMoneyFormat = () =>
     String(
@@ -396,7 +426,8 @@ const bootFomoify = async function () {
     const n = Number(amountMajor);
     if (!Number.isFinite(n)) return "";
     const cents = Math.round(n * 100);
-    const activeCurrency = normalizeCurrencyCode(currencyCode) || activeCurrencyCode();
+    const activeCurrency =
+      normalizeCurrencyCode(currencyCode) || readSelectedCurrency() || activeCurrencyCode();
     if (activeCurrency) {
       return formatCurrencyByCode(n, activeCurrency) || n.toFixed(2);
     }
@@ -415,26 +446,41 @@ const bootFomoify = async function () {
       geo.rate <= 0 || fromCurrency !== geo.shopCurrency || geo.currency === geo.shopCurrency
     ) return null;
     const converted = amount * geo.rate;
-    return formatCurrencyByCode(converted, geo.currency) || converted.toFixed(2);
+    const formatted = formatCurrencyByCode(converted, geo.currency) || converted.toFixed(2);
+    return formatted;
   };
   const ensureMoneySymbol = (value, currencyCode = activeCurrencyCode()) => {
     if (value && typeof value === "object") {
       const objCurrency = value.currencyCode || value.currency || currencyCode;
       const objAmount = Number(value.amount ?? value.price ?? value.value);
       if (Number.isFinite(objAmount)) {
-        const geo = geoConvertAmount(objAmount, objCurrency);
+        const geo = geoConvertAmount(objAmount, normalizeCurrencyCode(objCurrency));
         if (geo) return geo;
       }
       return formatStoreMoneyMajor(value.amount ?? value.price ?? value.value, objCurrency);
     }
     const raw = String(value ?? "").trim();
     if (!raw) return "";
-    if (hasMoneySymbol(raw)) return raw;
     const n = parseMoneyValue(raw);
+    if (hasMoneySymbol(raw)) {
+      if (Number.isFinite(n)) {
+        const geo = geoConvertAmount(n, normalizeCurrencyCode(currencyCode));
+        if (geo) return geo;
+      }
+      return raw;
+    }
     if (!Number.isFinite(n)) return raw;
-    const geo = geoConvertAmount(n, currencyCode);
+    const geo = geoConvertAmount(n, normalizeCurrencyCode(currencyCode));
     if (geo) return geo;
     return formatStoreMoneyMajor(n, currencyCode) || raw;
+  };
+  const ensureMajorMoneySymbol = (amountMajor, currencyCode, fallback = "") => {
+    const n = Number(amountMajor);
+    if (!Number.isFinite(n)) return ensureMoneySymbol(fallback, currencyCode);
+    const normalizedCurrency = normalizeCurrencyCode(currencyCode);
+    const geo = geoConvertAmount(n, normalizedCurrency);
+    if (geo) return geo;
+    return formatStoreMoneyMajor(n, normalizedCurrency) || fallback || "";
   };
   const alignCompareCurrency = (priceText, compareText) => {
     const price = String(priceText || "").trim();
@@ -475,13 +521,8 @@ const bootFomoify = async function () {
 
   // Reads the visitor's currently-selected currency from every known Shopify / theme source.
   const readSelectedCurrency = () => {
-    const code = normalizeCurrencyCode(
-      window.Shopify?.currency?.active ||
-      window.Shopify?.currency?.current ||
-      window.Currency?.currentCurrency ||
-      window.theme?.currency
-    );
-    if (code && /^[A-Z]{3}$/.test(code)) return code;
+    const hintedCode = validCurrencyCode(storefrontCurrencyHint);
+    if (hintedCode) return hintedCode;
     try {
       const urlCode = normalizeCurrencyCode(
         new URLSearchParams(window.location.search).get("currency")
@@ -489,10 +530,140 @@ const bootFomoify = async function () {
       if (urlCode && /^[A-Z]{3}$/.test(urlCode)) return urlCode;
     } catch {}
     try {
+      const selectors = [
+        "select[name='currency']",
+        "select[name='currency_code']",
+        "select[data-currency-selector]",
+        "[data-currency-selector] select",
+        "input[name='currency_code']:checked",
+        "input[name='currency']:checked",
+      ];
+      for (const selector of selectors) {
+        const el = document.querySelector(selector);
+        if (!el) continue;
+        const raw =
+          el.value ||
+          el.getAttribute("data-current-currency") ||
+          el.getAttribute("data-currency") ||
+          el.getAttribute("data-currency-code") ||
+          el.selectedOptions?.[0]?.value ||
+          el.selectedOptions?.[0]?.getAttribute("data-currency-code") ||
+          el.selectedOptions?.[0]?.textContent ||
+          "";
+        const domCode = validCurrencyCode(raw);
+        if (domCode) return domCode;
+      }
+    } catch {}
+    try {
+      const visibleSelectors = [
+        "[class*='currency' i] [aria-current='true']",
+        "[class*='currency' i] [aria-selected='true']",
+        "[class*='currency' i] [data-selected='true']",
+        "[class*='currency' i] .active",
+        "[class*='currency' i] .is-active",
+        "[class*='currency' i] .selected",
+        "[class*='currency' i] .is-selected",
+        "[class*='currency' i]",
+        "[id*='currency' i]",
+        "[aria-label*='currency' i]",
+        "[data-testid*='currency' i]",
+        "[data-current-currency]",
+        "[data-currency]",
+        "[data-currency-code]",
+        "localization-form",
+        "form[action*='/localization']",
+      ];
+      for (const selector of visibleSelectors) {
+        const nodes = Array.from(document.querySelectorAll(selector)).slice(0, 20);
+        for (const el of nodes) {
+          if (el.closest?.("#fomo-root, .fomo-wrap, [class*='fomo' i]")) continue;
+          const raw =
+            el.getAttribute("aria-label") ||
+            el.getAttribute("data-value") ||
+            el.getAttribute("data-current-currency") ||
+            el.getAttribute("data-currency") ||
+            el.getAttribute("data-currency-code") ||
+            el.textContent ||
+            "";
+          const domCode = singleCurrencyCode(raw);
+          if (domCode) return domCode;
+        }
+      }
+    } catch {}
+    try {
+      const selectors = [
+        "input[name='currency_code']",
+        "input[name='currency']",
+        "[data-current-currency]",
+        "[data-currency]",
+        "[data-currency-code]",
+        "form[action*='/localization'] input[name='currency_code']",
+      ];
+      for (const selector of selectors) {
+        const el = document.querySelector(selector);
+        if (!el) continue;
+        const raw =
+          el.value ||
+          el.getAttribute("data-current-currency") ||
+          el.getAttribute("data-currency") ||
+          el.getAttribute("data-currency-code") ||
+          "";
+        const domCode = validCurrencyCode(raw);
+        if (domCode) return domCode;
+      }
+    } catch {}
+    try {
+      const keys = [
+        "currency",
+        "currency_code",
+        "shopify_currency",
+        "cart_currency",
+        "_shopify_currency",
+        "localization_currency",
+      ];
+      for (const store of [window.localStorage, window.sessionStorage]) {
+        if (!store) continue;
+        for (const key of keys) {
+          const storageCode = validCurrencyCode(store.getItem(key));
+          if (storageCode) return storageCode;
+        }
+      }
+    } catch {}
+    try {
       const m = document.cookie.match(/(?:^|;\s*)(?:cart_currency|_shopify_currency)=([A-Z]{3})(?:;|$)/);
       if (m?.[1]) return m[1];
     } catch {}
+    const code = normalizeCurrencyCode(
+      window.Shopify?.currency?.active ||
+        window.Shopify?.currency?.current ||
+        window.Currency?.currentCurrency ||
+        window.theme?.currency
+    );
+    if (code && /^[A-Z]{3}$/.test(code)) return code;
     return null;
+  };
+  const currencyCodeFromElement = (target) => {
+    let el = target?.nodeType === 1 ? target : target?.parentElement;
+    if (el?.closest?.("#fomo-root, .fomo-wrap, [class*='fomo' i]")) return "";
+    let depth = 0;
+    while (el && depth < 6) {
+      const raw = [
+        el.value,
+        el.getAttribute?.("data-currency-code"),
+        el.getAttribute?.("data-current-currency"),
+        el.getAttribute?.("data-currency"),
+        el.getAttribute?.("data-value"),
+        el.getAttribute?.("aria-label"),
+        el.textContent,
+      ]
+        .filter(Boolean)
+        .join(" ");
+      const code = validCurrencyCode(raw);
+      if (code) return code;
+      el = el.parentElement;
+      depth += 1;
+    }
+    return "";
   };
 
   // Detects the visitor's effective currency: selected > cached geo > live IP lookup.
@@ -704,8 +875,11 @@ const bootFomoify = async function () {
       })();
     const set = new Set(arr.map(normHideKey));
     const has = (...keys) => keys.some((k) => set.has(k));
+    const hideLegacyName = has("customername", "name");
     return {
-      hideName: has("customername", "name"),
+      hideName: hideLegacyName,
+      hideFirstName: hideLegacyName || has("firstname", "first"),
+      hideLastName: hideLegacyName || has("lastname", "last"),
       hideCity: has("city"),
       hideState: has("state", "province"),
       hideCountry: has("country"),
@@ -1485,7 +1659,20 @@ const bootFomoify = async function () {
     const textFlow = document.createElement("div");
     textFlow.style.cssText = `margin:0 0 6px 0;max-width:100%;overflow-wrap:anywhere;word-break:normal;${isPortrait ? "text-align:center;" : ""}`;
     const fw = safe(cfg.fontWeight, "700");
-    const nameText = cfg.hideName ? "" : safe(cfg.name, "Someone");
+    const explicitFirst = safe(cfg.firstName || cfg.first_name, "").trim();
+    const explicitLast = safe(cfg.lastName || cfg.last_name, "").trim();
+    const fullName = safe(cfg.name || cfg.fullName || cfg.full_name, "Someone").trim();
+    const fallbackParts = fullName.split(/\s+/).filter(Boolean);
+    const firstName = explicitFirst || fallbackParts[0] || "";
+    const lastName =
+      explicitLast ||
+      (fallbackParts.length > 1 ? fallbackParts.slice(1).join(" ") : "");
+    const hideFirstName = cfg.hideName || cfg.hideFirstName;
+    const hideLastName = cfg.hideName || cfg.hideLastName;
+    const nameText = [hideFirstName ? "" : firstName, hideLastName ? "" : lastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
 
     // derived location
     const derived = deriveLocationParts(cfg);
@@ -1541,7 +1728,9 @@ const bootFomoify = async function () {
     body.appendChild(textFlow);
 
     const hidePrice = toBool(cfg.hidePrice, false);
-    const priceCurrency = cfg.priceCurrencyCode || cfg.currencyCode || cfg.currency;
+    const sourceShopCurrency = baseShopCurrencyCode();
+    const priceCurrency =
+      cfg.priceCurrencyCode || cfg.currencyCode || cfg.currency || sourceShopCurrency;
     const compareCurrency =
       cfg.compareAtCurrencyCode ||
       cfg.compareAtPriceCurrencyCode ||
@@ -1550,13 +1739,21 @@ const bootFomoify = async function () {
       priceCurrency;
     const priceText = hidePrice
       ? ""
-      : ensureMoneySymbol(cfg.price, priceCurrency);
+      : Number.isFinite(Number(cfg.priceAmountMajor))
+        ? ensureMajorMoneySymbol(cfg.priceAmountMajor, priceCurrency, cfg.price)
+        : ensureMoneySymbol(cfg.price, priceCurrency);
     const compareCandidateRaw = cfg.compareAt || cfg.compareAtPrice || "";
     const compareCandidate = hidePrice
       ? ""
       : alignCompareCurrency(
           priceText,
-          ensureMoneySymbol(compareCandidateRaw, compareCurrency)
+          Number.isFinite(Number(cfg.compareAtAmountMajor))
+            ? ensureMajorMoneySymbol(
+                cfg.compareAtAmountMajor,
+                compareCurrency,
+                compareCandidateRaw
+              )
+            : ensureMoneySymbol(compareCandidateRaw, compareCurrency)
         );
     const compareText =
       !hidePrice && shouldShowComparePrice(priceText, compareCandidate)
@@ -1988,17 +2185,27 @@ const bootFomoify = async function () {
 
     const appendPriceLine = () => {
       if (toBool(cfg.hidePrice, false)) return false;
-      const priceCurrency = cfg.priceCurrencyCode || cfg.currencyCode || cfg.currency;
+      const sourceShopCurrency = baseShopCurrencyCode();
+      const priceCurrency =
+        cfg.priceCurrencyCode || cfg.currencyCode || cfg.currency || sourceShopCurrency;
       const compareCurrency =
         cfg.compareAtCurrencyCode ||
         cfg.compareAtPriceCurrencyCode ||
         cfg.currencyCode ||
         cfg.currency ||
         priceCurrency;
-      const priceText = ensureMoneySymbol(cfg.price, priceCurrency);
+      const priceText = Number.isFinite(Number(cfg.priceAmountMajor))
+        ? ensureMajorMoneySymbol(cfg.priceAmountMajor, priceCurrency, cfg.price)
+        : ensureMoneySymbol(cfg.price, priceCurrency);
       const compareCandidate = alignCompareCurrency(
         priceText,
-        ensureMoneySymbol(cfg.compareAt || cfg.compareAtPrice, compareCurrency)
+        Number.isFinite(Number(cfg.compareAtAmountMajor))
+          ? ensureMajorMoneySymbol(
+              cfg.compareAtAmountMajor,
+              compareCurrency,
+              cfg.compareAt || cfg.compareAtPrice
+            )
+          : ensureMoneySymbol(cfg.compareAt || cfg.compareAtPrice, compareCurrency)
       );
       const compareText = shouldShowComparePrice(priceText, compareCandidate)
         ? compareCandidate
@@ -2492,6 +2699,7 @@ const bootFomoify = async function () {
     // and fetch the exchange rate so catalog prices convert to the visitor's currency.
     const shopCurrencyBase = normalizeCurrencyCode(data?.shopCurrency);
     window.FOMOIFY.geo = null;
+    window.FOMOIFY.baseShopCurrency = shopCurrencyBase;
     const applyGeoCurrency = async (targetCurrency) => {
       if (!targetCurrency || targetCurrency === shopCurrencyBase) {
         window.FOMOIFY.geo = null;
@@ -2511,15 +2719,55 @@ const bootFomoify = async function () {
 
     // Watch for runtime currency changes (theme currency picker that doesn't reload the page).
     let _lastActiveCurrency = readSelectedCurrency() || shopCurrencyBase;
-    setInterval(async () => {
+    const syncSelectedCurrency = async (hint = "") => {
       try {
+        const hintedCode = validCurrencyCode(hint);
+        if (hintedCode) storefrontCurrencyHint = hintedCode;
         const cur = readSelectedCurrency();
         if (!cur || cur === _lastActiveCurrency) return;
         _lastActiveCurrency = cur;
         try { sessionStorage.removeItem("fomo_geo_currency"); } catch {}
         await applyGeoCurrency(cur);
+        window.dispatchEvent(
+          new CustomEvent("fomoify:currencychange", { detail: { currency: cur } })
+        );
       } catch {}
+    };
+    setInterval(() => {
+      syncSelectedCurrency();
     }, 500);
+    const onCurrencyInteraction = (event) => {
+      const code = currencyCodeFromElement(event.target);
+      if (!code) return;
+      storefrontCurrencyHint = code;
+      setTimeout(() => syncSelectedCurrency(code), 0);
+      setTimeout(() => syncSelectedCurrency(code), 250);
+    };
+    document.addEventListener("change", onCurrencyInteraction, true);
+    document.addEventListener("input", onCurrencyInteraction, true);
+    document.addEventListener("click", onCurrencyInteraction, true);
+    window.addEventListener("popstate", () => syncSelectedCurrency(), true);
+    window.addEventListener("shopify:section:load", () => syncSelectedCurrency(), true);
+    try {
+      const currencyObserver = new MutationObserver(() => {
+        syncSelectedCurrency();
+      });
+      currencyObserver.observe(document.documentElement, {
+        attributes: true,
+        childList: true,
+        subtree: true,
+        attributeFilter: [
+          "class",
+          "aria-selected",
+          "aria-current",
+          "data-selected",
+          "data-currency",
+          "data-currency-code",
+          "data-current-currency",
+          "value",
+        ],
+      });
+    } catch {}
 
     const recs = Array.isArray(data?.records) ? data.records : [];
     const tables = data?.tables || {};
@@ -2724,6 +2972,8 @@ const bootFomoify = async function () {
             const cfg = {
               productTitle: pTitle,
               name,
+              firstName: fn,
+              lastName: ln,
               city,
               state,
               country,
@@ -2745,6 +2995,8 @@ const bootFomoify = async function () {
 
               // HIDE FLAGS
               hideName: hide.hideName,
+              hideFirstName: hide.hideFirstName,
+              hideLastName: hide.hideLastName,
               hideCity: hide.hideCity,
               hideState: hide.hideState,
               hideCountry: hide.hideCountry,
@@ -2945,7 +3197,20 @@ const bootFomoify = async function () {
           v?.presentmentCurrencyCode ||
           fallbackCurrency
       );
-    const normalizePrice = (v, fallbackCurrency = window.FOMOIFY?.geo?.shopCurrency || activeCurrencyCode()) => {
+    const moneyMajorAmount = (v) => {
+      if (v === undefined || v === null || v === "") return null;
+      if (typeof v === "string" && /[^\d.]/.test(v)) return null;
+      const rawAmount = v?.amount ?? v;
+      const n = Number(rawAmount);
+      if (!Number.isFinite(n)) return null;
+      const fromAmountField =
+        v && typeof v === "object" && v.amount !== undefined && v.amount !== null;
+      const fromDecimalString =
+        typeof rawAmount === "string" && String(rawAmount).includes(".");
+      return fromAmountField || fromDecimalString || !Number.isInteger(n) ? n : n / 100;
+    };
+    const sourceCurrencyFallback = () => baseShopCurrencyCode() || activeCurrencyCode();
+    const normalizePrice = (v, fallbackCurrency = sourceCurrencyFallback()) => {
       if (v === undefined || v === null || v === "") return "";
       if (typeof v === "string" && /[^\d.]/.test(v)) return v;
       const rawAmount = v?.amount ?? v;
@@ -2979,7 +3244,7 @@ const bootFomoify = async function () {
       // Shopify AJAX `/products/*.js` typically returns integer cents.
       return formatMoney(n);
     };
-    const normalizeOrderPrice = (v, fallbackCurrency = window.FOMOIFY?.geo?.shopCurrency || activeCurrencyCode()) => {
+    const normalizeOrderPrice = (v, fallbackCurrency = sourceCurrencyFallback()) => {
       if (v === undefined || v === null || v === "") return "";
       if (typeof v === "string" && /[^\d.]/.test(v)) return v;
       const n = Number(v?.amount ?? v);
@@ -3049,12 +3314,17 @@ const bootFomoify = async function () {
         p.currencyCode ||
         p.priceRange?.minVariantPrice?.currencyCode ||
         p.currency;
+      const normalizedPriceCurrency =
+        normalizeCurrencyCode(priceCurrency) ||
+        sourceCurrencyFallback();
       const compareCurrency =
         p.compareAtCurrencyCode ||
         p.compareAtPriceCurrencyCode ||
         p.currencyCode ||
         p.currency ||
-        priceCurrency;
+        normalizedPriceCurrency;
+      const normalizedCompareCurrency =
+        normalizeCurrencyCode(compareCurrency) || normalizedPriceCurrency;
       const price =
         p.price ||
         p.price_min ||
@@ -3074,13 +3344,33 @@ const bootFomoify = async function () {
         handle,
         image,
         url,
-        price: normalizePrice(price, priceCurrency),
-        compareAt: normalizePrice(compareAt, compareCurrency),
-        priceCurrencyCode: normalizeCurrencyCode(priceCurrency),
-        compareAtCurrencyCode: normalizeCurrencyCode(compareCurrency),
+        price: normalizePrice(price, normalizedPriceCurrency),
+        compareAt: normalizePrice(compareAt, normalizedCompareCurrency),
+        priceAmountMajor: moneyMajorAmount(price),
+        compareAtAmountMajor: moneyMajorAmount(compareAt),
+        priceCurrencyCode: normalizedPriceCurrency,
+        compareAtCurrencyCode: normalizedCompareCurrency,
         rating: p.rating,
         inventoryQty,
       };
+    };
+    const isAdminPreviewProduct = (product) => {
+      if (!product || typeof product !== "object") return false;
+      const rawId = String(product.id ?? product.productId ?? product.product_id ?? "").trim();
+      const title = String(product.title || product.productTitle || product.name || "")
+        .trim()
+        .toLowerCase();
+      const image = String(product.image || product.productImage || "").trim();
+      const mockTitles = new Set([
+        "antique drawers",
+        "bedside table",
+        "black beanbag",
+        "brown throw pillows",
+      ]);
+      return (
+        (/^p\d+$/i.test(rawId) && mockTitles.has(title)) ||
+        /\/1\/0000\/0001\/products\//i.test(image)
+      );
     };
     const productHandleFromEntry = (entry) => {
       if (!entry) return "";
@@ -3775,9 +4065,11 @@ const bootFomoify = async function () {
     };
     const resolveProduct = async (entry) => {
       if (!entry) return null;
+      if (isAdminPreviewProduct(entry)) return null;
       if (typeof entry === "string") return fetchProductByHandle(entry);
       if (typeof entry === "object") {
         const local = normalizeProduct(entry);
+        if (isAdminPreviewProduct(local)) return null;
         const handle = entry.handle || entry.productHandle || local?.handle;
         const hasInventory = Number.isFinite(Number(local?.inventoryQty));
         const hasPrice = !!String(local?.price || "").trim();
@@ -3798,8 +4090,17 @@ const bootFomoify = async function () {
               title: local?.title || fetched.title,
               image: local?.image || fetched.image,
               url: local?.url || fetched.url,
-              price: local?.price || fetched.price,
-              compareAt: local?.compareAt || fetched.compareAt,
+              price: fetched.price || local?.price,
+              compareAt: fetched.compareAt || local?.compareAt,
+              priceAmountMajor: Number.isFinite(Number(local?.priceAmountMajor))
+                ? fetched.priceAmountMajor ?? local.priceAmountMajor
+                : fetched.priceAmountMajor,
+              compareAtAmountMajor: Number.isFinite(Number(local?.compareAtAmountMajor))
+                ? fetched.compareAtAmountMajor ?? local.compareAtAmountMajor
+                : fetched.compareAtAmountMajor,
+              priceCurrencyCode: fetched.priceCurrencyCode || local?.priceCurrencyCode,
+              compareAtCurrencyCode:
+                fetched.compareAtCurrencyCode || local?.compareAtCurrencyCode,
               inventoryQty: hasInventory ? local.inventoryQty : fetched.inventoryQty,
             };
           }
@@ -3834,8 +4135,17 @@ const bootFomoify = async function () {
                 title: local?.title || matched.title,
                 image: local?.image || matched.image,
                 url: local?.url || matched.url,
-                price: local?.price || matched.price,
-                compareAt: local?.compareAt || matched.compareAt,
+                price: matched.price || local?.price,
+                compareAt: matched.compareAt || local?.compareAt,
+                priceAmountMajor: Number.isFinite(Number(local?.priceAmountMajor))
+                  ? matched.priceAmountMajor ?? local.priceAmountMajor
+                  : matched.priceAmountMajor,
+                compareAtAmountMajor: Number.isFinite(Number(local?.compareAtAmountMajor))
+                  ? matched.compareAtAmountMajor ?? local.compareAtAmountMajor
+                  : matched.compareAtAmountMajor,
+                priceCurrencyCode: matched.priceCurrencyCode || local?.priceCurrencyCode,
+                compareAtCurrencyCode:
+                  matched.compareAtCurrencyCode || local?.compareAtCurrencyCode,
                 inventoryQty: hasInventory ? local.inventoryQty : matched.inventoryQty,
               };
             }
@@ -4125,6 +4435,13 @@ const bootFomoify = async function () {
                   "",
                 linePriceCurrency
               );
+              const orderLinePriceAmountMajor = moneyMajorAmount(
+                line?.price_set?.shop_money?.amount ||
+                  line?.final_price_set?.shop_money?.amount ||
+                  line?.price ||
+                  line?.final_price ||
+                  ""
+              );
               const pPrice = safe(
                 shouldUseStorefrontPrice
                   ? resolvedProduct?.price
@@ -4137,6 +4454,12 @@ const bootFomoify = async function () {
                   line?.compareAtPrice ||
                   "",
                 lineCompareCurrency
+              );
+              const orderLineCompareAmountMajor = moneyMajorAmount(
+                line?.compare_at_price_set?.shop_money?.amount ||
+                  line?.compare_at_price ||
+                  line?.compareAtPrice ||
+                  ""
               );
               const pCompareCandidate = safe(
                 shouldUseStorefrontPrice
@@ -4162,6 +4485,8 @@ const bootFomoify = async function () {
                 ...COMMON_RECENT,
                 productTitle: pTitle,
                 name,
+                firstName: fn,
+                lastName: ln,
                 city,
                 state,
                 country,
@@ -4170,6 +4495,18 @@ const bootFomoify = async function () {
                 image: pImg,
                 price: pPrice,
                 compareAt: pCompareAt,
+                priceAmountMajor: shouldUseStorefrontPrice
+                  ? resolvedProduct?.priceAmountMajor
+                  : orderLinePriceAmountMajor ?? resolvedProduct?.priceAmountMajor,
+                compareAtAmountMajor: shouldUseStorefrontPrice
+                  ? resolvedProduct?.compareAtAmountMajor
+                  : orderLineCompareAmountMajor ?? resolvedProduct?.compareAtAmountMajor,
+                priceCurrencyCode: shouldUseStorefrontPrice
+                  ? resolvedProduct?.priceCurrencyCode
+                  : linePriceCurrency || resolvedProduct?.priceCurrencyCode,
+                compareAtCurrencyCode: shouldUseStorefrontPrice
+                  ? resolvedProduct?.compareAtCurrencyCode
+                  : lineCompareCurrency || resolvedProduct?.compareAtCurrencyCode,
                 productUrl,
                 uploadedImage: iconSrc,
                 createOrderTime: safe(when || o?.createOrderTime || it?.createOrderTime, ""),
@@ -4235,6 +4572,10 @@ const bootFomoify = async function () {
               image: (p?.images && p.images[0]) || "",
               price: pPrice,
               compareAt: pCompareAt,
+              priceAmountMajor: normalizedProduct?.priceAmountMajor,
+              compareAtAmountMajor: normalizedProduct?.compareAtAmountMajor,
+              priceCurrencyCode: normalizedProduct?.priceCurrencyCode,
+              compareAtCurrencyCode: normalizedProduct?.compareAtCurrencyCode,
               productUrl: p?.url || (handle ? `/products/${handle}` : "#"),
               uploadedImage: iconSrc,
               createOrderTime: safe(it.createOrderTime, ""),
@@ -4300,6 +4641,8 @@ const bootFomoify = async function () {
             products = await fetchStoreProductsForLowStock();
           }
         } else {
+          const { dataProducts } = parseProductBuckets(row);
+          if (type === "visitor" && !dataProducts.length) continue;
           products = await collectProducts(row);
           if (!products.length) {
             const { visibilityProducts } = parseProductBuckets(row);
@@ -4311,6 +4654,7 @@ const bootFomoify = async function () {
               products = dedupeProducts(products);
             }
           }
+          if (type === "visitor" && !products.length) continue;
         }
         const isReviewPopup = type === "review";
         let pool = products.length
@@ -4630,6 +4974,15 @@ const bootFomoify = async function () {
             productImage: prod.image,
             price,
             compareAt,
+            priceAmountMajor: prod.priceAmountMajor,
+            compareAtAmountMajor: prod.compareAtAmountMajor,
+            priceCurrencyCode: prod.priceCurrencyCode || prod.currencyCode || prod.currency,
+            compareAtCurrencyCode:
+              prod.compareAtCurrencyCode ||
+              prod.compareAtPriceCurrencyCode ||
+              prod.currencyCode ||
+              prod.currency ||
+              prod.priceCurrencyCode,
             productUrl: resolvedProductUrl,
             productHandle: fallbackHandle,
             rating: resolvedRating,
@@ -4735,7 +5088,7 @@ const bootFomoify = async function () {
         )
       );
 
-    const shouldCombine = () => false;
+    const shouldCombine = () => activeQueues().length > 1;
 
     function stopAll() {
       try {
@@ -4764,6 +5117,10 @@ const bootFomoify = async function () {
 
     let lastIsMobile = isMobile();
     let lastCombine = shouldCombine();
+    window.addEventListener("fomoify:currencychange", () => {
+      stopAll();
+      startAll(true);
+    });
     window.addEventListener("resize", () => reevaluateMode());
     window.addEventListener("orientationchange", () =>
       setTimeout(() => reevaluateMode(), 0)

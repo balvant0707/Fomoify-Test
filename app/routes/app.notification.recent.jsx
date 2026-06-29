@@ -87,7 +87,8 @@ const visibilityToShowType = (visibility) => {
   return selected.join(",");
 };
 const HIDE_CHOICES = [
-  { label: "Customer Name", value: "name" },
+  { label: "First Name", value: "firstName" },
+  { label: "Last Name", value: "lastName" },
   { label: "City", value: "city" },
   { label: "State", value: "state" },
   { label: "Country", value: "country" },
@@ -96,6 +97,18 @@ const HIDE_CHOICES = [
   { label: "Price Hide", value: "price" },
   { label: "Order Time", value: "time" },
 ];
+const normalizeHideFields = (values) => {
+  const source = Array.isArray(values) ? values : [];
+  const out = [];
+  for (const value of source) {
+    if (value === "name" || value === "customerName") {
+      out.push("firstName", "lastName");
+      continue;
+    }
+    out.push(value);
+  }
+  return Array.from(new Set(out));
+};
 const DEFAULT_PRODUCT_NAME_LIMIT = "15";
 const TIME_UNITS = [
   { label: "Seconds", value: "seconds" },
@@ -1009,7 +1022,7 @@ export async function action({ request }) {
     rounded: form?.fontSize ?? form?.rounded,
     messageTitlesJson: nextCustomerNames || [],
     locationsJson: nextLocations || [],
-    namesJson: Array.isArray(form?.namesJson) ? form.namesJson : [],
+    namesJson: normalizeHideFields(form?.namesJson),
     selectedProductsJson: nextProductHandles || [],
     mobilePosition: Array.isArray(form?.mobilePosition)
       ? form.mobilePosition
@@ -1232,9 +1245,16 @@ function Bubble({ form, order, isMobile = false }) {
       Math.round(sizeBase * (isMobile ? mobileSizeScale(form.mobileSize) : 1))
     )
   );
-  const hide = new Set(form.namesJson || []);
+  const hide = new Set(normalizeHideFields(form.namesJson));
 
-  const name = [order?.firstName, order?.lastName].filter(Boolean).join(" ");
+  const hideFirstName = hide.has("firstName") || hide.has("name");
+  const hideLastName = hide.has("lastName") || hide.has("name");
+  const name = [
+    hideFirstName ? null : order?.firstName,
+    hideLastName ? null : order?.lastName,
+  ]
+    .filter(Boolean)
+    .join(" ");
   const locBits = [
     hide.has("city") ? null : order?.city,
     hide.has("state") ? null : order?.state,
@@ -1448,7 +1468,7 @@ function Bubble({ form, order, isMobile = false }) {
         }}
       >
         <p style={{ margin: 0, textAlign: isPortrait ? "center" : undefined }}>
-          {!hide.has("name") && (
+          {name && (
             <span
               style={{
                 color: form.numberColor,
@@ -1457,10 +1477,10 @@ function Bubble({ form, order, isMobile = false }) {
                 lineHeight: 1.35,
               }}
             >
-              {name || "Customer Name from Location"}
+              {name}
             </span>
           )}
-          {!hide.has("name") && loc ? " from " : ""}
+          {name && loc ? " from " : ""}
           {loc && (
             <span
               style={{
@@ -1780,7 +1800,7 @@ export default function RecentOrdersPopupPage() {
     productNameMode: saved.productNameMode ?? "full",
     productNameLimit: saved.productNameLimit ?? DEFAULT_PRODUCT_NAME_LIMIT,
 
-    namesJson: saved.namesJson || [],
+    namesJson: normalizeHideFields(saved.namesJson),
     selectedProductsJson: saved.selectedProductsJson || [],
     locationsJson: saved.locationsJson || [],
     messageTitlesJson: saved.messageTitlesJson || [],
