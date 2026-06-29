@@ -1047,7 +1047,7 @@ export default function AppIndex() {
                         <span className="dashboard-support-card-icon">
                           <Icon source={ChatIcon} />
                         </span>
-                        <Text as="span" fontWeight="bold" tone="magic">
+                        <Text as="h2" fontWeight="bold" tone="magic">
                           Live chat
                         </Text>
                       </InlineStack>
@@ -1067,7 +1067,7 @@ export default function AppIndex() {
                         <span className="dashboard-support-card-icon">
                           <Icon source={ExternalIcon} />
                         </span>
-                        <Text as="span" fontWeight="bold" tone="magic">
+                        <Text as="h2" fontWeight="bold" tone="magic">
                           Knowledge base
                         </Text>
                       </InlineStack>
