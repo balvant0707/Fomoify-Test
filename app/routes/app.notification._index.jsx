@@ -95,8 +95,9 @@ const DASHBOARD_STYLES = `
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: start;
   gap: 10px;
+  margin-top: 10px;
 }
 .notify-card-top-actions .Polaris-Button {
   flex: 0 0 auto;
