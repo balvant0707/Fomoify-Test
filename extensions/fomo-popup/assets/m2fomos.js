@@ -98,6 +98,7 @@ const bootFomoify = async function () {
     .trim()
     .toLowerCase();
   const ACTIVE_PROXY_BASE = "/apps/fomo";
+  const PUBLIC_PROXY_BASE = "https://fomoify-test.vercel.app/proxy/fomo";
   const fetchWithProxyFallback = async (url, options) => {
     try {
       const res = await fetch(url, options);
@@ -107,22 +108,22 @@ const bootFomoify = async function () {
     }
   };
 
-  const appendShopQuery = (path, shop) => {
+  const appendShopQuery = (path, shop, base = ACTIVE_PROXY_BASE) => {
     const p = String(path || "").replace(/^\//, "");
-    const url = new URL(`${ACTIVE_PROXY_BASE}/${p}`, window.location.origin);
+    const url = new URL(`${base}/${p}`, window.location.origin);
     if (shop) url.searchParams.set("shop", shop);
     return url.origin === window.location.origin
       ? `${url.pathname}${url.search}`
       : url.toString();
   };
-  const ENDPOINT = appendShopQuery("popup", SHOP);
-  const SESSION_ENDPOINT = appendShopQuery("session", SHOP);
+  const ENDPOINT = appendShopQuery("popup", SHOP, PUBLIC_PROXY_BASE);
+  const SESSION_ENDPOINT = appendShopQuery("session", SHOP, PUBLIC_PROXY_BASE);
   const endpointBase = (path) => new URL(`${ACTIVE_PROXY_BASE}/${path}`, window.location.origin).toString().replace(window.location.origin, "");
   const ORDERS_ENDPOINT_BASE = endpointBase("orders"); // expects ?shop=&days=&limit=
   const CUSTOMERS_ENDPOINT_BASE = endpointBase("customers"); // expects ?shop=&limit=
   const PRODUCTS_ENDPOINT_BASE = endpointBase("products"); // expects ?shop=&limit=
-  const TRACK_ENDPOINT = appendShopQuery("track", SHOP);
-  const EMBED_STATUS_ENDPOINT = appendShopQuery("embed-status", SHOP);
+  const TRACK_ENDPOINT = appendShopQuery("track", SHOP, PUBLIC_PROXY_BASE);
+  const EMBED_STATUS_ENDPOINT = appendShopQuery("embed-status", SHOP, PUBLIC_PROXY_BASE);
 
   const EMBED_PING_STORE_KEY = "__fomo_embed_ping_ts__";
   const EMBED_PING_INTERVAL_MS = 5 * 60 * 1000;
