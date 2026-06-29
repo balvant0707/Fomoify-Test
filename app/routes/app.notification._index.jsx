@@ -3,7 +3,6 @@ import React, { useState, useCallback } from "react";
 import { json } from "@remix-run/node";
 import {
   Page,
-  Card,
   Button,
   Loading,
   Badge,
@@ -81,9 +80,9 @@ const DASHBOARD_STYLES = `
   pointer-events: none;
 }
 .notify-card-top-content {
-  padding: 16px 20px 14px;
-  border-bottom: 1px solid #eef3ef;
-  background: #ffffff;
+    padding: 0 20px 15px;
+    border-bottom: 1px solid #eef3ef;
+    background: #ffffff;
 }
 .notify-card-top-row {
   display: block;
@@ -227,43 +226,40 @@ function DashboardCard({
   const imageSrc = `/images/${encodeURIComponent(imageName)}`;
 
   return (
-    <Card padding="0">
-      <div className="notify-card-shell">
-        <div className="notify-card-preview" aria-hidden>
-          <div className={`notify-image-pop notify-image-pop--${previewType || "recent"}`}>
-            <img src={imageSrc} alt="" />
-          </div>
+    <div className="notify-card-shell">
+      <div className="notify-card-preview" aria-hidden>
+        <div className={`notify-image-pop notify-image-pop--${previewType || "recent"}`}>
+          <img src={imageSrc} alt="" />
         </div>
-        <Box className="notify-card-body">
-          <BlockStack gap="200">
-            <div className="notify-card-title-row">
-              <Text as="h3" variant="headingMd" fontWeight="bold">
-                {title}
-              </Text>
-              {badge ? <Badge tone="info">{badge}</Badge> : null}
-            </div>
-          </BlockStack>
-        </Box>
-        <div className="notify-card-top-content">
-          <div className="notify-card-top-row">
-            <Text as="p" tone="subdued" variant="bodyMd">
-              {desc}
-            </Text>
-            <div className="notify-card-top-actions">
-              <Button onClick={onCreate} loading={loading} disabled={loading}>
-                {loading ? "Opening..." : "Create"}
-              </Button>
-              {showManage && (
-                <Button onClick={onManage} disabled={loading}>
-                  Manage
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-
       </div>
-    </Card>
+      <Box className="notify-card-body">
+        <BlockStack gap="200">
+          <div className="notify-card-title-row">
+            <Text as="h3" variant="headingMd" fontWeight="bold">
+              {title}
+            </Text>
+            {badge ? <Badge tone="info">{badge}</Badge> : null}
+          </div>
+        </BlockStack>
+      </Box>
+      <div className="notify-card-top-content">
+        <div className="notify-card-top-row">
+          <Text as="p" tone="subdued" variant="bodyMd">
+            {desc}
+          </Text>
+          <div className="notify-card-top-actions">
+            <Button onClick={onCreate} loading={loading} disabled={loading}>
+              {loading ? "Opening..." : "Create"}
+            </Button>
+            {showManage && (
+              <Button onClick={onManage} disabled={loading}>
+                Manage
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
