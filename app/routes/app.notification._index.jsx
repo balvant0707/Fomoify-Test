@@ -164,8 +164,7 @@ const DASHBOARD_STYLES = `
     height: 100%;
 }
 .notify-card-body {
-  min-height: 94px;
-  padding: 22px 20px 20px;
+  padding: 10px 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
