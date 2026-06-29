@@ -51,6 +51,7 @@ const DASHBOARD_STYLES = `
 }
 .notify-card-inner {
   min-height: 100%;
+  height:300px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
