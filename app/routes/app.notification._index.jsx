@@ -153,25 +153,10 @@ const DASHBOARD_STYLES = `
 }
 .notify-image-pop--recent,
 .notify-image-pop--addtocart,
-.notify-image-pop--review {
-  left: 14px;
-  top: 58px;
-  width: 58%;
-  height: 122px;
-}
+.notify-image-pop--review, 
 .notify-image-pop--visitor,
-.notify-image-pop--visitor-block {
-  left: 18px;
-  right: 18px;
-  top: 70px;
-  height: 96px;
-}
-.notify-image-pop--flash {
-  left: 18px;
-  right: 18px;
-  top: 78px;
-  height: 86px;
-}
+.notify-image-pop--visitor-block,
+.notify-image-pop--flash,
 .notify-image-pop--lowstock,
 .notify-image-pop--stock-block {
     right: 0;
