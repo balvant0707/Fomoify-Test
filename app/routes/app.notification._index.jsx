@@ -54,8 +54,6 @@ const DASHBOARD_STYLES = `
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid #d9e7de;
-  border-radius: 8px;
   transition:
     border-color 180ms ease,
     background 180ms ease,
@@ -84,14 +82,11 @@ const DASHBOARD_STYLES = `
   pointer-events: none;
 }
 .notify-image-pop {
-  position: absolute;
-  inset: 22px auto auto 24px;
   z-index: 1;
   display: grid;
   place-items: center;
   overflow: hidden;
   width: 170px;
-  height: 122px;
 }
 .notify-image-pop img {
   display: block;
