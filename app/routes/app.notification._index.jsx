@@ -43,7 +43,7 @@ const DASHBOARD_STYLES = `
 }
 .notify-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 20px;
 }
 .notify-card-shell {
@@ -79,6 +79,20 @@ const DASHBOARD_STYLES = `
   height: 70px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.76));
   pointer-events: none;
+}
+.notify-card-top-content {
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid #eef3ef;
+  background: #ffffff;
+}
+.notify-card-top-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+}
+.notify-card-top-row .Polaris-Button {
+  flex: 0 0 auto;
 }
 .notify-browser-frame {
   position: absolute;
@@ -159,7 +173,7 @@ const DASHBOARD_STYLES = `
   height: 124px;
 }
 .notify-card-body {
-  min-height: 164px;
+  min-height: 94px;
   padding: 22px 20px 20px;
   display: flex;
   flex-direction: column;
@@ -196,6 +210,13 @@ const DASHBOARD_STYLES = `
   .notify-card-preview {
     min-height: 200px;
   }
+  .notify-card-top-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .notify-card-top-row .Polaris-Button {
+    width: fit-content;
+  }
 }
 `;
 
@@ -221,6 +242,16 @@ function DashboardCard({
             <img src={imageSrc} alt="" />
           </div>
         </div>
+        <div className="notify-card-top-content">
+          <div className="notify-card-top-row">
+            <Text as="p" tone="subdued" variant="bodyMd">
+              {desc}
+            </Text>
+            <Button onClick={onCreate} loading={loading} disabled={loading}>
+              {loading ? "Opening..." : "Create"}
+            </Button>
+          </div>
+        </div>
         <Box className="notify-card-body">
           <BlockStack gap="200">
             <div className="notify-card-title-row">
@@ -229,20 +260,14 @@ function DashboardCard({
               </Text>
               {badge ? <Badge tone="info">{badge}</Badge> : null}
             </div>
-            <Text as="p" tone="subdued" variant="bodyMd">
-              {desc}
-            </Text>
           </BlockStack>
-          <div className="notify-card-actions">
-            <Button onClick={onCreate} loading={loading} disabled={loading}>
-              {loading ? "Opening..." : "Create"}
-            </Button>
-            {showManage && (
+          {showManage && (
+            <div className="notify-card-actions">
               <Button onClick={onManage} disabled={loading}>
                 Manage
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </Box>
       </div>
     </Card>
