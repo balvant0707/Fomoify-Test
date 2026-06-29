@@ -58,6 +58,35 @@ const WHATSAPP_SUPPORT_MESSAGE =
 const SCHEDULE_CALL_URL =
   "https://outlook.office.com/book/ShopifyGrowthConsultationCall@m2webdesigning.com/";
 const PROMOTED_UPSELL_APP_URL = "https://apps.shopify.com/cartlift-cart-drawer-upsell";
+const PROMOTED_APPS = [
+  {
+    title: "CartLift: Cart Drawer & Upsell",
+    category: "Upsell",
+    description:
+      "Grow average order value with cart drawer upsells and smart cart offers.",
+    href: PROMOTED_UPSELL_APP_URL,
+    imageSrc: "/images/cartlift.png",
+    imageAlt: "CartLift: Cart Drawer & Upsell",
+  },
+  {
+    title: "MixBox - Box & Bundle Builder",
+    category: "Bundle",
+    description:
+      "Build custom bundles and boxed products to increase average order value.",
+    href: "https://apps.shopify.com/mixbox-box-bundle-builder",
+    imageSrc: "/images/mixbox-box-bundle-builder.jpg",
+    imageAlt: "MixBox - Box & Bundle Builder",
+  },
+  {
+    title: "Nex AI SEO Product Description",
+    category: "SEO",
+    description:
+      "Generate SEO-friendly content to improve visibility and conversion.",
+    href: "https://apps.shopify.com/ai-seo-product-description",
+    imageSrc: "/images/ai-content-logo.png",
+    imageAlt: "Nex AI SEO Product Description",
+  },
+];
 const WRITE_REVIEW_URL =
   "https://apps.shopify.com/fomoify-sales-popup-proof#modal-show=WriteReviewModal";
 const REVIEW_MODAL_APP_NAME = "Fomoify Sales Popup & Proof";
@@ -211,6 +240,43 @@ function PopupSliderCard({
           <img src={imageSrc} alt="" aria-hidden />
         </Box>
       </InlineStack>
+    </Box>
+  );
+}
+
+function PromotedAppCard({ app }) {
+  return (
+    <Box borderWidth="025" borderRadius="300" borderColor="border" padding="400">
+      <BlockStack gap="300">
+        <InlineStack gap="300" blockAlign="center" wrap={false}>
+          <Box
+            className="dashboard-app-icon"
+            borderRadius="300"
+            borderWidth="025"
+            borderColor="border"
+          >
+            <img src={app.imageSrc} alt={app.imageAlt} />
+          </Box>
+          <BlockStack gap="100">
+            <InlineStack gap="200" blockAlign="center" wrap>
+              <Text as="h3" variant="headingSm" fontWeight="bold">
+                {app.title}
+              </Text>
+              <Badge>{app.category}</Badge>
+            </InlineStack>
+          </BlockStack>
+        </InlineStack>
+        <Text tone="subdued">{app.description}</Text>
+        <InlineStack>
+          <Button
+            variant="primary"
+            icon={ExternalIcon}
+            onClick={() => window.open(app.href, "_blank", "noopener,noreferrer")}
+          >
+            Add app
+          </Button>
+        </InlineStack>
+      </BlockStack>
     </Box>
   );
 }
@@ -1113,34 +1179,11 @@ export default function AppIndex() {
               Boost your store performance with our apps
             </Text>
             <Box className="dashboard-promoted-app">
-              <Box borderWidth="025" borderRadius="300" borderColor="border" padding="400">
-                <BlockStack gap="300">
-                  <InlineStack gap="300" blockAlign="center" wrap={false}>
-                    <Box className="dashboard-app-icon" borderRadius="300" borderWidth="025" borderColor="border">
-                      <img src="/images/cartlift.png" alt="" />
-                    </Box>
-                    <text style={{ fontWeight: "bold", fontSize: "14px" }}
-                      variant="headingSm"
-                      fontWeight="bold"
-                    >
-                      CartLift: Cart Drawer & Upsell
-                    </text>
-                    <Badge>Upsell</Badge>
-                  </InlineStack>
-                  <Text tone="subdued">
-                    Grow average order value with cart drawer upsells and smart cart offers.
-                  </Text>
-                  <InlineStack>
-                    <Button
-                      variant="primary"
-                      icon={ExternalIcon}
-                      onClick={() => window.open(PROMOTED_UPSELL_APP_URL, "_blank", "noopener,noreferrer")}
-                    >
-                      Add app
-                    </Button>
-                  </InlineStack>
-                </BlockStack>
-              </Box>
+              <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
+                {PROMOTED_APPS.map((app) => (
+                  <PromotedAppCard key={app.href} app={app} />
+                ))}
+              </InlineGrid>
             </Box>
           </BlockStack>
         </Card>

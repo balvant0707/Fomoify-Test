@@ -115,55 +115,9 @@ const DASHBOARD_STYLES = `
 .notify-card-actions {
   padding-top: 2px;
 }
-.notify-apps-section {
-  margin-top: 24px;
-}
-.notify-app-card {
-  height: 100%;
-}
-.notify-app-card .Polaris-ShadowBevel {
-  height: 100%;
-}
-.notify-app-card-inner {
-  min-height: 100%;
-  display: grid;
-  grid-template-columns: 112px minmax(0, 1fr);
-  gap: 16px;
-  align-items: center;
-  border: 1px solid #dde4e0;
-  border-radius: 8px;
-  overflow: hidden;
-}
-.notify-app-image {
-  width: 112px;
-  height: 112px;
-  background: #f5f7f5;
-}
-.notify-app-image img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.notify-app-content {
-  min-width: 0;
-  padding: 16px 16px 16px 0;
-}
 @media (max-width: 767px) {
   .notify-card-preview {
     height: 160px;
-  }
-  .notify-app-card-inner {
-    grid-template-columns: 88px minmax(0, 1fr);
-    gap: 12px;
-  }
-  .notify-app-image {
-    width: 88px;
-    height: 100%;
-    min-height: 116px;
-  }
-  .notify-app-content {
-    padding: 12px 12px 12px 0;
   }
 }
 `;
@@ -296,61 +250,6 @@ const CARD_DATA = [
   },
 ];
 
-const RECOMMENDED_APPS = [
-  {
-    title: "MixBox - Box & Bundle Builder",
-    category: "Bundle",
-    description:
-      "Build custom bundles and boxed products to increase average order value.",
-    href: "https://apps.shopify.com/mixbox-box-bundle-builder",
-    imageSrc: "/images/mixbox-box-bundle-builder.jpg",
-    imageAlt: "MixBox - Box & Bundle Builder",
-  },
-  {
-    title: "Nex AI SEO Product Description",
-    category: "SEO",
-    description:
-      "Generate SEO-friendly content to improve visibility and conversion.",
-    href: "https://apps.shopify.com/ai-seo-product-description",
-    imageSrc: "/images/ai-content-logo.png",
-    imageAlt: "Nex AI SEO Product Description",
-  },
-];
-
-function RecommendedAppCard({ app }) {
-  return (
-    <div className="notify-app-card">
-      <Card padding="0">
-        <div className="notify-app-card-inner">
-          <div className="notify-app-image">
-            <img src={app.imageSrc} alt={app.imageAlt} />
-          </div>
-          <div className="notify-app-content">
-            <BlockStack gap="300">
-              <BlockStack gap="150">
-                <InlineStack gap="200" blockAlign="center" wrap>
-                  <Text as="h3" variant="headingMd" fontWeight="bold">
-                    {app.title}
-                  </Text>
-                  <Badge>{app.category}</Badge>
-                </InlineStack>
-                <Text as="p" tone="subdued" variant="bodyMd">
-                  {app.description}
-                </Text>
-              </BlockStack>
-              <InlineStack>
-                <Button url={app.href} target="_blank">
-                  View app
-                </Button>
-              </InlineStack>
-            </BlockStack>
-          </div>
-        </div>
-      </Card>
-    </div>
-  );
-}
-
 export default function NotificationDashboardIndex() {
   const { hasManageByKey = {} } = useLoaderData();
   const navigate = useNavigate();
@@ -401,18 +300,6 @@ export default function NotificationDashboardIndex() {
               />
             ))}
           </InlineGrid>
-          <div className="notify-apps-section">
-            <BlockStack gap="400">
-              <Text as="h2" variant="headingLg" fontWeight="bold">
-                Boost your store performance with our apps
-              </Text>
-              <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
-                {RECOMMENDED_APPS.map((app) => (
-                  <RecommendedAppCard key={app.href} app={app} />
-                ))}
-              </InlineGrid>
-            </BlockStack>
-          </div>
         </div>
       </Page>
     </>
