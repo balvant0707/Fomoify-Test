@@ -237,7 +237,6 @@ function DashboardCard({
     <Card padding="0">
       <div className="notify-card-shell">
         <div className="notify-card-preview" aria-hidden>
-          <div className="notify-browser-frame" />
           <div className={`notify-image-pop notify-image-pop--${previewType || "recent"}`}>
             <img src={imageSrc} alt="" />
           </div>
