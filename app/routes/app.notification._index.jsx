@@ -6,6 +6,9 @@ import {
   Button,
   Loading,
   Badge,
+  Card,
+  InlineGrid,
+  InlineStack,
   BlockStack,
   Text,
   Box,
@@ -40,32 +43,36 @@ const DASHBOARD_STYLES = `
   font-family: "DM Sans", sans-serif;
   color: #1b1b1b;
 }
-.notify-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 15px;
-}
-.notify-card-shell {
+.notify-card {
   height: 100%;
+}
+.notify-card .Polaris-ShadowBevel {
+  height: 100%;
+}
+.notify-card-inner {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
-  border: 1px solid #d7e4db;
-  border-radius: 14px;
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.16);
+  border: 1px solid #d9e7de;
+  border-radius: 8px;
   transition:
     border-color 180ms ease,
-    box-shadow 180ms ease,
+    background 180ms ease,
     transform 180ms ease;
 }
-.notify-card-shell:hover {
-  border-color: #b7ddc4;
-  box-shadow: 0 16px 34px rgba(18, 91, 63, 0.14);
+.notify-card-inner:hover {
+  border-color: #a9d8b8;
+  background: #fbfffc;
   transform: translateY(-2px);
 }
 .notify-card-preview {
   position: relative;
-  min-height: 130px;
+  height: 176px;
   overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(203, 245, 218, 0.86), rgba(235, 250, 240, 0.72) 45%, rgba(255, 255, 255, 0.96) 78%),
+    linear-gradient(180deg, #effbf3 0%, #ffffff 100%);
 }
 .notify-card-preview::after {
   content: "";
@@ -76,69 +83,15 @@ const DASHBOARD_STYLES = `
   background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.76));
   pointer-events: none;
 }
-.notify-card-top-content {
-    padding: 0 20px 15px;
-    background: #ffffff;
-}
-.notify-card-top-row {
-  display: block;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-}
-.notify-card-top-actions {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: start;
-  gap: 10px;
-  margin-top: 10px;
-}
-.notify-card-top-actions .Polaris-Button {
-  flex: 0 0 auto;
-}
-.notify-browser-frame {
-  position: absolute;
-  right: -6px;
-  top: 12px;
-  width: 70%;
-  height: 174px;
-  border-radius: 20px 0 0 0;
-  background: #ffffff;
-  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.18);
-  opacity: 0.82;
-}
-.notify-browser-frame::before {
-  content: "";
-  position: absolute;
-  left: 28px;
-  top: 22px;
-  width: 88px;
-  height: 116px;
-  border-radius: 16px;
-  background: #eeeeee;
-}
-.notify-browser-frame::after {
-  content: "";
-  position: absolute;
-  right: 24px;
-  top: 22px;
-  width: 88px;
-  height: 24px;
-  border-radius: 7px;
-  background:
-    linear-gradient(#eeeeee, #eeeeee) 0 0 / 100% 24px no-repeat,
-    linear-gradient(#eeeeee, #eeeeee) 0 42px / 70% 24px no-repeat,
-    linear-gradient(#eeeeee, #eeeeee) 0 84px / 100% 24px no-repeat;
-}
 .notify-image-pop {
   position: absolute;
+  inset: 22px auto auto 24px;
   z-index: 1;
   display: grid;
   place-items: center;
   overflow: hidden;
-  border-radius: 18px;
-  background: transparent;
+  width: 170px;
+  height: 122px;
 }
 .notify-image-pop img {
   display: block;
@@ -146,63 +99,25 @@ const DASHBOARD_STYLES = `
   height: 100%;
   object-fit: contain;
 }
-.notify-image-pop--recent,
-.notify-image-pop--addtocart,
-.notify-image-pop--review, 
+.notify-image-pop--flash {
+  width: 190px;
+}
 .notify-image-pop--visitor,
 .notify-image-pop--visitor-block,
-.notify-image-pop--flash,
 .notify-image-pop--lowstock,
 .notify-image-pop--stock-block {
-    width: 150px;
-    height: 100%;
-}
-.notify-card-body {
-  padding: 10px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.notify-card-title-row {
-  min-width: 0;
-  display: block;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  width: 182px;
 }
 .notify-card-content {
   min-width: 0;
   flex: 1;
 }
 .notify-card-actions {
-  margin-top: auto;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-}
-.notify-card-actions .Polaris-Button {
-  flex: 0 0 auto;
-}
-.notify-card-actions .Polaris-Button:not(.Polaris-Button--variantPrimary) {
-  min-width: 78px;
+  padding-top: 2px;
 }
 @media (max-width: 767px) {
-  .notify-grid {
-    grid-template-columns: 1fr;
-  }
   .notify-card-preview {
-    min-height: 200px;
-  }
-  .notify-card-top-row {
-    align-items: stretch;
-    flex-direction: column;
-  }
-  .notify-card-top-actions {
-    justify-content: flex-start;
-  }
-  .notify-card-top-actions .Polaris-Button {
-    width: fit-content;
+    height: 160px;
   }
 }
 `;
@@ -221,39 +136,39 @@ function DashboardCard({
   const imageSrc = `/images/${encodeURIComponent(imageName)}`;
 
   return (
-    <div className="notify-card-shell">
-      <div className="notify-card-preview" aria-hidden>
-        <div className={`notify-image-pop notify-image-pop--${previewType || "recent"}`}>
-          <img src={imageSrc} alt="" />
-        </div>
-      </div>
-      <Box className="notify-card-body">
-        <BlockStack gap="200">
-          <div className="notify-card-title-row">
-            <Text as="h3" variant="headingMd" fontWeight="bold">
-              {title}
-            </Text>
-            {badge ? <Badge tone="info">{badge}</Badge> : null}
+    <div className="notify-card">
+      <Card padding="0">
+        <div className="notify-card-inner">
+          <div className="notify-card-preview" aria-hidden>
+            <div className={`notify-image-pop notify-image-pop--${previewType || "recent"}`}>
+              <img src={imageSrc} alt="" />
+            </div>
           </div>
-        </BlockStack>
-      </Box>
-      <div className="notify-card-top-content">
-        <div className="notify-card-top-row">
-          <Text as="p" tone="subdued" variant="bodyMd">
-            {desc}
-          </Text>
-          <div className="notify-card-top-actions">
-            <Button onClick={onCreate} loading={loading} disabled={loading}>
-              {loading ? "Opening..." : "Create"}
-            </Button>
-            {showManage && (
-              <Button onClick={onManage} disabled={loading}>
-                Manage
-              </Button>
-            )}
-          </div>
+          <Box padding="400">
+            <BlockStack gap="300">
+              <InlineStack gap="200" blockAlign="center" wrap>
+                <Text as="h3" variant="headingMd" fontWeight="bold">
+                  {title}
+                </Text>
+                {badge ? <Badge tone="info">{badge}</Badge> : null}
+              </InlineStack>
+              <Text as="p" tone="subdued" variant="bodyMd">
+                {desc}
+              </Text>
+              <InlineStack gap="200" blockAlign="center" wrap>
+                <Button onClick={onCreate} loading={loading} disabled={loading}>
+                  {loading ? "Opening..." : "Create"}
+                </Button>
+                {showManage && (
+                  <Button onClick={onManage} disabled={loading}>
+                    Manage
+                  </Button>
+                )}
+              </InlineStack>
+            </BlockStack>
+          </Box>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -366,7 +281,7 @@ export default function NotificationDashboardIndex() {
         <NotificationPageStyles />
         <style>{DASHBOARD_STYLES}</style>
         <div className="notify-page notification-page">
-          <div className="notify-grid">
+          <InlineGrid columns={{ xs: 1, sm: 2, lg: 3 }} gap="400">
             {CARD_DATA.map((card) => (
               <DashboardCard
                 key={card.key}
@@ -384,7 +299,7 @@ export default function NotificationDashboardIndex() {
                 }
               />
             ))}
-          </div>
+          </InlineGrid>
         </div>
       </Page>
     </>
