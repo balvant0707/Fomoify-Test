@@ -87,11 +87,18 @@ const DASHBOARD_STYLES = `
 }
 .notify-card-top-row {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
 }
-.notify-card-top-row .Polaris-Button {
+.notify-card-top-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.notify-card-top-actions .Polaris-Button {
   flex: 0 0 auto;
 }
 .notify-browser-frame {
@@ -214,7 +221,10 @@ const DASHBOARD_STYLES = `
     align-items: stretch;
     flex-direction: column;
   }
-  .notify-card-top-row .Polaris-Button {
+  .notify-card-top-actions {
+    justify-content: flex-start;
+  }
+  .notify-card-top-actions .Polaris-Button {
     width: fit-content;
   }
 }
@@ -246,9 +256,16 @@ function DashboardCard({
             <Text as="p" tone="subdued" variant="bodyMd">
               {desc}
             </Text>
-            <Button onClick={onCreate} loading={loading} disabled={loading}>
-              {loading ? "Opening..." : "Create"}
-            </Button>
+            <div className="notify-card-top-actions">
+              <Button onClick={onCreate} loading={loading} disabled={loading}>
+                {loading ? "Opening..." : "Create"}
+              </Button>
+              {showManage && (
+                <Button onClick={onManage} disabled={loading}>
+                  Manage
+                </Button>
+              )}
+            </div>
           </div>
         </div>
         <Box className="notify-card-body">
@@ -260,13 +277,6 @@ function DashboardCard({
               {badge ? <Badge tone="info">{badge}</Badge> : null}
             </div>
           </BlockStack>
-          {showManage && (
-            <div className="notify-card-actions">
-              <Button onClick={onManage} disabled={loading}>
-                Manage
-              </Button>
-            </div>
-          )}
         </Box>
       </div>
     </Card>
