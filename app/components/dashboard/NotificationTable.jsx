@@ -337,6 +337,10 @@ export default function NotificationTable({
     .rk-switch.is-on { background: #0d4f18; }
     .rk-switch.is-on .knob { left: 22.5px; }
     .rk-switch:disabled { opacity: .5; cursor: not-allowed; }
+    .notification-page {
+    gap: 10px;
+    display: grid;
+}
   `;
 
   const typeOptions = [

@@ -132,6 +132,13 @@ const intervalSecondsFromValue = (value, unit, maxSeconds = 3600) => {
   return unit === "minutes" ? clamped * 60 : clamped;
 };
 
+const isRouteResponse = (value) =>
+  value instanceof Response ||
+  (value &&
+    typeof value === "object" &&
+    typeof value.status === "number" &&
+    value.headers instanceof Headers);
+
 const RECENT_STYLES = `
 .recent-shell {
   display: flex;
@@ -678,6 +685,7 @@ export async function loader({ request }) {
     ({ admin, session } = await authenticate.admin(request));
     shop = session?.shop;
   } catch (e) {
+    if (isRouteResponse(e)) throw e;
     console.error("[Fomoify] authenticate.admin failed in recent loader:", e);
     return json(
       {
@@ -880,6 +888,7 @@ export async function loader({ request }) {
       editingId,
     });
   } catch (e) {
+    if (isRouteResponse(e)) throw e;
     console.error("[Fomoify] loader fatal error:", e);
     return json(
       {
@@ -904,7 +913,8 @@ export async function action({ request }) {
   let admin, session;
   try {
     ({ admin, session } = await authenticate.admin(request));
-  } catch {
+  } catch (e) {
+    if (isRouteResponse(e)) throw e;
     return json({ success: false, error: "Auth temporarily unavailable." }, { status: 503 });
   }
   const shop = session?.shop;
