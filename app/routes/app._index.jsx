@@ -94,8 +94,6 @@ const AUTO_REVIEW_MODAL_ENABLED = true;
 const REVIEW_SNOOZE_UNTIL_KEY = "__fomo_review_snooze_until__";
 const REVIEW_SUBMITTED_KEY = "__fomo_review_submitted__";
 const REVIEW_TOP_BANNER_DISMISSED_KEY = "__fomo_review_top_banner_dismissed__";
-const POPUPS_PER_SLIDE = 2;
-const POPUP_AUTOSLIDE_MS = 3500;
 const INDEX_PAGE_INLINE_CSS = `
   .dashboard-index-page h1,
   .dashboard-index-page h2,
@@ -127,6 +125,35 @@ const INDEX_PAGE_INLINE_CSS = `
     border-radius: 10px;
 }
 `;
+const FEATURED_NOTIFICATION_CARDS = [
+  {
+    key: "recent",
+    title: "Order notification",
+    desc: "Show real recent purchases to build FOMO and trust with shoppers",
+    badge: "Social proof",
+    path: "/app/notification/recent",
+    imageName: "Recent cart.png",
+    previewType: "order",
+  },
+  {
+    key: "visitor",
+    title: "Visitor count",
+    desc: "Show real-time visitor count to create urgency on your storefront",
+    badge: "Social proof",
+    path: "/app/notification/visitor",
+    imageName: "Visitor Popup - new.png",
+    previewType: "visitor",
+  },
+  {
+    key: "flash",
+    title: "Flashing tab winback",
+    desc: "Flash a message on the browser tab to bring back distracted shoppers",
+    badge: "Engagement",
+    path: "/app/notification/flash",
+    imageName: "Flash Sale.png",
+    previewType: "winback",
+  },
+];
 const POPUP_CARD_DATA = [
   {
     key: "recent",
@@ -188,16 +215,6 @@ const POPUP_CARD_DATA = [
   },
 ];
 
-function splitIntoSlides(items, perSlide) {
-  const out = [];
-  for (let idx = 0; idx < items.length; idx += perSlide) {
-    out.push(items.slice(idx, idx + perSlide));
-  }
-  return out;
-}
-
-const POPUP_SLIDES = splitIntoSlides(POPUP_CARD_DATA, POPUPS_PER_SLIDE);
-
 function escapeHtml(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -211,35 +228,46 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 }
 
-function PopupSliderCard({
+function FeaturedNotificationCard({
   title,
   desc,
+  badge,
   imageName,
+  previewType,
   onCreate,
-  onManage,
-  showManage,
   loading,
 }) {
   const imageSrc = `/images/${encodeURIComponent(imageName)}`;
+
   return (
-    <Box borderWidth="025" borderRadius="300" borderColor="border" padding="400" background="bg-surface">
-      <InlineStack align="space-between" blockAlign="center" gap="300" wrap={false}>
-        <BlockStack gap="200">
-          <Text as="h3" variant="headingSm" fontWeight="bold">{title}</Text>
-          <Text tone="subdued" variant="bodySm">{desc}</Text>
+    <Box
+      className="dashboard-feature-card"
+      borderWidth="025"
+      borderRadius="300"
+      borderColor="border"
+      background="bg-surface"
+    >
+      <Box className={`dashboard-feature-preview dashboard-feature-preview--${previewType}`}>
+        <img src={imageSrc} alt="" aria-hidden />
+      </Box>
+      <Box padding="400">
+        <BlockStack gap="300">
           <InlineStack gap="200" blockAlign="center" wrap>
-            <Button variant="primary" onClick={onCreate} loading={loading} disabled={loading}>
+            <Text as="h3" variant="headingMd" fontWeight="bold">
+              {title}
+            </Text>
+            <Badge tone="info">{badge}</Badge>
+          </InlineStack>
+          <Text as="p" tone="subdued">
+            {desc}
+          </Text>
+          <InlineStack align="end">
+            <Button onClick={onCreate} loading={loading} disabled={loading}>
               {loading ? "Opening..." : "Create"}
             </Button>
-            {showManage && (
-              <Button onClick={onManage} disabled={loading}>Manage</Button>
-            )}
           </InlineStack>
         </BlockStack>
-        <Box className="dashboard-popup-preview" borderRadius="200">
-          <img src={imageSrc} alt="" aria-hidden />
-        </Box>
-      </InlineStack>
+      </Box>
     </Box>
   );
 }
@@ -717,7 +745,6 @@ export default function AppIndex() {
     apiKey,
     extId,
     dashboardReviewPopupStatus,
-    popupManageByKey,
     embedContext,
     embedPingStatus,
   } = useLoaderData();
@@ -744,8 +771,6 @@ export default function AppIndex() {
   const [showTopReviewBanner, setShowTopReviewBanner] = useState(true);
   const [showSuccessHelpSection] = useState(true);
   const [popupLoadingKey, setPopupLoadingKey] = useState(null);
-  const [popupSlideIndex, setPopupSlideIndex] = useState(0);
-  const [isPopupSliderPaused, setIsPopupSliderPaused] = useState(false);
   const search = location.search || "";
   const appUrl = useCallback(
     (path) => {
@@ -763,7 +788,7 @@ export default function AppIndex() {
     ((hasThemeEmbedCheck && Boolean(embedContextState.appEmbedEnabled)) ||
       embedContextState.pingFresh === true);
   const embedStatusTone = isEmbedActive ? "on" : "off";
-  const embedBadgeText = `App embed: ${isEmbedActive ? "On" : "Off"}`;
+  const embedBadgeText = isEmbedActive ? "ON" : "OFF";
   const whatsappSupportUrl = `https://wa.me/?text=${encodeURIComponent(
     `${WHATSAPP_SUPPORT_MESSAGE}${shopDomain ? ` Store: ${shopDomain}` : ""}`
   )}`;
@@ -855,37 +880,6 @@ export default function AppIndex() {
     },
     [appUrl, navigate, popupLoadingKey]
   );
-
-  const goPopupManage = useCallback(
-    (key, path = "/app/notification/manage") => {
-      if (popupLoadingKey) return;
-      setPopupLoadingKey(`${key}-manage`);
-      setTimeout(() => navigate(appUrl(path)), 350);
-    },
-    [appUrl, navigate, popupLoadingKey]
-  );
-
-  const maxPopupSlideIndex = Math.max(POPUP_SLIDES.length - 1, 0);
-  const canPopupSlidePrev = popupSlideIndex > 0;
-  const canPopupSlideNext = popupSlideIndex < maxPopupSlideIndex;
-
-  useEffect(() => {
-    if (POPUP_SLIDES.length <= 1 || isPopupSliderPaused) return undefined;
-    const timer = setInterval(() => {
-      setPopupSlideIndex((prev) =>
-        prev >= maxPopupSlideIndex ? 0 : prev + 1
-      );
-    }, POPUP_AUTOSLIDE_MS);
-    return () => clearInterval(timer);
-  }, [isPopupSliderPaused, maxPopupSlideIndex]);
-
-  const prevPopupSlide = useCallback(() => {
-    setPopupSlideIndex((prev) => Math.max(prev - 1, 0));
-  }, []);
-
-  const nextPopupSlide = useCallback(() => {
-    setPopupSlideIndex((prev) => Math.min(prev + 1, maxPopupSlideIndex));
-  }, [maxPopupSlideIndex]);
 
   const updateContactField = (field) => (value) => {
     setContactForm((prev) => ({ ...prev, [field]: value }));
@@ -1002,21 +996,32 @@ export default function AppIndex() {
   };
 
   return (
-    <Page
-      title="Dashboard"
-      primaryAction={{
-        content: embedBadgeText,
-        onAction: () => openThemeEditor(resolvedThemeId, "activate"),
-      }}
-    >
+    <Page>
       <Box className="dashboard-index-page">
       <style>{INDEX_PAGE_INLINE_CSS}</style>
       <BlockStack gap="400">
-        <InlineStack align="end">
-          <Badge tone={embedStatusTone === "on" ? "success" : "critical"}>
-            {embedBadgeText}
-          </Badge>
-        </InlineStack>
+        <Card padding="0">
+          <Box className="dashboard-app-status-card" padding="400">
+            <InlineStack align="space-between" blockAlign="center" gap="400" wrap>
+              <BlockStack gap="100">
+                <InlineStack gap="200" blockAlign="center">
+                  <Text as="h2" variant="headingMd" fontWeight="bold">
+                    App status
+                  </Text>
+                  <Badge tone={embedStatusTone === "on" ? "success" : "warning"}>
+                    {embedBadgeText}
+                  </Badge>
+                </InlineStack>
+                <Text as="p" tone="subdued">
+                  Your notification won't appear on storefront until App Embed is enabled.
+                </Text>
+              </BlockStack>
+              <Button onClick={() => openThemeEditor(resolvedThemeId, "activate")}>
+                Enable Snap Noti
+              </Button>
+            </InlineStack>
+          </Box>
+        </Card>
 
         {/* Review top banner */}
         {showTopReviewBanner && (
@@ -1035,63 +1040,37 @@ export default function AppIndex() {
           </Banner>
         )}
 
-        {/* Popup type slider */}
-        <Card>
-          <Box
-            onMouseEnter={() => setIsPopupSliderPaused(true)}
-            onMouseLeave={() => setIsPopupSliderPaused(false)}
-            onFocusCapture={() => setIsPopupSliderPaused(true)}
-            onBlurCapture={() => setIsPopupSliderPaused(false)}
-            onTouchStart={() => setIsPopupSliderPaused(true)}
-            onTouchEnd={() => setIsPopupSliderPaused(false)}
-          >
-            <BlockStack gap="300">
-              <Box className="popup-slider-window">
-                <Box
-                  className="popup-slider-track"
-                  style={{ "--popup-slide-index": popupSlideIndex }}
-                >
-                  {POPUP_SLIDES.map((slide, slideIdx) => (
-                    <Box className="popup-slide" key={`slide-${slideIdx}`}>
-                      <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
-                        {slide.map((card) => (
-                          <PopupSliderCard
-                            key={card.key}
-                            title={card.title}
-                            desc={card.desc}
-                            imageName={card.imageName}
-                            onCreate={() => goPopupCreate(card.path, card.key)}
-                            onManage={() => goPopupManage(card.key, card.managePath)}
-                            showManage={Boolean(popupManageByKey?.[card.key])}
-                            loading={
-                              popupLoadingKey === `${card.key}-create` ||
-                              popupLoadingKey === `${card.key}-manage`
-                            }
-                          />
-                        ))}
-                      </InlineGrid>
-                    </Box>
-                  ))}
+        {/* Featured notification types */}
+        <Card padding="0">
+          <Box className="dashboard-feature-section" padding="400">
+            <BlockStack gap="400">
+              <InlineStack align="space-between" blockAlign="center" gap="300" wrap>
+                <Text as="h2" variant="headingMd" fontWeight="bold">
+                  Build trust & boost conversions with notifications
+                </Text>
+                <Box className="dashboard-see-all-action">
+                  <Button
+                    variant="primary"
+                    onClick={() => navigate(appUrl("/app/notification"))}
+                  >
+                    See all notifications types -&gt;
+                  </Button>
                 </Box>
-              </Box>
-
-              {POPUP_SLIDES.length > 1 && (
-                <InlineStack align="center" gap="100">
-                  {POPUP_SLIDES.map((_, idx) => (
-                    <Button
-                      key={`dot-${idx}`}
-                      variant="plain"
-                      accessibilityLabel={`Go to slide ${idx + 1}`}
-                      pressed={idx === popupSlideIndex}
-                      onClick={() => setPopupSlideIndex(idx)}
-                    >
-                      <Box
-                        className={`popup-dot${idx === popupSlideIndex ? " is-active" : ""}`}
-                      />
-                    </Button>
-                  ))}
-                </InlineStack>
-              )}
+              </InlineStack>
+              <InlineGrid columns={{ xs: 1, md: 3 }} gap="500">
+                {FEATURED_NOTIFICATION_CARDS.map((card) => (
+                  <FeaturedNotificationCard
+                    key={card.key}
+                    title={card.title}
+                    desc={card.desc}
+                    badge={card.badge}
+                    imageName={card.imageName}
+                    previewType={card.previewType}
+                    onCreate={() => goPopupCreate(card.path, card.key)}
+                    loading={popupLoadingKey === `${card.key}-create`}
+                  />
+                ))}
+              </InlineGrid>
             </BlockStack>
           </Box>
         </Card>

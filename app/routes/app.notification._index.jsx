@@ -69,7 +69,7 @@ const DASHBOARD_STYLES = `
   position: relative;
   height: 176px;
   overflow: hidden;
-  background: radial-gradient(circle at 18% 12%, rgba(203, 245, 218, 0.86), rgb(206 246 219 / 72%) 45%, rgb(227 244 225 / 96%) 78%), linear-gradient(180deg, #effbf3 0%, #ffffff 100%);
+      background: aliceblue;
 }
 .notify-card-preview::after {
   content: "";
