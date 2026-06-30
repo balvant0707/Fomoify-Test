@@ -1246,7 +1246,7 @@ export default function AppIndex() {
 
         {/* Success help section */}
         {showSuccessHelpSection && (
-          <InlineGrid columns={{ xs: 1, md: 2 }} gap="500">
+          <Box className="dashboard-success-help-grid">
             <Card padding="0">
               <Box className="dashboard-support-panel">
                 <BlockStack gap="400">
@@ -1337,7 +1337,7 @@ export default function AppIndex() {
                 </InlineStack>
               </BlockStack>
             </Card>
-          </InlineGrid>
+          </Box>
         )}
 
         {/* Growth / promoted app */}

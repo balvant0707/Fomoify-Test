@@ -287,6 +287,12 @@
   flex-shrink: 0;
 }
 
+.dashboard-success-help-grid {
+  display: grid;
+  grid-template-columns: 66fr 34fr;
+  gap: var(--p-space-500);
+}
+
 .dashboard-support-panel {
   height: 100%;
   padding: var(--p-space-500);
@@ -354,4 +360,10 @@
 
 .dashboard-modal-icon {
   flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .dashboard-success-help-grid {
+    grid-template-columns: 1fr;
+  }
 }
