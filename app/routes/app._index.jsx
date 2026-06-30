@@ -1059,6 +1059,18 @@ export default function AppIndex() {
     } catch {}
   }, [reviewTopBannerDismissedSlot]);
 
+  useEffect(() => {
+    if (FEATURED_NOTIFICATION_SLIDES.length <= 1) return;
+
+    const timer = window.setInterval(() => {
+      setNotificationSlideIndex((currentIndex) =>
+        (currentIndex + 1) % FEATURED_NOTIFICATION_SLIDES.length
+      );
+    }, 4500);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
   const submitContactIssue = () => {
     setContactError("");
     const subject = String(contactForm.subject || "").trim() || CONTACT_SUBJECT_DEFAULT;
@@ -1104,7 +1116,7 @@ export default function AppIndex() {
                 </Text>
               </BlockStack>
               <Button onClick={() => openThemeEditor(resolvedThemeId, "activate")}>
-                Enable Snap Noti
+                Enable Fomoify
               </Button>
             </InlineStack>
           </Box>
