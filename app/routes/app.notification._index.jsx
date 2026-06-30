@@ -69,9 +69,7 @@ const DASHBOARD_STYLES = `
   position: relative;
   height: 176px;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 18% 12%, rgba(203, 245, 218, 0.86), rgba(235, 250, 240, 0.72) 45%, rgba(255, 255, 255, 0.96) 78%),
-    linear-gradient(180deg, #effbf3 0%, #ffffff 100%);
+  background: radial-gradient(circle at 18% 12%, rgba(203, 245, 218, 0.86), rgb(206 246 219 / 72%) 45%, rgb(227 244 225 / 96%) 78%), linear-gradient(180deg, #effbf3 0%, #ffffff 100%);
 }
 .notify-card-preview::after {
   content: "";
@@ -132,14 +130,14 @@ function DashboardCard({
   const imageSrc = `/images/${encodeURIComponent(imageName)}`;
 
   return (
-    <div className="notify-card">
+    <Box className="notify-card">
       <Card padding="0">
-        <div className="notify-card-inner">
-          <div className="notify-card-preview" aria-hidden>
-            <div className={`notify-image-pop notify-image-pop--${previewType || "recent"}`}>
+        <Box className="notify-card-inner">
+          <Box className="notify-card-preview" aria-hidden>
+            <Box className={`notify-image-pop notify-image-pop--${previewType || "recent"}`}>
               <img src={imageSrc} alt="" />
-            </div>
-          </div>
+            </Box>
+          </Box>
           <Box padding="400">
             <BlockStack gap="300">
               <InlineStack gap="200" blockAlign="center" wrap>
@@ -163,9 +161,9 @@ function DashboardCard({
               </InlineStack>
             </BlockStack>
           </Box>
-        </div>
+        </Box>
       </Card>
-    </div>
+    </Box>
   );
 }
 
@@ -276,7 +274,7 @@ export default function NotificationDashboardIndex() {
       <Page title="Sales Popups & Flash Bars">
         <NotificationPageStyles />
         <style>{DASHBOARD_STYLES}</style>
-        <div className="notify-page notification-page">
+        <Box className="notify-page notification-page">
           <InlineGrid columns={{ xs: 1, sm: 2, lg: 3 }} gap="400">
             {CARD_DATA.map((card) => (
               <DashboardCard
@@ -296,7 +294,7 @@ export default function NotificationDashboardIndex() {
               />
             ))}
           </InlineGrid>
-        </div>
+        </Box>
       </Page>
     </>
   );

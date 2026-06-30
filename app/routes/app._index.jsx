@@ -225,16 +225,16 @@ function PopupSliderCard({
     <Box borderWidth="025" borderRadius="300" borderColor="border" padding="400" background="bg-surface">
       <InlineStack align="space-between" blockAlign="center" gap="300" wrap={false}>
         <BlockStack gap="200">
-          <Text as="h3" style={{ fontWeight: "bold" }}>{title}</Text>
+          <Text as="h3" variant="headingSm" fontWeight="bold">{title}</Text>
           <Text tone="subdued" variant="bodySm">{desc}</Text>
-          <div className="dashboard-popup-actions">
+          <InlineStack gap="200" blockAlign="center" wrap>
             <Button variant="primary" onClick={onCreate} loading={loading} disabled={loading}>
               {loading ? "Opening..." : "Create"}
             </Button>
             {showManage && (
               <Button onClick={onManage} disabled={loading}>Manage</Button>
             )}
-          </div>
+          </InlineStack>
         </BlockStack>
         <Box className="dashboard-popup-preview" borderRadius="200">
           <img src={imageSrc} alt="" aria-hidden />
@@ -294,7 +294,8 @@ function ReviewStars({ rating, hoverRating, onHover, onLeave, onSelect }) {
   return (
     <InlineStack gap="100" aria-label="Rate this app">
       {[1, 2, 3, 4, 5].map((value) => (
-        <button
+        <Box
+          as="button"
           key={value}
           type="button"
           className={`review-star-btn${value <= activeValue ? " is-active" : ""}`}
@@ -306,7 +307,7 @@ function ReviewStars({ rating, hoverRating, onHover, onLeave, onSelect }) {
           onClick={() => onSelect(value)}
         >
           <Icon source={StarIcon} />
-        </button>
+        </Box>
       ))}
     </InlineStack>
   );
@@ -1001,21 +1002,21 @@ export default function AppIndex() {
   };
 
   return (
-    <Page>
-      <div className="dashboard-index-page">
+    <Page
+      title="Dashboard"
+      primaryAction={{
+        content: embedBadgeText,
+        onAction: () => openThemeEditor(resolvedThemeId, "activate"),
+      }}
+    >
+      <Box className="dashboard-index-page">
       <style>{INDEX_PAGE_INLINE_CSS}</style>
       <BlockStack gap="400">
-        <div className="dashboard-page-header">
-          <h1 className="dashboard-page-title">Dashboard</h1>
-          <button
-            type="button"
-            className={`dashboard-embed-status dashboard-embed-status--${embedStatusTone}`}
-            onClick={() => openThemeEditor(resolvedThemeId, "activate")}
-            title="Open Theme Customize app embeds"
-          >
+        <InlineStack align="end">
+          <Badge tone={embedStatusTone === "on" ? "success" : "critical"}>
             {embedBadgeText}
-          </button>
-        </div>
+          </Badge>
+        </InlineStack>
 
         {/* Review top banner */}
         {showTopReviewBanner && (
@@ -1036,7 +1037,7 @@ export default function AppIndex() {
 
         {/* Popup type slider */}
         <Card>
-          <div
+          <Box
             onMouseEnter={() => setIsPopupSliderPaused(true)}
             onMouseLeave={() => setIsPopupSliderPaused(false)}
             onFocusCapture={() => setIsPopupSliderPaused(true)}
@@ -1045,13 +1046,13 @@ export default function AppIndex() {
             onTouchEnd={() => setIsPopupSliderPaused(false)}
           >
             <BlockStack gap="300">
-              <div className="popup-slider-window">
-                <div
+              <Box className="popup-slider-window">
+                <Box
                   className="popup-slider-track"
                   style={{ "--popup-slide-index": popupSlideIndex }}
                 >
                   {POPUP_SLIDES.map((slide, slideIdx) => (
-                    <div className="popup-slide" key={`slide-${slideIdx}`}>
+                    <Box className="popup-slide" key={`slide-${slideIdx}`}>
                       <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
                         {slide.map((card) => (
                           <PopupSliderCard
@@ -1069,107 +1070,126 @@ export default function AppIndex() {
                           />
                         ))}
                       </InlineGrid>
-                    </div>
+                    </Box>
                   ))}
-                </div>
-              </div>
+                </Box>
+              </Box>
 
               {POPUP_SLIDES.length > 1 && (
                 <InlineStack align="center" gap="100">
                   {POPUP_SLIDES.map((_, idx) => (
-                    <button
+                    <Button
                       key={`dot-${idx}`}
-                      type="button"
-                      className={`popup-dot${idx === popupSlideIndex ? " is-active" : ""}`}
-                      aria-label={`Go to slide ${idx + 1}`}
-                      aria-current={idx === popupSlideIndex}
+                      variant="plain"
+                      accessibilityLabel={`Go to slide ${idx + 1}`}
+                      pressed={idx === popupSlideIndex}
                       onClick={() => setPopupSlideIndex(idx)}
-                    />
+                    >
+                      <Box
+                        className={`popup-dot${idx === popupSlideIndex ? " is-active" : ""}`}
+                      />
+                    </Button>
                   ))}
                 </InlineStack>
               )}
             </BlockStack>
-          </div>
+          </Box>
         </Card>
 
         {/* Success help section */}
         {showSuccessHelpSection && (
-          <div className="dashboard-support-row">
+          <InlineGrid columns={{ xs: 1, md: 2 }} gap="500">
             <Card padding="0">
               <Box className="dashboard-support-panel">
                 <BlockStack gap="400">
                   <Text as="h2" variant="headingMd" fontWeight="bold">
                     Support
                   </Text>
-                  <div className="dashboard-support-card-grid">
-                    <button
-                      type="button"
-                      className="dashboard-support-card"
-                      onClick={() =>
-                        window.open(whatsappSupportUrl, "_blank", "noopener,noreferrer")
-                      }
-                    >
-                      <InlineStack gap="200" blockAlign="center" wrap={false}>
-                        <span className="dashboard-support-card-icon">
-                          <Icon source={ChatIcon} />
-                        </span>
-                        <Text as="h2" fontWeight="bold" tone="magic">
-                          Live chat
+                  <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
+                    <Box borderWidth="025" borderRadius="300" borderColor="border" padding="400" background="bg-surface">
+                      <BlockStack gap="300">
+                        <InlineStack gap="200" blockAlign="center" wrap={false}>
+                          <Box className="dashboard-support-card-icon">
+                            <Icon source={ChatIcon} />
+                          </Box>
+                          <Text as="h3" variant="headingSm" fontWeight="bold">
+                            Live chat
+                          </Text>
+                        </InlineStack>
+                        <Text as="p" tone="subdued">
+                          Support, reply, and assist instantly in office hours.
                         </Text>
-                      </InlineStack>
-                      <Text as="p" tone="subdued">
-                        Support, reply, and assist instantly in office hours
-                      </Text>
-                    </button>
+                        <InlineStack>
+                          <Button
+                            icon={ChatIcon}
+                            onClick={() =>
+                              window.open(whatsappSupportUrl, "_blank", "noopener,noreferrer")
+                            }
+                          >
+                            Open chat
+                          </Button>
+                        </InlineStack>
+                      </BlockStack>
+                    </Box>
 
-                    <button
-                      type="button"
-                      className="dashboard-support-card"
-                      onClick={() =>
-                        window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")
-                      }
-                    >
-                      <InlineStack gap="200" blockAlign="center" wrap={false}>
-                        <span className="dashboard-support-card-icon">
-                          <Icon source={ExternalIcon} />
-                        </span>
-                        <Text as="h2" fontWeight="bold" tone="magic">
-                          Knowledge base
+                    <Box borderWidth="025" borderRadius="300" borderColor="border" padding="400" background="bg-surface">
+                      <BlockStack gap="300">
+                        <InlineStack gap="200" blockAlign="center" wrap={false}>
+                          <Box className="dashboard-support-card-icon">
+                            <Icon source={ExternalIcon} />
+                          </Box>
+                          <Text as="h3" variant="headingSm" fontWeight="bold">
+                            Knowledge base
+                          </Text>
+                        </InlineStack>
+                        <Text as="p" tone="subdued">
+                          Find a solution for your problem with our documents.
                         </Text>
-                      </InlineStack>
-                      <Text as="p" tone="subdued">
-                        Find a solution for your problem with our documents.
-                      </Text>
-                    </button>
-                  </div>
+                        <InlineStack>
+                          <Button
+                            icon={ExternalIcon}
+                            onClick={() =>
+                              window.open(SUPPORT_HELP_URL, "_blank", "noopener,noreferrer")
+                            }
+                          >
+                            Open docs
+                          </Button>
+                        </InlineStack>
+                      </BlockStack>
+                    </Box>
+                  </InlineGrid>
                 </BlockStack>
               </Box>
             </Card>
 
-            <Box className="dashboard-review-cta-panel">
-              <div className="dashboard-review-heart" aria-hidden>
-                <Icon source={HeartIcon} />
-              </div>
-              <Text as="h2" variant="headingMd" fontWeight="bold">
-                Motivate our team
-              </Text>
-              <Text as="p" fontWeight="bold">
-                for future app development
-              </Text>
-              <div className="dashboard-review-cta-actions">
-                <Button
-                  variant="primary"
-                  icon={StarIcon}
-                  onClick={() => window.open(WRITE_REVIEW_URL, "_blank", "noopener,noreferrer")}
-                >
-                  Write a review
-                </Button>
-                <Button icon={ChatIcon} onClick={openContactModal}>
-                  Report an issue
-                </Button>
-              </div>
-            </Box>
-          </div>
+            <Card>
+              <BlockStack gap="400" align="center" inlineAlign="center">
+                <Box className="dashboard-review-heart" aria-hidden>
+                  <Icon source={HeartIcon} />
+                </Box>
+                <BlockStack gap="100" inlineAlign="center">
+                  <Text as="h2" variant="headingMd" fontWeight="bold">
+                    Motivate our team
+                  </Text>
+                  <Text as="p" fontWeight="bold" tone="subdued">
+                    for future app development
+                  </Text>
+                </BlockStack>
+                <InlineStack gap="200" align="center" wrap>
+                  <Button
+                    variant="primary"
+                    icon={StarIcon}
+                    onClick={() => window.open(WRITE_REVIEW_URL, "_blank", "noopener,noreferrer")}
+                  >
+                    Write a review
+                  </Button>
+                  <Button icon={ChatIcon} onClick={openContactModal}>
+                    Report an issue
+                  </Button>
+                </InlineStack>
+              </BlockStack>
+            </Card>
+          </InlineGrid>
         )}
 
         {/* Growth / promoted app */}
@@ -1313,7 +1333,7 @@ export default function AppIndex() {
         </Modal>
 
       </BlockStack>
-      </div>
+      </Box>
     </Page>
   );
 }
