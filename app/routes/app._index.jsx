@@ -129,30 +129,30 @@ const INDEX_PAGE_INLINE_CSS = `
 const FEATURED_NOTIFICATION_CARDS = [
   {
     key: "recent",
-    title: "Order notification",
+    title: "Recent Purchase Notification",
     desc: "Show real recent purchases to build FOMO and trust with shoppers",
     badge: "Social proof",
     path: "/app/notification/recent",
-    imageName: "Recent cart.png",
-    previewType: "order",
-  },
-  {
-    key: "visitor",
-    title: "Visitor count",
-    desc: "Show real-time visitor count to create urgency on your storefront",
-    badge: "Social proof",
-    path: "/app/notification/visitor",
-    imageName: "Visitor Popup - new.png",
-    previewType: "visitor",
+    imageName: "recentpu.webp",
+    previewType: "recent",
   },
   {
     key: "flash",
-    title: "Flashing tab winback",
-    desc: "Flash a message on the browser tab to bring back distracted shoppers",
-    badge: "Engagement",
+    title: "Flash Sale Notification",
+    desc: "Promote limited-time discounts with a countdown bar on your storefront",
+    badge: "Urgency",
     path: "/app/notification/flash",
-    imageName: "Flash Sale.png",
-    previewType: "winback",
+    imageName: "flashsale.webp",
+    previewType: "flash",
+  },
+  {
+    key: "visitor",
+    title: "Visitor Notification",
+    desc: "Show real-time visitor count to create urgency on your storefront",
+    badge: "Social proof",
+    path: "/app/notification/visitor",
+    imageName: "visitor.webp",
+    previewType: "visitor",
   },
   {
     key: "lowstock",
@@ -294,6 +294,8 @@ function FeaturedNotificationCard({
   imageName,
   previewType,
   onCreate,
+  onManage,
+  showManage,
   loading,
 }) {
   const imageSrc = `/images/${encodeURIComponent(imageName)}`;
@@ -332,6 +334,11 @@ function FeaturedNotificationCard({
               <Button onClick={onCreate} loading={loading} disabled={loading}>
                 {loading ? "Opening..." : "Create"}
               </Button>
+              {showManage && (
+                <Button onClick={onManage} disabled={loading}>
+                  Manage
+                </Button>
+              )}
             </InlineStack>
           </BlockStack>
         </Box>
@@ -813,6 +820,7 @@ export default function AppIndex() {
     apiKey,
     extId,
     dashboardReviewPopupStatus,
+    popupManageByKey,
     embedContext,
     embedPingStatus,
   } = useLoaderData();
@@ -945,6 +953,15 @@ export default function AppIndex() {
     (path, key) => {
       if (popupLoadingKey) return;
       setPopupLoadingKey(`${key}-create`);
+      setTimeout(() => navigate(appUrl(path)), 350);
+    },
+    [appUrl, navigate, popupLoadingKey]
+  );
+
+  const goPopupManage = useCallback(
+    (key, path = "/app/notification/manage") => {
+      if (popupLoadingKey) return;
+      setPopupLoadingKey(`${key}-manage`);
       setTimeout(() => navigate(appUrl(path)), 350);
     },
     [appUrl, navigate, popupLoadingKey]
@@ -1146,7 +1163,12 @@ export default function AppIndex() {
                             imageName={card.imageName}
                             previewType={card.previewType}
                             onCreate={() => goPopupCreate(card.path, card.key)}
-                            loading={popupLoadingKey === `${card.key}-create`}
+                            onManage={() => goPopupManage(card.key, card.managePath)}
+                            showManage={Boolean(popupManageByKey?.[card.key])}
+                            loading={
+                              popupLoadingKey === `${card.key}-create` ||
+                              popupLoadingKey === `${card.key}-manage`
+                            }
                           />
                         ))}
                       </InlineGrid>

@@ -24,10 +24,12 @@
 
 .dashboard-feature-card-inner {
   min-height: 100%;
-  height: 300px;
+  height: 374px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
   transition:
     border-color 180ms ease,
     background 180ms ease,
@@ -61,7 +63,7 @@
   height: 176px;
   flex: 0 0 176px;
   overflow: hidden;
-  background: aliceblue;
+  background: linear-gradient(180deg, #eef9ff 0%, #ffffff 100%);
 }
 
 .dashboard-feature-preview::after {
@@ -77,20 +79,40 @@
 .dashboard-feature-content {
   min-width: 0;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-feature-content .Polaris-BlockStack {
+  height: 100%;
+}
+
+.dashboard-feature-card .Polaris-Text--headingMd {
+  font-size: 18px !important;
+  line-height: 1.25 !important;
+}
+
+.dashboard-feature-card p,
+.dashboard-feature-card .Polaris-Text--bodyMd {
+  font-size: 14px !important;
+  line-height: 1.35 !important;
+  min-height: 38px;
 }
 
 .dashboard-feature-actions {
-  padding-top: var(--p-space-050);
+  margin-top: auto;
+  padding-top: var(--p-space-300);
 }
 
 .dashboard-feature-image {
   position: relative;
   z-index: 1;
   display: grid;
-  place-items: center;
+  place-items: start center;
   overflow: hidden;
   width: 100%;
   height: 100%;
+  padding: var(--p-space-300);
 }
 
 .dashboard-feature-image img {
@@ -100,18 +122,11 @@
   object-fit: contain;
 }
 
-.dashboard-feature-image--flash {
-  width: 100%;
-}
-
-.dashboard-feature-image--visitor,
-.dashboard-feature-image--visitor-block,
-.dashboard-feature-image--lowstock,
-.dashboard-feature-image--stock-block {
-  width: 100%;
-}
-
 @media (max-width: 767px) {
+  .dashboard-feature-card-inner {
+    height: 356px;
+  }
+
   .dashboard-feature-preview {
     height: 160px;
     flex-basis: 160px;
