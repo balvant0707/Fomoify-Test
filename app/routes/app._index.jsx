@@ -311,35 +311,36 @@ function FeaturedNotificationCard({
       >
         <Box className="dashboard-feature-preview" aria-hidden>
           <Box className={`dashboard-feature-image dashboard-feature-image--${previewType || "recent"}`}>
-            <img src={imageSrc} alt="" />
+            <Box as="img" src={imageSrc} alt="" />
           </Box>
         </Box>
         <Box className="dashboard-feature-content" padding="400">
           <BlockStack gap="300">
-            <InlineStack gap="200" blockAlign="center" wrap>
-              <Text as="h3" variant="headingMd" fontWeight="bold">
-                {title}
+            <Box>
+              <InlineStack gap="200" blockAlign="center" wrap>
+                <Text as="h3" variant="headingMd" fontWeight="bold">
+                  {title}
+                </Text>
+                {badge ? <Badge tone="info">{badge}</Badge> : null}
+              </InlineStack>
+            </Box>
+            <Box>
+              <Text as="p" tone="subdued" variant="bodyMd">
+                {desc}
               </Text>
-              {badge ? <Badge tone="info">{badge}</Badge> : null}
-            </InlineStack>
-            <Text as="p" tone="subdued" variant="bodyMd">
-              {desc}
-            </Text>
-            <InlineStack
-              className="dashboard-feature-actions"
-              gap="200"
-              blockAlign="center"
-              wrap
-            >
-              <Button onClick={onCreate} loading={loading} disabled={loading}>
-                {loading ? "Opening..." : "Create"}
-              </Button>
-              {showManage && (
-                <Button onClick={onManage} disabled={loading}>
-                  Manage
+            </Box>
+            <Box className="dashboard-feature-actions">
+              <InlineStack gap="200" blockAlign="center" wrap>
+                <Button onClick={onCreate} loading={loading} disabled={loading}>
+                  {loading ? "Opening..." : "Create"}
                 </Button>
-              )}
-            </InlineStack>
+                {showManage && (
+                  <Button onClick={onManage} disabled={loading}>
+                    Manage
+                  </Button>
+                )}
+              </InlineStack>
+            </Box>
           </BlockStack>
         </Box>
       </Box>
@@ -358,7 +359,7 @@ function PromotedAppCard({ app }) {
             borderWidth="025"
             borderColor="border"
           >
-            <img src={app.imageSrc} alt={app.imageAlt} />
+            <Box as="img" src={app.imageSrc} alt={app.imageAlt} />
           </Box>
           <BlockStack gap="100">
             <InlineStack gap="200" blockAlign="center" wrap>
