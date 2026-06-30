@@ -302,48 +302,44 @@ function FeaturedNotificationCard({
 
   return (
     <Box className="dashboard-feature-card">
-      <Box
-        className="dashboard-feature-card-inner"
-        borderWidth="025"
-        borderRadius="300"
-        borderColor="border"
-        background="bg-surface"
-      >
-        <Box className="dashboard-feature-preview" aria-hidden>
-          <Box className={`dashboard-feature-image dashboard-feature-image--${previewType || "recent"}`}>
-            <Box as="img" src={imageSrc} alt="" />
+      <Card padding="0">
+        <Box className="dashboard-feature-card-inner">
+          <Box className="dashboard-feature-preview" aria-hidden>
+            <Box className={`dashboard-feature-image dashboard-feature-image--${previewType || "recent"}`}>
+              <Box as="img" src={imageSrc} alt="" />
+            </Box>
+          </Box>
+          <Box className="dashboard-feature-content" padding="400">
+            <BlockStack gap="300">
+              <Box>
+                <InlineStack gap="200" blockAlign="center" wrap>
+                  <Text as="h3" variant="headingMd" fontWeight="bold">
+                    {title}
+                  </Text>
+                  {badge ? <Badge tone="info">{badge}</Badge> : null}
+                </InlineStack>
+              </Box>
+              <Box>
+                <Text as="p" tone="subdued" variant="bodyMd">
+                  {desc}
+                </Text>
+              </Box>
+              <Box className="dashboard-feature-actions">
+                <InlineStack gap="200" blockAlign="center" wrap>
+                  <Button onClick={onCreate} loading={loading} disabled={loading}>
+                    {loading ? "Opening..." : "Create"}
+                  </Button>
+                  {showManage && (
+                    <Button onClick={onManage} disabled={loading}>
+                      Manage
+                    </Button>
+                  )}
+                </InlineStack>
+              </Box>
+            </BlockStack>
           </Box>
         </Box>
-        <Box className="dashboard-feature-content" padding="400">
-          <BlockStack gap="300">
-            <Box>
-              <InlineStack gap="200" blockAlign="center" wrap>
-                <Text as="h3" variant="headingMd" fontWeight="bold">
-                  {title}
-                </Text>
-                {badge ? <Badge tone="info">{badge}</Badge> : null}
-              </InlineStack>
-            </Box>
-            <Box>
-              <Text as="p" tone="subdued" variant="bodyMd">
-                {desc}
-              </Text>
-            </Box>
-            <Box className="dashboard-feature-actions">
-              <InlineStack gap="200" blockAlign="center" wrap>
-                <Button onClick={onCreate} loading={loading} disabled={loading}>
-                  {loading ? "Opening..." : "Create"}
-                </Button>
-                {showManage && (
-                  <Button onClick={onManage} disabled={loading}>
-                    Manage
-                  </Button>
-                )}
-              </InlineStack>
-            </Box>
-          </BlockStack>
-        </Box>
-      </Box>
+      </Card>
     </Box>
   );
 }
