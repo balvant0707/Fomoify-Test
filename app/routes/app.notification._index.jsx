@@ -203,8 +203,8 @@ const CARD_DATA = [
     desc: "Alert shoppers when stock is running low to trigger urgency",
     badge: "Social proof",
     path: "/app/notification/lowstock",
-    imageName: "low stock popup.png",
-    previewType: "lowstock.webp",
+    imageName: "lowstock.webp",
+    previewType: "lowstock",
   },
   {
     key: "addtocart",
