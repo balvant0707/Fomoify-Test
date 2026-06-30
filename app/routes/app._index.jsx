@@ -78,7 +78,6 @@ const PROMOTED_APPS = [
     href: PROMOTED_UPSELL_APP_URL,
     imageSrc: "/images/cartlift.png",
     imageAlt: "CartLift: Cart Drawer & Upsell",
-    icon: CartIcon,
   },
   {
     title: "MixBox - Box & Bundle Builder",
@@ -88,7 +87,6 @@ const PROMOTED_APPS = [
     href: "https://apps.shopify.com/mixbox-box-bundle-builder",
     imageSrc: "/images/mixbox-box-bundle-builder.jpg",
     imageAlt: "MixBox - Box & Bundle Builder",
-    icon: ProductIcon,
   },
   {
     title: "Nex AI SEO Product Description",
@@ -98,7 +96,6 @@ const PROMOTED_APPS = [
     href: "https://apps.shopify.com/ai-seo-product-description",
     imageSrc: "/images/ai-content-logo.png",
     imageAlt: "Nex AI SEO Product Description",
-    icon: StarIcon,
   },
 ];
 const WRITE_REVIEW_URL =
@@ -1135,10 +1132,10 @@ export default function AppIndex() {
                 <InlineStack gap="200" blockAlign="center">
                   <Text as="h2" variant="headingMd" fontWeight="bold">
                     App status
-                  </Text>
-                  <Badge tone={embedStatusTone === "on" ? "success" : "warning"}>
+                      <Badge tone={embedStatusTone === "on" ? "success" : "warning"}>
                     {embedBadgeText}
                   </Badge>
+                  </Text>
                 </InlineStack>
                 <Text as="p" tone="subdued">
                   Your notification won't appear on storefront until App Embed is enabled.
