@@ -176,7 +176,7 @@ const CARD_DATA = [
     desc: "Show real recent purchases to build FOMO and trust with shoppers",
     badge: "Social proof",
     path: "/app/notification/recent",
-    imageName: "Recent cart.png",
+    imageName: "recentpu.webp",
     previewType: "recent",
   },
   {
@@ -185,7 +185,7 @@ const CARD_DATA = [
     desc: "Promote limited-time discounts with a countdown bar on your storefront",
     badge: "Urgency",
     path: "/app/notification/flash",
-    imageName: "Flash Sale.png",
+    imageName: "flashsale.webp",
     previewType: "flash",
   },
   {
@@ -194,7 +194,7 @@ const CARD_DATA = [
     desc: "Show real-time visitor count to create urgency on your storefront",
     badge: "Social proof",
     path: "/app/notification/visitor",
-    imageName: "Visitor Popup - new.png",
+    imageName: "visitor.webp",
     previewType: "visitor",
   },
   {
@@ -204,7 +204,7 @@ const CARD_DATA = [
     badge: "Social proof",
     path: "/app/notification/lowstock",
     imageName: "low stock popup.png",
-    previewType: "lowstock",
+    previewType: "lowstock.webp",
   },
   {
     key: "addtocart",
