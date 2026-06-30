@@ -90,6 +90,26 @@
   height: 100%;
 }
 
+.dashboard-feature-title-icon,
+.dashboard-promoted-app-icon {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  color: #1a73e8;
+}
+
+.dashboard-feature-title-icon .Polaris-Icon,
+.dashboard-feature-title-icon .Polaris-Icon__Svg,
+.dashboard-feature-title-icon svg,
+.dashboard-promoted-app-icon .Polaris-Icon,
+.dashboard-promoted-app-icon .Polaris-Icon__Svg,
+.dashboard-promoted-app-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
 .dashboard-feature-card .Polaris-Text--headingMd {
   font-size: 14px !important;
   line-height: 1.25 !important;

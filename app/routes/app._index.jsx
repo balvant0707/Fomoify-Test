@@ -31,10 +31,20 @@ import {
 } from "@shopify/polaris";
 import {
   AppsIcon,
+  CartIcon,
+  CartSaleIcon,
   ChatIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  DiscountIcon,
   ExternalIcon,
   HeartIcon,
+  InventoryIcon,
+  NotificationIcon,
+  PageClockIcon,
+  ProductIcon,
   StarIcon,
+  ViewIcon,
 } from "@shopify/polaris-icons";
 import { APP_EMBED_HANDLE } from "../utils/themeEmbed.shared";
 import { sendOwnerEmail } from "../utils/sendOwnerEmail.server";
@@ -67,6 +77,7 @@ const PROMOTED_APPS = [
     href: PROMOTED_UPSELL_APP_URL,
     imageSrc: "/images/cartlift.png",
     imageAlt: "CartLift: Cart Drawer & Upsell",
+    icon: CartIcon,
   },
   {
     title: "MixBox - Box & Bundle Builder",
@@ -76,6 +87,7 @@ const PROMOTED_APPS = [
     href: "https://apps.shopify.com/mixbox-box-bundle-builder",
     imageSrc: "/images/mixbox-box-bundle-builder.jpg",
     imageAlt: "MixBox - Box & Bundle Builder",
+    icon: ProductIcon,
   },
   {
     title: "Nex AI SEO Product Description",
@@ -85,6 +97,7 @@ const PROMOTED_APPS = [
     href: "https://apps.shopify.com/ai-seo-product-description",
     imageSrc: "/images/ai-content-logo.png",
     imageAlt: "Nex AI SEO Product Description",
+    icon: StarIcon,
   },
 ];
 const WRITE_REVIEW_URL =
@@ -135,6 +148,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     path: "/app/notification/recent",
     imageName: "recentpu.webp",
     previewType: "recent",
+    icon: CartSaleIcon,
   },
   {
     key: "flash",
@@ -144,6 +158,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     path: "/app/notification/flash",
     imageName: "flashsale.webp",
     previewType: "flash",
+    icon: DiscountIcon,
   },
   {
     key: "visitor",
@@ -153,6 +168,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     path: "/app/notification/visitor",
     imageName: "visitor.webp",
     previewType: "visitor",
+    icon: ViewIcon,
   },
   {
     key: "lowstock",
@@ -162,6 +178,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     path: "/app/notification/lowstock",
     imageName: "lowstock.jpg",
     previewType: "lowstock",
+    icon: InventoryIcon,
   },
   {
     key: "addtocart",
@@ -171,6 +188,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     path: "/app/notification/addtocart",
     imageName: "add to cart notification.png",
     previewType: "addtocart",
+    icon: CartIcon,
   },
   {
     key: "review",
@@ -180,6 +198,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     path: "/app/notification/review",
     imageName: "review.webp",
     previewType: "review",
+    icon: StarIcon,
   },
   {
     key: "visitor-block",
@@ -189,6 +208,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     path: "/app/visitor-announcement",
     imageName: "visitorannouncement.webp",
     previewType: "visitor-block",
+    icon: NotificationIcon,
   },
   {
     key: "stock-block",
@@ -198,6 +218,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     path: "/app/stock-announcement",
     imageName: "low stock popup.png",
     previewType: "stock-block",
+    icon: PageClockIcon,
   },
 ];
 const POPUP_CARD_DATA = [
@@ -293,6 +314,7 @@ function FeaturedNotificationCard({
   badge,
   imageName,
   previewType,
+  icon,
   onCreate,
   onManage,
   showManage,
@@ -313,6 +335,11 @@ function FeaturedNotificationCard({
             <BlockStack gap="300">
               <Box>
                 <InlineStack gap="200" blockAlign="center" wrap>
+                  {icon ? (
+                    <Box className="dashboard-feature-title-icon" aria-hidden>
+                      <Icon source={icon} />
+                    </Box>
+                  ) : null}
                   <Text as="h3" variant="headingMd" fontWeight="bold">
                     {title}
                   </Text>
@@ -359,6 +386,11 @@ function PromotedAppCard({ app }) {
           </Box>
           <BlockStack gap="100">
             <InlineStack gap="200" blockAlign="center" wrap>
+              {app.icon ? (
+                <Box className="dashboard-promoted-app-icon" aria-hidden>
+                  <Icon source={app.icon} />
+                </Box>
+              ) : null}
               <Text as="h3" variant="headingSm" fontWeight="bold">
                 {app.title}
               </Text>
@@ -1055,18 +1087,6 @@ export default function AppIndex() {
     } catch {}
   }, [reviewTopBannerDismissedSlot]);
 
-  useEffect(() => {
-    if (FEATURED_NOTIFICATION_SLIDES.length <= 1) return;
-
-    const timer = window.setInterval(() => {
-      setNotificationSlideIndex((currentIndex) =>
-        (currentIndex + 1) % FEATURED_NOTIFICATION_SLIDES.length
-      );
-    }, 4500);
-
-    return () => window.clearInterval(timer);
-  }, []);
-
   const submitContactIssue = () => {
     setContactError("");
     const subject = String(contactForm.subject || "").trim() || CONTACT_SUBJECT_DEFAULT;
@@ -1088,6 +1108,19 @@ export default function AppIndex() {
     payload.set("subject", subject);
     payload.set("message", message);
     contactFetcher.submit(payload, { method: "post" });
+  };
+
+  const showFeatureSliderControls = FEATURED_NOTIFICATION_SLIDES.length > 1;
+  const goPreviousNotificationSlide = () => {
+    setNotificationSlideIndex((currentIndex) =>
+      (currentIndex - 1 + FEATURED_NOTIFICATION_SLIDES.length) %
+      FEATURED_NOTIFICATION_SLIDES.length
+    );
+  };
+  const goNextNotificationSlide = () => {
+    setNotificationSlideIndex((currentIndex) =>
+      (currentIndex + 1) % FEATURED_NOTIFICATION_SLIDES.length
+    );
   };
 
   return (
@@ -1171,6 +1204,7 @@ export default function AppIndex() {
                             badge={card.badge}
                             imageName={card.imageName}
                             previewType={card.previewType}
+                            icon={card.icon}
                             onCreate={() => goPopupCreate(card.path, card.key)}
                             onManage={() => goPopupManage(card.key, card.managePath)}
                             showManage={Boolean(popupManageByKey?.[card.key])}
@@ -1185,8 +1219,13 @@ export default function AppIndex() {
                   ))}
                 </Box>
               </Box>
-              {FEATURED_NOTIFICATION_SLIDES.length > 1 && (
-                <InlineStack align="center" gap="100">
+              {showFeatureSliderControls && (
+                <InlineStack align="center" blockAlign="center" gap="200">
+                  <Button
+                    icon={ChevronLeftIcon}
+                    accessibilityLabel="Show previous notification cards"
+                    onClick={goPreviousNotificationSlide}
+                  />
                   {FEATURED_NOTIFICATION_SLIDES.map((_, idx) => (
                     <Button
                       key={`notification-dot-${idx}`}
@@ -1202,6 +1241,11 @@ export default function AppIndex() {
                       />
                     </Button>
                   ))}
+                  <Button
+                    icon={ChevronRightIcon}
+                    accessibilityLabel="Show next notification cards"
+                    onClick={goNextNotificationSlide}
+                  />
                 </InlineStack>
               )}
             </BlockStack>
