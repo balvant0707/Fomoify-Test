@@ -370,6 +370,7 @@ export async function action({ request }) {
           data: { enabled },
         });
       }
+      deleteCache(`notification:rows:${shop}`);
       if (isFetch) return safeJson({ ok: true });
       return redirect(toSelf());
     } catch (error) {

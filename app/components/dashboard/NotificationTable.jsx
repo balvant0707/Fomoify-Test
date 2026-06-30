@@ -209,9 +209,14 @@ export default function NotificationTable({
   const navigate = useNavigate();
   const location = useLocation();
   const delFetcher = useFetcher();
+  const toggleFetcher = useFetcher();
   const isIdleReady = useIdle(200);
 
   const isBusy = navigation.state !== "idle";
+  const [optimisticEnabledById, setOptimisticEnabledById] = useState({});
+  const [toggleBusyId, setToggleBusyId] = useState(null);
+  const [toggleError, setToggleError] = useState(false);
+  const lastToggleRef = useRef(null);
 
   const [showSaved, setShowSaved] = useState(() => {
     try {
@@ -265,6 +270,58 @@ export default function NotificationTable({
     if (key) fd.set("key", String(key));
     delFetcher.submit(fd, { method: "post" });
   }, [delRow, delFetcher]);
+
+  const rowKeyFor = useCallback((row) => `${row.key}:${row.id}`, []);
+  const getEffectiveEnabled = useCallback(
+    (row) => {
+      const rowKey = rowKeyFor(row);
+      if (Object.prototype.hasOwnProperty.call(optimisticEnabledById, rowKey)) {
+        return optimisticEnabledById[rowKey];
+      }
+      return Boolean(row.enabled);
+    },
+    [optimisticEnabledById, rowKeyFor]
+  );
+
+  const toggleEnabled = useCallback(
+    (row) => {
+      const rowKey = rowKeyFor(row);
+      const currentEnabled = getEffectiveEnabled(row);
+      const nextEnabled = !currentEnabled;
+      lastToggleRef.current = { rowKey, previousEnabled: currentEnabled };
+      setToggleBusyId(rowKey);
+      setOptimisticEnabledById((prev) => ({
+        ...prev,
+        [rowKey]: nextEnabled,
+      }));
+
+      const fd = new FormData();
+      fd.set("_action", "toggle-enabled");
+      fd.set("id", String(row.id));
+      fd.set("key", String(row.key));
+      fd.set("enabled", nextEnabled ? "on" : "");
+      toggleFetcher.submit(fd, { method: "post" });
+    },
+    [getEffectiveEnabled, rowKeyFor, toggleFetcher]
+  );
+
+  useEffect(() => {
+    if (toggleFetcher.state !== "idle") return;
+    if (!toggleBusyId) return;
+
+    if (toggleFetcher.data?.ok === false) {
+      const lastToggle = lastToggleRef.current;
+      if (lastToggle?.rowKey) {
+        setOptimisticEnabledById((prev) => ({
+          ...prev,
+          [lastToggle.rowKey]: lastToggle.previousEnabled,
+        }));
+      }
+      setToggleError(true);
+    }
+
+    setToggleBusyId(null);
+  }, [toggleBusyId, toggleFetcher.data, toggleFetcher.state]);
 
   const styles = `
     .col-title, .col-text { white-space: pre-line !important; word-break: break-word; }
@@ -358,15 +415,23 @@ export default function NotificationTable({
       list = list.filter((r) => r.key === currentType);
     }
     if (currentStatus === "enabled") {
-      list = list.filter((r) => r.enabled);
+      list = list.filter((r) => getEffectiveEnabled(r));
     } else if (currentStatus === "disabled") {
-      list = list.filter((r) => !r.enabled);
+      list = list.filter((r) => !getEffectiveEnabled(r));
     }
     if (qLower) {
       list = list.filter((row) => makeSearchString(row).includes(qLower));
     }
     return list;
-  }, [safeRows, deletedIds, currentType, currentStatus, qLower, isIdleReady]);
+  }, [
+    safeRows,
+    deletedIds,
+    currentType,
+    currentStatus,
+    qLower,
+    isIdleReady,
+    getEffectiveEnabled,
+  ]);
 
   const totalFiltered = filtered.length;
   const startIdx = (page - 1) * pageSize;
@@ -513,7 +578,10 @@ export default function NotificationTable({
               >
                 {visibleRows.map((row, index) => {
                   const titleDisplay = getTitleDisplay(row);
-                  const nextEnabled = !row.enabled;
+                  const rowEnabled = getEffectiveEnabled(row);
+                  const rowKey = rowKeyFor(row);
+                  const toggleBusy =
+                    toggleFetcher.state !== "idle" && toggleBusyId === rowKey;
                   const themeEditorUrl = themeEditorUrlFor(row);
 
                   return (
@@ -547,35 +615,19 @@ export default function NotificationTable({
                       </IndexTable.Cell>
 
                       <IndexTable.Cell>
-                        <Form method="post">
-                          <input
-                            type="hidden"
-                            name="_action"
-                            value="toggle-enabled"
-                          />
-                          <input type="hidden" name="id" value={row.id} />
-                          <input type="hidden" name="key" value={row.key} />
-                          <input
-                            type="hidden"
-                            name="enabled"
-                            value={nextEnabled ? "on" : ""}
-                          />
-                          <button
-                            type="submit"
-                            className={`rk-switch ${
-                              row.enabled ? "is-on" : ""
-                            }`}
-                            aria-label={row.enabled ? "Enabled" : "Disabled"}
-                            disabled={isBusy}
-                            title={
-                              row.enabled
-                                ? "Click to disable"
-                                : "Click to enable"
-                            }
-                          >
-                            <span className="knob" />
-                          </button>
-                        </Form>
+                        <button
+                          type="button"
+                          className={`rk-switch ${rowEnabled ? "is-on" : ""}`}
+                          aria-label={rowEnabled ? "Enabled" : "Disabled"}
+                          aria-pressed={rowEnabled}
+                          disabled={isBusy || toggleBusy}
+                          title={
+                            rowEnabled ? "Click to disable" : "Click to enable"
+                          }
+                          onClick={() => toggleEnabled(row)}
+                        >
+                          <span className="knob" />
+                        </button>
                       </IndexTable.Cell>
 
                       <IndexTable.Cell>
@@ -672,6 +724,14 @@ export default function NotificationTable({
           content="Deleted successfully"
           duration={2200}
           onDismiss={() => setShowDeleted(false)}
+        />
+      )}
+      {toggleError && (
+        <Toast
+          content="Status update failed"
+          error
+          duration={2200}
+          onDismiss={() => setToggleError(false)}
         />
       )}
     </>

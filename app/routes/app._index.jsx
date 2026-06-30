@@ -32,18 +32,11 @@ import {
 import {
   AppsIcon,
   ArrowRightIcon,
-  CartIcon,
-  CartSaleIcon,
   ChatIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  DiscountIcon,
   ExternalIcon,
   HeartIcon,
-  InventoryIcon,
-  NotificationIcon,
-  PageClockIcon,
-  ProductIcon,
   StarIcon,
   ViewIcon,
 } from "@shopify/polaris-icons";

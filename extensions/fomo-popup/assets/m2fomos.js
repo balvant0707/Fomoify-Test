@@ -21,15 +21,54 @@
   const root = document.getElementById("fomo-embed-root");
   if (root && root.getAttribute("data-scroll-restore") === "false") return;
 
+  const isTouchViewport = () =>
+    window.innerWidth <= 900 ||
+    (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
+  const isCollectionPath = () => /\/collections\/[^/?#]+/i.test(location.pathname);
+  const isProductLink = (target) => {
+    const link = target?.closest?.("a[href]");
+    if (!link) return false;
+    try {
+      const url = new URL(link.getAttribute("href") || "", location.origin);
+      return url.origin === location.origin && /\/products\/[^/?#]+/i.test(url.pathname);
+    } catch (e) {
+      return false;
+    }
+  };
+
   // Never change history.scrollRestoration — leave whatever the theme set.
   const key = () => `fomo:scroll:${location.pathname}${location.search}`;
   const save = () => {
+    if (!isTouchViewport() || !isCollectionPath()) return;
     try {
       sessionStorage.setItem(key(), String(window.scrollY || window.pageYOffset || 0));
     } catch (e) {}
   };
+  let scrollSaveTimer = 0;
+  const queueSave = () => {
+    if (scrollSaveTimer) return;
+    scrollSaveTimer = window.setTimeout(() => {
+      scrollSaveTimer = 0;
+      save();
+    }, 250);
+  };
 
   // Reliable "leaving the page" signals on mobile.
+  window.addEventListener("scroll", queueSave, { passive: true });
+  document.addEventListener(
+    "click",
+    (event) => {
+      if (isProductLink(event.target)) save();
+    },
+    true
+  );
+  document.addEventListener(
+    "touchstart",
+    (event) => {
+      if (isProductLink(event.target)) save();
+    },
+    { capture: true, passive: true }
+  );
   window.addEventListener("pagehide", save);
   document.addEventListener(
     "visibilitychange",
@@ -39,8 +78,8 @@
     { passive: true }
   );
 
-  window.addEventListener("pageshow", (e) => {
-    if (e.persisted) return; // bfcache already restored everything natively
+  const restore = () => {
+    if (!isTouchViewport() || !isCollectionPath()) return;
     if (location.hash) return; // theme is anchoring to #section — don't override
 
     let y = 0;
@@ -75,11 +114,21 @@
       }
       window.scrollTo(0, Math.max(0, max)); // best effort while lazy content loads
       lastSet = Math.max(0, max);
-      if (attempts++ < 12) setTimeout(tryRestore, 150); // ~1.8s budget for lazy/paginated grids
+      if (attempts++ < 28) setTimeout(tryRestore, 150); // ~4.2s budget for lazy/paginated grids
     };
     // Run after the theme's own restoration attempt.
     requestAnimationFrame(() => setTimeout(tryRestore, 0));
-  });
+  };
+
+  window.addEventListener("pageshow", () => restore());
+  window.addEventListener("load", () => setTimeout(restore, 0), { once: true });
+  if (document.readyState !== "loading") {
+    setTimeout(restore, 0);
+  } else {
+    document.addEventListener("DOMContentLoaded", () => setTimeout(restore, 0), {
+      once: true,
+    });
+  }
 })();
 
 const bootFomoify = async function () {
