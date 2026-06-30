@@ -63,8 +63,7 @@
 
 .dashboard-feature-preview {
   position: relative;
-  height: 176px;
-  flex: 0 0 176px;
+  height: 100%;
   overflow: hidden;
   background: aliceblue;
 }
@@ -84,6 +83,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+      padding: 0 10px 10px 10px;
 }
 
 .dashboard-feature-content .Polaris-BlockStack {
@@ -117,7 +117,6 @@
 
 .dashboard-feature-actions {
   margin-top: auto;
-  padding-top: var(--p-space-300);
 }
 
 .dashboard-feature-image {
@@ -140,11 +139,6 @@
 @media (max-width: 767px) {
   .dashboard-feature-card-inner {
     height: 356px;
-  }
-
-  .dashboard-feature-preview {
-    height: 160px;
-    flex-basis: 160px;
   }
 }
 

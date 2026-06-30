@@ -148,7 +148,6 @@ const FEATURED_NOTIFICATION_CARDS = [
     path: "/app/notification/recent",
     imageName: "recentpu.webp",
     previewType: "recent",
-    icon: CartSaleIcon,
   },
   {
     key: "flash",
@@ -158,7 +157,6 @@ const FEATURED_NOTIFICATION_CARDS = [
     path: "/app/notification/flash",
     imageName: "flashsale.webp",
     previewType: "flash",
-    icon: DiscountIcon,
   },
   {
     key: "visitor",
@@ -168,7 +166,6 @@ const FEATURED_NOTIFICATION_CARDS = [
     path: "/app/notification/visitor",
     imageName: "visitor.webp",
     previewType: "visitor",
-    icon: ViewIcon,
   },
   {
     key: "lowstock",
@@ -178,7 +175,6 @@ const FEATURED_NOTIFICATION_CARDS = [
     path: "/app/notification/lowstock",
     imageName: "lowstock.jpg",
     previewType: "lowstock",
-    icon: InventoryIcon,
   },
   {
     key: "addtocart",
@@ -188,7 +184,6 @@ const FEATURED_NOTIFICATION_CARDS = [
     path: "/app/notification/addtocart",
     imageName: "add to cart notification.png",
     previewType: "addtocart",
-    icon: CartIcon,
   },
   {
     key: "review",
@@ -198,7 +193,6 @@ const FEATURED_NOTIFICATION_CARDS = [
     path: "/app/notification/review",
     imageName: "review.webp",
     previewType: "review",
-    icon: StarIcon,
   },
   {
     key: "visitor-block",
@@ -208,7 +202,6 @@ const FEATURED_NOTIFICATION_CARDS = [
     path: "/app/visitor-announcement",
     imageName: "visitorannouncement.webp",
     previewType: "visitor-block",
-    icon: NotificationIcon,
   },
   {
     key: "stock-block",
@@ -218,7 +211,6 @@ const FEATURED_NOTIFICATION_CARDS = [
     path: "/app/stock-announcement",
     imageName: "low stock popup.png",
     previewType: "stock-block",
-    icon: PageClockIcon,
   },
 ];
 const POPUP_CARD_DATA = [
