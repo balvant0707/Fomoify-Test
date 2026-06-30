@@ -63,13 +63,13 @@ function showTypeLabel(val) {
       .map((part) => showTypeLabel(part))
       .filter(Boolean);
     const unique = [...new Set(labels)];
-    return unique.length ? unique.join(", ") : "All page";
+    return unique.length ? unique.join(", ") : "All Pages";
   }
   const aliases = {
-    all: "All page",
-    allpage: "All page",
-    "all pages": "All page",
-    "all page": "All page",
+    all: "All Pages",
+    allpage: "All Pages",
+    "all pages": "All Pages",
+    "all page": "All Pages",
     home: "Home Page",
     product: "Product Page",
     collection_list: "Collection List",
@@ -89,7 +89,7 @@ function showTypeLabel(val) {
   if (normalized === "collection (all)") return "Collection Page (all)";
   const found = pageOptions.find((o) => o.value === normalized);
   if (found) return found.label;
-  if (!raw) return "All page";
+  if (!raw) return "All Pages";
   return raw;
 }
 

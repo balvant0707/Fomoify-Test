@@ -12,6 +12,7 @@ import prisma from "../db.server";
 import { saveFlashPopup } from "../models/popup-config.server";
 import { PopupPreviewPanel } from "../components/notification/PopupPreviewPanel";
 import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
+import { isRouteResponse } from "../utils/routeResponse.server";
 
 /* ---------------- Constants ---------------- */
 const KEY = "flash";
@@ -503,7 +504,8 @@ export async function action({ request }) {
   let session;
   try {
     ({ session } = await authenticate.admin(request));
-  } catch {
+  } catch (error) {
+    if (isRouteResponse(error)) throw error;
     return json({ success: false, error: "Auth temporarily unavailable." }, { status: 503 });
   }
   const shop = session?.shop;

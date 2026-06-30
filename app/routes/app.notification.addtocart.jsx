@@ -29,6 +29,7 @@ import { saveAddToCartPopup } from "../models/popup-config.server";
 import prisma from "../db.server";
 import { PopupPreviewPanel } from "../components/notification/PopupPreviewPanel";
 import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
+import { isRouteResponse } from "../utils/routeResponse.server";
 
 const SAMPLE_ADD_TO_CART_CUSTOMER = Object.freeze({
   first_name: "Jenna",
@@ -232,7 +233,7 @@ export async function loader({ request }) {
   try {
     ({ admin, session } = await authenticate.admin(request));
   } catch (error) {
-    if (error instanceof Response) throw error;
+    if (isRouteResponse(error)) throw error;
     console.error("[AddToCart Popup] auth failed in loader:", error);
     return json({
       title: "Add to cart Popup",
@@ -512,6 +513,7 @@ export async function action({ request }) {
   try {
     ({ session } = await authenticate.admin(request));
   } catch (error) {
+    if (isRouteResponse(error)) throw error;
     console.error("[AddToCart Popup] auth failed:", error);
     return json(
       {

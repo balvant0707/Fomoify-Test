@@ -35,6 +35,7 @@ import { saveVisitorAnnouncement } from "../models/popup-config.server";
 import { deleteCacheByPrefix } from "../utils/serverCache.server";
 import VisitorSpecificBox from "../components/productInfo/VisitorSpecificBox";
 import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
+import { isRouteResponse } from "../utils/routeResponse.server";
 
 
 // ─── Loader ────────────────────────────────────────────────────────────────
@@ -66,6 +67,7 @@ export async function action({ request }) {
   try {
     ({ session } = await authenticate.admin(request));
   } catch (e) {
+    if (isRouteResponse(e)) throw e;
     return json({ success: false, error: "Auth temporarily unavailable." }, { status: 503 });
   }
   const shop = session?.shop;
