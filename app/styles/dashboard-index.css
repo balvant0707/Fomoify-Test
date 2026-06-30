@@ -91,15 +91,8 @@
 }
 
 .dashboard-feature-card .Polaris-Text--headingMd {
-  font-size: 18px !important;
-  line-height: 1.25 !important;
-}
-
-.dashboard-feature-card p,
-.dashboard-feature-card .Polaris-Text--bodyMd {
   font-size: 14px !important;
-  line-height: 1.35 !important;
-  min-height: 38px;
+  line-height: 1.25 !important;
 }
 
 .dashboard-feature-actions {
