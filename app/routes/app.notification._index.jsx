@@ -90,7 +90,7 @@ const DASHBOARD_STYLES = `
 .notify-image-pop img {
   display: block;
   width: 100%;
-  height: 100%;
+  height: 150px;
   object-fit: contain;
 }
 .notify-image-pop--flash {
