@@ -9,6 +9,11 @@ import {
 } from "@remix-run/react";
 import dashboardStyles from "../styles/dashboard-index.css?url";
 import { useEffect, useState, useCallback } from "react";
+import { useAppBridge } from "@shopify/app-bridge-react";
+import {
+  Action as RedirectAction,
+  create as createRedirect,
+} from "@shopify/app-bridge/actions/Navigation/Redirect";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { upsertInstalledShop } from "../utils/upsertShop.server";
@@ -45,6 +50,7 @@ import { sendOwnerEmail } from "../utils/sendOwnerEmail.server";
 import { maybeSendAnnouncementEmail } from "../utils/sendAnnouncementEmail.server";
 import { getNotificationManageVisibility } from "../utils/notificationConfigStatus.server";
 import { getDashboardReviewPopupStatus } from "../utils/reviewPopupStatus.server";
+import { handleAdminAuthActionResponse } from "../utils/routeResponse.server";
 
 export const links = () => [{ rel: "stylesheet", href: dashboardStyles }];
 
@@ -140,7 +146,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     desc: "Show real recent purchases to build FOMO and trust with shoppers",
     badge: "Social proof",
     path: "/app/notification/recent",
-    imageName: "Recent cart.png",
+    imageName: "recentpurshasepopup.png",
     previewType: "recent",
   },
   {
@@ -149,7 +155,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     desc: "Promote limited-time discounts with a countdown bar on your storefront",
     badge: "Urgency",
     path: "/app/notification/flash",
-    imageName: "Flash Sale.png",
+    imageName: "flashsalepopup.png",
     previewType: "flash",
   },
   {
@@ -158,7 +164,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     desc: "Show real-time visitor count to create urgency on your storefront",
     badge: "Social proof",
     path: "/app/notification/visitor",
-    imageName: "Visitor Popup - new.png",
+    imageName: "visitorpopup.png",
     previewType: "visitor",
   },
   {
@@ -167,7 +173,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     desc: "Alert shoppers when stock is running low to trigger urgency",
     badge: "Social proof",
     path: "/app/notification/lowstock",
-    imageName: "low stock popup.png",
+    imageName: "lowstockpopup.png",
     previewType: "lowstock",
   },
   {
@@ -176,7 +182,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     desc: "Show live add-to-cart activity to build social proof with shoppers",
     badge: "Social proof",
     path: "/app/notification/addtocart",
-    imageName: "add to cart notification.png",
+    imageName: "addtocartpopup.png",
     previewType: "addtocart",
   },
   {
@@ -185,7 +191,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     desc: "Show product reviews to build trust and confidence with shoppers",
     badge: "Social proof",
     path: "/app/notification/review",
-    imageName: "Review notification.png",
+    imageName: "reviewpopup.png",
     previewType: "review",
   },
   {
@@ -194,7 +200,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     desc: "Show visitor count inside product information on selected products",
     badge: "Social proof",
     path: "/app/visitor-announcement",
-    imageName: "Visitor Popup - new.png",
+    imageName: "visitorannouncementpopup.png",
     previewType: "visitor-block",
   },
   {
@@ -203,7 +209,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     desc: "Show stock status inside product information on selected products",
     badge: "Urgency",
     path: "/app/stock-announcement",
-    imageName: "low stock popup.png",
+    imageName: "lowstockannouncementpopup.png",
     previewType: "stock-block",
   },
 ];
@@ -213,42 +219,42 @@ const POPUP_CARD_DATA = [
     title: "Recent Purchase Notification",
     desc: "Show real-time customer activity to create social proof and FOMO.",
     path: "/app/notification/recent",
-    imageName: "Recent cart.png",
+    imageName: "recentpurshasepopup.png",
   },
   {
     key: "flash",
     title: "Flash Sale Notification",
     desc: "Announce limited-time offers with a sticky top bar and timer.",
     path: "/app/notification/flash",
-    imageName: "Flash Sale.png",
+    imageName: "flashsalepopup.png",
   },
   {
     key: "visitor",
     title: "Visitor Notification",
     desc: "Show live visitor activity and product interest notifications.",
     path: "/app/notification/visitor",
-    imageName: "Visitor Popup - new.png",
+    imageName: "visitorpopup.png",
   },
   {
     key: "lowstock",
     title: "Low Stock Notification",
     desc: "Create urgency when inventory is running low.",
     path: "/app/notification/lowstock",
-    imageName: "low stock popup.png",
+    imageName: "lowstockpopup.png",
   },
   {
     key: "addtocart",
     title: "Add to Cart Notification",
     desc: "Show live add-to-cart activity to build social proof.",
     path: "/app/notification/addtocart",
-    imageName: "add to cart notification.png",
+    imageName: "addtocartpopup.png",
   },
   {
     key: "review",
     title: "Review Notification",
     desc: "Show new product reviews to build trust and social proof.",
     path: "/app/notification/review",
-    imageName: "Review notification.png",
+    imageName: "reviewpopup.png",
   },
   {
     key: "visitor-block",
@@ -256,7 +262,7 @@ const POPUP_CARD_DATA = [
     desc: "Show visitor count inside product information on all or selected products.",
     path: "/app/visitor-announcement",
     managePath: "/app/notification/manage?type=visitor-block",
-    imageName: "Visitor Popup - new.png",
+    imageName: "visitorannouncementpopup.png",
   },
   {
     key: "stock-block",
@@ -264,7 +270,7 @@ const POPUP_CARD_DATA = [
     desc: "Show stock status inside product information on all or selected products.",
     path: "/app/stock-announcement",
     managePath: "/app/notification/manage?type=stock-block",
-    imageName: "low stock popup.png",
+    imageName: "lowstockannouncementpopup.png",
   },
 ];
 
@@ -563,7 +569,14 @@ export const loader = async ({ request }) => {
 };
 
 export async function action({ request }) {
-  const { session } = await authenticate.admin(request);
+  let session;
+  try {
+    ({ session } = await authenticate.admin(request));
+  } catch (error) {
+    const authResponse = handleAdminAuthActionResponse(error, request);
+    if (authResponse) return authResponse;
+    throw error;
+  }
   const shop = session?.shop;
   if (!shop) throw new Response("Unauthorized", { status: 401 });
 
@@ -843,6 +856,7 @@ export default function AppIndex() {
   const revalidator = useRevalidator();
   const navigate = useNavigate();
   const location = useLocation();
+  const appBridge = useAppBridge();
   const [resolvedThemeId, setResolvedThemeId] = useState(
     embedContext?.themeId ?? null
   );
@@ -950,6 +964,28 @@ export default function AppIndex() {
     return idMatch ? idMatch[0] : "current";
   };
 
+  const openRemoteAdminUrl = useCallback(
+    (url) => {
+      try {
+        const redirect = createRedirect(appBridge);
+        redirect.dispatch(RedirectAction.REMOTE, { url, newContext: true });
+        return;
+      } catch (error) {
+        console.warn("[dashboard] App Bridge remote redirect failed:", error);
+      }
+
+      const opened = window.open(url, "_blank", "noopener,noreferrer");
+      if (!opened) {
+        try {
+          window.top.location.assign(url);
+        } catch {
+          window.location.assign(url);
+        }
+      }
+    },
+    [appBridge]
+  );
+
   const openThemeEditor = (id, mode = "open") => {
     const safeThemeId = toThemeEditorThemeId(id);
     const params = new URLSearchParams({ context: "apps" });
@@ -962,7 +998,7 @@ export default function AppIndex() {
       ? `https://${shopDomain}/admin`
       : `https://admin.shopify.com/store/${slug}`;
     const url = `${editorBase}/themes/${safeThemeId}/editor?${params.toString()}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    openRemoteAdminUrl(url);
   };
 
   const goPopupCreate = useCallback(

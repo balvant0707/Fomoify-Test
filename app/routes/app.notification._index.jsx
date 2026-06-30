@@ -174,7 +174,7 @@ const CARD_DATA = [
     desc: "Show real recent purchases to build FOMO and trust with shoppers",
     badge: "Social proof",
     path: "/app/notification/recent",
-    imageName: "Recent cart.png",
+    imageName: "recentpurshasepopup.png",
     previewType: "recent",
   },
   {
@@ -183,7 +183,7 @@ const CARD_DATA = [
     desc: "Promote limited-time discounts with a countdown bar on your storefront",
     badge: "Urgency",
     path: "/app/notification/flash",
-    imageName: "Flash Sale.png",
+    imageName: "flashsalepopup.png",
     previewType: "flash",
   },
   {
@@ -192,7 +192,7 @@ const CARD_DATA = [
     desc: "Show real-time visitor count to create urgency on your storefront",
     badge: "Social proof",
     path: "/app/notification/visitor",
-    imageName: "Visitor Popup - new.png",
+    imageName: "visitorpopup.png",
     previewType: "visitor",
   },
   {
@@ -201,7 +201,7 @@ const CARD_DATA = [
     desc: "Alert shoppers when stock is running low to trigger urgency",
     badge: "Social proof",
     path: "/app/notification/lowstock",
-    imageName: "low stock popup.png",
+    imageName: "lowstockpopup.png",
     previewType: "lowstock",
   },
   {
@@ -210,7 +210,7 @@ const CARD_DATA = [
     desc: "Show live add-to-cart activity to build social proof with shoppers",
     badge: "Social proof",
     path: "/app/notification/addtocart",
-    imageName: "add to cart notification.png",
+    imageName: "addtocartpopup.png",
     previewType: "addtocart",
   },
   {
@@ -219,7 +219,7 @@ const CARD_DATA = [
     desc: "Show product reviews to build trust and confidence with shoppers",
     badge: "Social proof",
     path: "/app/notification/review",
-     imageName: "Review notification.png",
+     imageName: "reviewpopup.png",
     previewType: "review",
   },
   {
@@ -229,7 +229,7 @@ const CARD_DATA = [
     badge: "Social proof",
     path: "/app/visitor-announcement",
     managePath: "/app/notification/manage?type=visitor-block",
-    imageName: "Visitor Popup - new.png",
+    imageName: "visitorannouncementpopup.png",
   },
   {
     key: "stock-block",
@@ -238,7 +238,7 @@ const CARD_DATA = [
     badge: "Urgency",
     path: "/app/stock-announcement",
     managePath: "/app/notification/manage?type=stock-block",
-    imageName: "low stock popup.png",
+    imageName: "lowstockannouncementpopup.png",
     previewType: "stock-block",
   },
 ];

@@ -28,7 +28,7 @@ import { saveLowStockPopup } from "../models/popup-config.server";
 import prisma from "../db.server";
 import { PopupPreviewPanel } from "../components/notification/PopupPreviewPanel";
 import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
-import { isRouteResponse } from "../utils/routeResponse.server";
+import { handleAdminAuthActionResponse } from "../utils/routeResponse.server";
 
 const errorText = (value, fallback = "Save failed") => {
   if (typeof value === "string" && value.trim()) return value;
@@ -298,7 +298,8 @@ export async function action({ request }) {
   try {
     ({ session } = await authenticate.admin(request));
   } catch (error) {
-    if (isRouteResponse(error)) throw error;
+    const authResponse = handleAdminAuthActionResponse(error, request);
+    if (authResponse) return authResponse;
     console.error("[LowStock Popup] auth failed:", error);
     return json(
       {

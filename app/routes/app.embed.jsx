@@ -1,7 +1,10 @@
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { useAppBridge } from "@shopify/app-bridge-react";
-import { Redirect } from "@shopify/app-bridge/actions";
+import {
+  Action as RedirectAction,
+  create as createRedirect,
+} from "@shopify/app-bridge/actions/Navigation/Redirect";
 import { Page, Card, BlockStack, InlineStack, Button, Text } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { getStoreHandleFromShopDomain } from "../utils/storeHandle.server";
@@ -25,8 +28,8 @@ export default function AppEmbedRoute() {
 
   const openThemeEditorEmbeds = () => {
     const url = `https://admin.shopify.com/store/${storeHandle}/themes/current/editor?context=apps`;
-    const redirect = Redirect.create(app);
-    redirect.dispatch(Redirect.Action.REMOTE, url, { newContext: true });
+    const redirect = createRedirect(app);
+    redirect.dispatch(RedirectAction.REMOTE, { url, newContext: true });
   };
 
   return (

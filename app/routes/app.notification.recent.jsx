@@ -34,6 +34,7 @@ import prisma from "../db.server";
 import { saveRecentPopup } from "../models/popup-config.server";
 import { PopupPreviewPanel } from "../components/notification/PopupPreviewPanel";
 import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
+import { handleAdminAuthActionResponse } from "../utils/routeResponse.server";
 
 /* ---------------- constants ---------------- */
 const KEY = "recent";
@@ -914,7 +915,8 @@ export async function action({ request }) {
   try {
     ({ admin, session } = await authenticate.admin(request));
   } catch (e) {
-    if (isRouteResponse(e)) throw e;
+    const authResponse = handleAdminAuthActionResponse(e, request);
+    if (authResponse) return authResponse;
     return json({ success: false, error: "Auth temporarily unavailable." }, { status: 503 });
   }
   const shop = session?.shop;

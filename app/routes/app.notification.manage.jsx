@@ -7,6 +7,7 @@ import prisma from "../db.server";
 import { deleteCache, getOrSetCache } from "../utils/serverCache.server";
 import NotificationTable from "../components/dashboard/NotificationTable";
 import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
+import { handleAdminAuthActionResponse } from "../utils/routeResponse.server";
 
 const POPUP_KEYS = [
   "recent",
@@ -295,7 +296,14 @@ export const loader = async ({ request }) => {
 };
 
 export async function action({ request }) {
-  const { session } = await authenticate.admin(request);
+  let session;
+  try {
+    ({ session } = await authenticate.admin(request));
+  } catch (error) {
+    const authResponse = handleAdminAuthActionResponse(error, request);
+    if (authResponse) return authResponse;
+    throw error;
+  }
   const shop = session?.shop;
   if (!shop) throw new Response("Unauthorized", { status: 401 });
 

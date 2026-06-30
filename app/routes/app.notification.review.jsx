@@ -28,7 +28,10 @@ import { saveReviewPopup } from "../models/popup-config.server";
 import prisma from "../db.server";
 import { PopupPreviewPanel } from "../components/notification/PopupPreviewPanel";
 import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
-import { isRouteResponse } from "../utils/routeResponse.server";
+import {
+  handleAdminAuthActionResponse,
+  isRouteResponse,
+} from "../utils/routeResponse.server";
 
 const JUDGE_ME_INTEGRATION_KEY = "integration_judge_me";
 const isTransientDbError = (error) => {
@@ -192,7 +195,8 @@ export async function action({ request }) {
     try {
       ({ session } = await authenticate.admin(request));
     } catch (error) {
-      if (isRouteResponse(error)) throw error;
+      const authResponse = handleAdminAuthActionResponse(error, request);
+      if (authResponse) return authResponse;
       console.error("[Review Popup] auth failed:", error);
       return json(
         {

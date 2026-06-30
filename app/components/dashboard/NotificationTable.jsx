@@ -24,6 +24,11 @@ import {
   useNavigation,
   useSubmit,
 } from "@remix-run/react";
+import { useAppBridge } from "@shopify/app-bridge-react";
+import {
+  Action as RedirectAction,
+  create as createRedirect,
+} from "@shopify/app-bridge/actions/Navigation/Redirect";
 import { useIdle } from "../../utils/useIdle";
 
 const TITLES = {
@@ -208,6 +213,7 @@ export default function NotificationTable({
   const submit = useSubmit();
   const navigate = useNavigate();
   const location = useLocation();
+  const appBridge = useAppBridge();
   const delFetcher = useFetcher();
   const toggleFetcher = useFetcher();
   const isIdleReady = useIdle(200);
@@ -405,7 +411,22 @@ export default function NotificationTable({
   const openThemeEditorFor = (row) => {
     const url = themeEditorUrlFor(row);
     if (!url) return;
-    window.open(url, "_blank", "noopener,noreferrer");
+    try {
+      const redirect = createRedirect(appBridge);
+      redirect.dispatch(RedirectAction.REMOTE, { url, newContext: true });
+      return;
+    } catch (error) {
+      console.warn("[NotificationTable] App Bridge remote redirect failed:", error);
+    }
+
+    const opened = window.open(url, "_blank", "noopener,noreferrer");
+    if (!opened) {
+      try {
+        window.top.location.assign(url);
+      } catch {
+        window.location.assign(url);
+      }
+    }
   };
 
   const qLower = (query || "").trim().toLowerCase();

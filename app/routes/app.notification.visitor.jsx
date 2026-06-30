@@ -33,7 +33,7 @@ import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import { saveVisitorPopup } from "../models/popup-config.server";
 import prisma from "../db.server";
-import { isRouteResponse } from "../utils/routeResponse.server";
+import { handleAdminAuthActionResponse } from "../utils/routeResponse.server";
 import { PopupPreviewPanel } from "../components/notification/PopupPreviewPanel";
 import { NotificationPageStyles } from "../components/notification/NotificationPageStyles";
 
@@ -279,7 +279,8 @@ export async function action({ request }) {
   try {
     ({ session } = await authenticate.admin(request));
   } catch (error) {
-    if (isRouteResponse(error)) throw error;
+    const authResponse = handleAdminAuthActionResponse(error, request);
+    if (authResponse) return authResponse;
     return json({ success: false, error: "Auth temporarily unavailable." }, { status: 503 });
   }
   const shop = session?.shop;
