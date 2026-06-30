@@ -1219,7 +1219,7 @@ export default function AppIndex() {
                 </Box>
               </Box>
               {showFeatureSliderControls && (
-                <InlineStack align="center" blockAlign="center" gap="200">
+                <InlineStack align="center" blockAlign="center" gap="200" display="none">
                   <Button
                     icon={ChevronLeftIcon}
                     accessibilityLabel="Show previous notification cards"
