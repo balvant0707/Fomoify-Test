@@ -129,6 +129,9 @@ const INDEX_PAGE_INLINE_CSS = `
     padding: 15px;
     border-radius: 10px;
 }
+    .dashboard-feature-slider-controls{
+      display:none;
+    }
 `;
 const FEATURED_NOTIFICATION_CARDS = [
   {
@@ -1219,7 +1222,7 @@ export default function AppIndex() {
                 </Box>
               </Box>
               {showFeatureSliderControls && (
-                <InlineStack align="center" blockAlign="center" gap="200" display="none">
+                <InlineStack align="center" blockAlign="center" gap="200" className="dashboard-feature-slider-controls" wrap={false}>
                   <Button
                     icon={ChevronLeftIcon}
                     accessibilityLabel="Show previous notification cards"
