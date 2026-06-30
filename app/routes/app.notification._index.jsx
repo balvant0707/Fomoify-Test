@@ -174,7 +174,7 @@ const CARD_DATA = [
     desc: "Show real recent purchases to build FOMO and trust with shoppers",
     badge: "Social proof",
     path: "/app/notification/recent",
-    imageName: "recentpu.webp",
+    imageName: "Recent cart.png",
     previewType: "recent",
   },
   {
@@ -183,7 +183,7 @@ const CARD_DATA = [
     desc: "Promote limited-time discounts with a countdown bar on your storefront",
     badge: "Urgency",
     path: "/app/notification/flash",
-    imageName: "flashsale.webp",
+    imageName: "Flash Sale.png",
     previewType: "flash",
   },
   {
@@ -192,7 +192,7 @@ const CARD_DATA = [
     desc: "Show real-time visitor count to create urgency on your storefront",
     badge: "Social proof",
     path: "/app/notification/visitor",
-    imageName: "visitor.webp",
+    imageName: "Visitor Popup - new.png",
     previewType: "visitor",
   },
   {
@@ -201,7 +201,7 @@ const CARD_DATA = [
     desc: "Alert shoppers when stock is running low to trigger urgency",
     badge: "Social proof",
     path: "/app/notification/lowstock",
-    imageName: "lowstock.jpg",
+    imageName: "low stock popup.png",
     previewType: "lowstock",
   },
   {
@@ -219,7 +219,7 @@ const CARD_DATA = [
     desc: "Show product reviews to build trust and confidence with shoppers",
     badge: "Social proof",
     path: "/app/notification/review",
-    imageName: "review.webp",
+     imageName: "Review notification.png",
     previewType: "review",
   },
   {
@@ -229,8 +229,7 @@ const CARD_DATA = [
     badge: "Social proof",
     path: "/app/visitor-announcement",
     managePath: "/app/notification/manage?type=visitor-block",
-    imageName: "visitorannouncement.webp",
-    previewType: "visitor-block",
+    imageName: "Visitor Popup - new.png",
   },
   {
     key: "stock-block",
