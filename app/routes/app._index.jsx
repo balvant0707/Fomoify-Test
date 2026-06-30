@@ -94,6 +94,7 @@ const AUTO_REVIEW_MODAL_ENABLED = true;
 const REVIEW_SNOOZE_UNTIL_KEY = "__fomo_review_snooze_until__";
 const REVIEW_SUBMITTED_KEY = "__fomo_review_submitted__";
 const REVIEW_TOP_BANNER_DISMISSED_KEY = "__fomo_review_top_banner_dismissed__";
+const NOTIFICATIONS_PER_SLIDE = 3;
 const INDEX_PAGE_INLINE_CSS = `
   .dashboard-index-page h1,
   .dashboard-index-page h2,
@@ -128,30 +129,75 @@ const INDEX_PAGE_INLINE_CSS = `
 const FEATURED_NOTIFICATION_CARDS = [
   {
     key: "recent",
-    title: "Order notification",
+    title: "Recent Purchase Notification",
     desc: "Show real recent purchases to build FOMO and trust with shoppers",
     badge: "Social proof",
     path: "/app/notification/recent",
-    imageName: "Recent cart.png",
+    imageName: "recentpu.webp",
     previewType: "order",
   },
   {
+    key: "flash",
+    title: "Flash Sale Notification",
+    desc: "Promote limited-time discounts with a countdown bar on your storefront",
+    badge: "Urgency",
+    path: "/app/notification/flash",
+    imageName: "flashsale.webp",
+    previewType: "flash",
+  },
+  {
     key: "visitor",
-    title: "Visitor count",
+    title: "Visitor Notification",
     desc: "Show real-time visitor count to create urgency on your storefront",
     badge: "Social proof",
     path: "/app/notification/visitor",
-    imageName: "Visitor Popup - new.png",
+    imageName: "visitor.webp",
     previewType: "visitor",
   },
   {
-    key: "flash",
-    title: "Flashing tab winback",
-    desc: "Flash a message on the browser tab to bring back distracted shoppers",
-    badge: "Engagement",
-    path: "/app/notification/flash",
-    imageName: "Flash Sale.png",
-    previewType: "winback",
+    key: "lowstock",
+    title: "Low Stock Notification",
+    desc: "Alert shoppers when stock is running low to trigger urgency",
+    badge: "Social proof",
+    path: "/app/notification/lowstock",
+    imageName: "lowstock.jpg",
+    previewType: "lowstock",
+  },
+  {
+    key: "addtocart",
+    title: "Add to Cart Notification",
+    desc: "Show live add-to-cart activity to build social proof with shoppers",
+    badge: "Social proof",
+    path: "/app/notification/addtocart",
+    imageName: "add to cart notification.png",
+    previewType: "addtocart",
+  },
+  {
+    key: "review",
+    title: "Review Notification",
+    desc: "Show product reviews to build trust and confidence with shoppers",
+    badge: "Social proof",
+    path: "/app/notification/review",
+    imageName: "review.webp",
+    previewType: "review",
+  },
+  {
+    key: "visitor-block",
+    title: "Visitor Announcement Bar",
+    desc: "Show visitor count inside product information on selected products",
+    badge: "Social proof",
+    path: "/app/visitor-announcement",
+    imageName: "visitorannouncement.webp",
+    previewType: "visitor-block",
+  },
+  {
+    key: "stock-block",
+    title: "Stock Announcement Bar",
+    desc: "Show stock status inside product information on selected products",
+    badge: "Urgency",
+    path: "/app/stock-announcement",
+    imageName: "low stock popup.png",
+    previewType: "stock-block",
   },
 ];
 const POPUP_CARD_DATA = [
@@ -214,6 +260,19 @@ const POPUP_CARD_DATA = [
     imageName: "low stock popup.png",
   },
 ];
+
+function splitIntoSlides(items, perSlide) {
+  const out = [];
+  for (let idx = 0; idx < items.length; idx += perSlide) {
+    out.push(items.slice(idx, idx + perSlide));
+  }
+  return out;
+}
+
+const FEATURED_NOTIFICATION_SLIDES = splitIntoSlides(
+  FEATURED_NOTIFICATION_CARDS,
+  NOTIFICATIONS_PER_SLIDE
+);
 
 function escapeHtml(value) {
   return String(value || "")
@@ -771,6 +830,7 @@ export default function AppIndex() {
   const [showTopReviewBanner, setShowTopReviewBanner] = useState(true);
   const [showSuccessHelpSection] = useState(true);
   const [popupLoadingKey, setPopupLoadingKey] = useState(null);
+  const [notificationSlideIndex, setNotificationSlideIndex] = useState(0);
   const search = location.search || "";
   const appUrl = useCallback(
     (path) => {
@@ -1057,20 +1117,53 @@ export default function AppIndex() {
                   </Button>
                 </Box>
               </InlineStack>
-              <InlineGrid columns={{ xs: 1, md: 3 }} gap="500">
-                {FEATURED_NOTIFICATION_CARDS.map((card) => (
-                  <FeaturedNotificationCard
-                    key={card.key}
-                    title={card.title}
-                    desc={card.desc}
-                    badge={card.badge}
-                    imageName={card.imageName}
-                    previewType={card.previewType}
-                    onCreate={() => goPopupCreate(card.path, card.key)}
-                    loading={popupLoadingKey === `${card.key}-create`}
-                  />
-                ))}
-              </InlineGrid>
+              <Box className="dashboard-feature-slider-window">
+                <Box
+                  className="dashboard-feature-slider-track"
+                  style={{ "--notification-slide-index": notificationSlideIndex }}
+                >
+                  {FEATURED_NOTIFICATION_SLIDES.map((slide, slideIdx) => (
+                    <Box
+                      className="dashboard-feature-slide"
+                      key={`notification-slide-${slideIdx}`}
+                    >
+                      <InlineGrid columns={{ xs: 1, md: 3 }} gap="500">
+                        {slide.map((card) => (
+                          <FeaturedNotificationCard
+                            key={card.key}
+                            title={card.title}
+                            desc={card.desc}
+                            badge={card.badge}
+                            imageName={card.imageName}
+                            previewType={card.previewType}
+                            onCreate={() => goPopupCreate(card.path, card.key)}
+                            loading={popupLoadingKey === `${card.key}-create`}
+                          />
+                        ))}
+                      </InlineGrid>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+              {FEATURED_NOTIFICATION_SLIDES.length > 1 && (
+                <InlineStack align="center" gap="100">
+                  {FEATURED_NOTIFICATION_SLIDES.map((_, idx) => (
+                    <Button
+                      key={`notification-dot-${idx}`}
+                      variant="plain"
+                      accessibilityLabel={`Go to notification slide ${idx + 1}`}
+                      pressed={idx === notificationSlideIndex}
+                      onClick={() => setNotificationSlideIndex(idx)}
+                    >
+                      <Box
+                        className={`dashboard-feature-dot${
+                          idx === notificationSlideIndex ? " is-active" : ""
+                        }`}
+                      />
+                    </Button>
+                  ))}
+                </InlineStack>
+              )}
             </BlockStack>
           </Box>
         </Card>
