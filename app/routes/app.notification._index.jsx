@@ -87,7 +87,7 @@ const DASHBOARD_STYLES = `
   display: grid;
   place-items: center;
   overflow: hidden;
-  width: 170px;
+  width: 100%;
 }
 .notify-image-pop img {
   display: block;
@@ -96,13 +96,13 @@ const DASHBOARD_STYLES = `
   object-fit: contain;
 }
 .notify-image-pop--flash {
-  width: 190px;
+  width: 100%;
 }
 .notify-image-pop--visitor,
 .notify-image-pop--visitor-block,
 .notify-image-pop--lowstock,
 .notify-image-pop--stock-block {
-  width: 182px;
+  width: 100%;
 }
 .notify-card-content {
   min-width: 0;
