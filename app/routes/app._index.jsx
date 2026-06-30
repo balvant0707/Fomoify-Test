@@ -31,6 +31,7 @@ import {
 } from "@shopify/polaris";
 import {
   AppsIcon,
+  ArrowRightIcon,
   CartIcon,
   CartSaleIcon,
   ChatIcon,
@@ -869,6 +870,7 @@ export default function AppIndex() {
   const [showSuccessHelpSection] = useState(true);
   const [popupLoadingKey, setPopupLoadingKey] = useState(null);
   const [notificationSlideIndex, setNotificationSlideIndex] = useState(0);
+  const [seeAllNotificationsLoading, setSeeAllNotificationsLoading] = useState(false);
   const search = location.search || "";
   const appUrl = useCallback(
     (path) => {
@@ -1102,6 +1104,12 @@ export default function AppIndex() {
     contactFetcher.submit(payload, { method: "post" });
   };
 
+  const goNotificationIndex = () => {
+    if (seeAllNotificationsLoading) return;
+    setSeeAllNotificationsLoading(true);
+    setTimeout(() => navigate(appUrl("/app/notification")), 250);
+  };
+
   const showFeatureSliderControls = FEATURED_NOTIFICATION_SLIDES.length > 1;
   const goPreviousNotificationSlide = () => {
     setNotificationSlideIndex((currentIndex) =>
@@ -1171,9 +1179,18 @@ export default function AppIndex() {
                 <Box className="dashboard-see-all-action">
                   <Button
                     variant="primary"
-                    onClick={() => navigate(appUrl("/app/notification"))}
+                    loading={seeAllNotificationsLoading}
+                    disabled={seeAllNotificationsLoading}
+                    onClick={goNotificationIndex}
                   >
-                    See all notifications types -&gt;
+                    <InlineStack gap="100" blockAlign="center" wrap={false}>
+                      <Text as="span" fontWeight="bold">
+                        See all notifications types
+                      </Text>
+                      <Box className="dashboard-see-all-icon" aria-hidden>
+                        <Icon source={ArrowRightIcon} />
+                      </Box>
+                    </InlineStack>
                   </Button>
                 </Box>
               </InlineStack>

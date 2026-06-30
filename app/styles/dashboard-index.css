@@ -16,6 +16,20 @@
     0 1px 2px rgba(0, 0, 0, 0.24);
 }
 
+.dashboard-see-all-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+}
+
+.dashboard-see-all-icon .Polaris-Icon,
+.dashboard-see-all-icon .Polaris-Icon__Svg,
+.dashboard-see-all-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
 .dashboard-feature-card {
   height: 100%;
 }
