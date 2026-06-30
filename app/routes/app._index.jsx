@@ -309,7 +309,7 @@ function FeaturedNotificationCard({
       <Box className={`dashboard-feature-preview dashboard-feature-preview--${previewType}`}>
         <img src={imageSrc} alt="" aria-hidden />
       </Box>
-      <Box padding="400">
+      <Box className="dashboard-feature-content" padding="400">
         <BlockStack gap="300">
           <InlineStack gap="200" blockAlign="center" wrap>
             <Text as="h3" variant="headingMd" fontWeight="bold">
@@ -320,7 +320,7 @@ function FeaturedNotificationCard({
           <Text as="p" tone="subdued">
             {desc}
           </Text>
-          <InlineStack align="end">
+          <InlineStack className="dashboard-feature-actions" align="end">
             <Button onClick={onCreate} loading={loading} disabled={loading}>
               {loading ? "Opening..." : "Create"}
             </Button>
@@ -1127,7 +1127,7 @@ export default function AppIndex() {
                       className="dashboard-feature-slide"
                       key={`notification-slide-${slideIdx}`}
                     >
-                      <InlineGrid columns={{ xs: 1, md: 3 }} gap="500">
+                      <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
                         {slide.map((card) => (
                           <FeaturedNotificationCard
                             key={card.key}
