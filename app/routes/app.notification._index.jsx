@@ -203,7 +203,7 @@ const CARD_DATA = [
     desc: "Alert shoppers when stock is running low to trigger urgency",
     badge: "Social proof",
     path: "/app/notification/lowstock",
-    imageName: "lowstock.webp",
+    imageName: "lowstock.jpg",
     previewType: "lowstock",
   },
   {
@@ -221,7 +221,7 @@ const CARD_DATA = [
     desc: "Show product reviews to build trust and confidence with shoppers",
     badge: "Social proof",
     path: "/app/notification/review",
-    imageName: "Review notification.png",
+    imageName: "review.webp",
     previewType: "review",
   },
   {
@@ -231,7 +231,7 @@ const CARD_DATA = [
     badge: "Social proof",
     path: "/app/visitor-announcement",
     managePath: "/app/notification/manage?type=visitor-block",
-    imageName: "Visitor Popup - new.png",
+    imageName: "visitorannouncement.webp",
     previewType: "visitor-block",
   },
   {
