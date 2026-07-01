@@ -51,7 +51,7 @@ const DASHBOARD_STYLES = `
 }
 .notify-card-inner {
   min-height: 100%;
-  height:300px;
+  height:100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -67,19 +67,9 @@ const DASHBOARD_STYLES = `
 }
 .notify-card-preview {
   position: relative;
-  height: 176px;
   overflow: hidden;
-      background: aliceblue;
 }
-.notify-card-preview::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: 70px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.76));
-  pointer-events: none;
-}
+
 .notify-image-pop {
   z-index: 1;
   display: grid;
@@ -90,7 +80,6 @@ const DASHBOARD_STYLES = `
 .notify-image-pop img {
   display: block;
   width: 100%;
-  height: 150px;
   object-fit: contain;
 }
 .notify-image-pop--flash {

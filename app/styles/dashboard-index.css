@@ -78,15 +78,6 @@
     margin-bottom: 10px;
 }
 
-.dashboard-feature-preview::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: 70px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.76));
-  pointer-events: none;
-}
 
 .dashboard-feature-content {
   min-width: 0;
