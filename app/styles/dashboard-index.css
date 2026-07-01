@@ -72,10 +72,12 @@
 }
 
 .dashboard-feature-preview {
-  position: relative;
-  height: 100%;
-  overflow: hidden;
-  background: aliceblue;
+    position: relative;
+    height: 170px;
+    overflow: hidden;
+    background: #8be1ac;
+    padding: 5px;
+    margin-bottom: 10px;
 }
 
 .dashboard-feature-preview::after {
