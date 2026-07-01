@@ -133,8 +133,8 @@ function DashboardCard({
                 <Text as="h3" variant="headingMd" fontWeight="bold">
                   {title}
                 </Text>
-                {badge ? <Badge tone="info">{badge}</Badge> : null}
               </InlineStack>
+              {badge ? <Badge tone="info">{badge}</Badge> : null}
               <Text as="p" tone="subdued" variant="bodyMd">
                 {desc}
               </Text>
@@ -162,7 +162,7 @@ const CARD_DATA = [
     title: "Recent Purchase Notification",
     desc: "Show real recent purchases to build FOMO and trust with shoppers",
     path: "/app/notification/recent",
-    badge: "Notification",
+    badge: "Social proof",
     imageName: "recent.jpg",
     previewType: "recent",
   },
@@ -171,7 +171,7 @@ const CARD_DATA = [
     title: "Flash Sale Notification",
     desc: "Promote limited-time discounts with a countdown bar on your storefront",
     path: "/app/notification/flash",
-    badge: "Notification",
+    badge: "Social proof",
     imageName: "flashsale.jpg",
     previewType: "flash",
   },
@@ -180,7 +180,7 @@ const CARD_DATA = [
     title: "Visitor Notification",
     desc: "Show real-time visitor count to create urgency on your storefront",
     path: "/app/notification/visitor",
-    badge: "Notification",
+    badge: "Social proof",
     imageName: "visitor.jpg",
     previewType: "visitor",
   },
@@ -189,7 +189,7 @@ const CARD_DATA = [
     title: "Low Stock Notification",
     desc: "Alert shoppers when stock is running low to trigger urgency",
     path: "/app/notification/lowstock",
-    badge: "Notification",
+    badge: "Social proof",
     imageName: "lowstock.jpg",
     previewType: "lowstock",
   },
@@ -198,7 +198,7 @@ const CARD_DATA = [
     title: "Add to Cart Notification",
     desc: "Show live add-to-cart activity to build social proof with shoppers",
     path: "/app/notification/addtocart",
-    badge: "Notification",
+    badge: "Upsell",
     imageName: "addtocart.jpg",
     previewType: "addtocart",
   },
@@ -207,8 +207,8 @@ const CARD_DATA = [
     title: "Review Notification",
     desc: "Show product reviews to build trust and confidence with shoppers",
     path: "/app/notification/review",
-    badge: "Notification",
-     imageName: "Review.jpg",
+    badge: "Social proof",
+    imageName: "Review.jpg",
     previewType: "review",
   },
   {
@@ -217,7 +217,7 @@ const CARD_DATA = [
     desc: "Show visitor count inside product information on selected products",
     path: "/app/visitor-announcement",
     managePath: "/app/notification/manage?type=visitor-block",
-    badge: "Notification",
+    badge: "Social proof",
     imageName: "visitorblock.jpg",
   },
   {
@@ -226,7 +226,7 @@ const CARD_DATA = [
     desc: "Show stock status inside product information on selected products",
     path: "/app/stock-announcement",
     managePath: "/app/notification/manage?type=stock-block",
-    badge: "Notification",
+    badge: "Social proof",
     imageName: "lowstockblock.jpg",
     previewType: "stock-block",
   },

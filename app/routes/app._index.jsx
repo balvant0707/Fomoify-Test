@@ -334,8 +334,8 @@ function FeaturedNotificationCard({
                   <Text as="h3" variant="headingMd" fontWeight="bold">
                     {title}
                   </Text>
-                  {badge ? <Badge tone="info">{badge}</Badge> : null}
                 </InlineStack>
+                 {badge ? <Badge tone="info">{badge}</Badge> : null}
               </Box>
               <Box>
                 <Text as="p" tone="subdued" variant="bodyMd">
