@@ -51,8 +51,7 @@
 
 
 .dashboard-feature-card-inner:hover {
-  border-color: #a9d8b8;
-  background: #fbfffc;
+  border-color: #8bb3d4;
 }
 
 .dashboard-feature-slider-window {
@@ -73,7 +72,6 @@
 
 .dashboard-feature-preview {
     position: relative;
-    height: 170px;
     overflow: hidden;
     margin-bottom: 10px;
 }
