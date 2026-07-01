@@ -335,7 +335,11 @@ function FeaturedNotificationCard({
                     {title}
                   </Text>
                 </InlineStack>
-                 {badge ? <Badge tone="info">{badge}</Badge> : null}
+               {badge && (
+                  <Badge tone="info" style={{ width: "fit-content" }}>
+                    {badge}
+                  </Badge>
+                )}
               </Box>
               <Box>
                 <Text as="p" tone="subdued" variant="bodyMd">
