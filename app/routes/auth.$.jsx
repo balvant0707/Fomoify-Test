@@ -1,6 +1,6 @@
 // app/routes/auth.$.jsx
 import { redirect } from "@remix-run/node";
-import { authenticate } from "../shopify.server";
+import { authenticate, login } from "../shopify.server";
 import prisma from "../db.server";
 import { ensureShopRow } from "../utils/ensureShop.server";
 import { sendOwnerEmail } from "../utils/sendOwnerEmail.server";
@@ -8,7 +8,29 @@ import { upsertInstalledShop } from "../utils/upsertShop.server";
 
 const norm = (s) => (s || "").toLowerCase().replace(/^https?:\/\//, "");
 
-export const loader = async ({ request }) => {
+const isLoginRoute = (params) => String(params?.["*"] || "") === "login";
+
+const loginWithShopFallback = (request) => {
+  const url = new URL(request.url);
+  if (url.searchParams.get("shop")) {
+    return login(request);
+  }
+
+  const referer = request.headers.get("referer") || "";
+  const storeMatch = referer.match(/\/store\/([a-z0-9-]+)/i);
+  if (storeMatch?.[1]) {
+    url.searchParams.set("shop", `${storeMatch[1].toLowerCase()}.myshopify.com`);
+    throw redirect(`/auth/login?${url.searchParams.toString()}`);
+  }
+
+  return login(request);
+};
+
+export const loader = async ({ request, params }) => {
+  if (isLoginRoute(params)) {
+    return loginWithShopFallback(request);
+  }
+
   // authenticate the admin (install / re-auth)
   const result = await authenticate.admin(request);
   if (result instanceof Response) return result;
@@ -166,4 +188,12 @@ support@fomoify.app
   if (host) qp.set("host", host);
 
   return redirect(qp.toString() ? `/app?${qp.toString()}` : "/app");
+};
+
+export const action = async ({ request, params }) => {
+  if (isLoginRoute(params)) {
+    return loginWithShopFallback(request);
+  }
+
+  throw new Response("Not Found", { status: 404 });
 };
