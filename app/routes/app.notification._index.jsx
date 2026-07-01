@@ -103,6 +103,9 @@ const DASHBOARD_STYLES = `
     height: 160px;
   }
 }
+  span.Polaris-Badge.Polaris-Badge--toneInfo{
+    width: fit-content;
+  }
 `;
 
 function DashboardCard({
