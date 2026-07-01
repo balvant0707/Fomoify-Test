@@ -1,9 +1,14 @@
 // app/routes/app.jsx
 // Updated: 2026-03-30 — Shop data robustness fixes and owner tracking improvements
+import { useEffect } from "react";
 import { Outlet, useLoaderData, useRouteError, useLocation } from "@remix-run/react";
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
-import { NavMenu } from "@shopify/app-bridge-react";
+import { NavMenu, useAppBridge } from "@shopify/app-bridge-react";
+import {
+  Action as HistoryAction,
+  create as createHistory,
+} from "@shopify/app-bridge/actions/Navigation/History";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import appSharedStyles from "./styles.modules.css?url";
 import { authenticate } from "../shopify.server";
@@ -38,6 +43,17 @@ const toShopDomain = (value) => {
   const slug = toShopSlug(value);
   return slug ? `${slug}.myshopify.com` : "";
 };
+
+const SHOPIFY_BOOTSTRAP_PARAMS = new Set([
+  "embedded",
+  "hmac",
+  "host",
+  "id_token",
+  "locale",
+  "session",
+  "shop",
+  "timestamp",
+]);
 
 export const loader = async ({ request }) => {
   const { session, admin } = await authenticate.admin(request);
@@ -128,23 +144,53 @@ export const loader = async ({ request }) => {
 
 export default function App() {
   const { apiKey, tawkSrc } = useLoaderData();
-  const location = useLocation();
-  const search = location.search || "";
-  const appUrl = (path) => `${path}${search}`;
 
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey}>
+      <AppUrlCleaner />
       <NavMenu>
-        <a href={appUrl("/app")} rel="home">Home</a>
-        <a href={appUrl("/app/notification")}>Notification</a>
-        <a href={appUrl("/app/analytics")}>Analytics</a>
-        <a href={appUrl("/app/integrations")}>Integrations</a>
+        <a href="/app" rel="home">Home</a>
+        <a href="/app/notification">Notification</a>
+        <a href="/app/analytics">Analytics</a>
+        <a href="/app/integrations">Integrations</a>
       </NavMenu>
       <LcpObserver />
       <TawkChat src={tawkSrc} />
       <Outlet />
     </AppProvider>
   );
+}
+
+function AppUrlCleaner() {
+  const location = useLocation();
+  const appBridge = useAppBridge();
+
+  useEffect(() => {
+    if (!location.search) return;
+
+    const params = new URLSearchParams(location.search);
+    let changed = false;
+    for (const key of SHOPIFY_BOOTSTRAP_PARAMS) {
+      if (params.has(key)) {
+        params.delete(key);
+        changed = true;
+      }
+    }
+    if (!changed) return;
+
+    const query = params.toString();
+    const cleanUrl = `${location.pathname}${query ? `?${query}` : ""}${location.hash || ""}`;
+    window.history.replaceState(window.history.state, "", cleanUrl);
+
+    try {
+      const history = createHistory(appBridge);
+      history.dispatch(HistoryAction.REPLACE, cleanUrl);
+    } catch (error) {
+      console.warn("[app] App Bridge history cleanup failed:", error);
+    }
+  }, [appBridge, location.hash, location.pathname, location.search]);
+
+  return null;
 }
 
 export function ErrorBoundary() { return boundary.error(useRouteError()); }

@@ -3,7 +3,6 @@ import { json, redirect } from "@remix-run/node";
 import {
   useLoaderData,
   useFetcher,
-  useLocation,
   useNavigate,
   useRevalidator,
 } from "@remix-run/react";
@@ -855,7 +854,6 @@ export default function AppIndex() {
   const contactFetcher = useFetcher();
   const revalidator = useRevalidator();
   const navigate = useNavigate();
-  const location = useLocation();
   const appBridge = useAppBridge();
   const [resolvedThemeId, setResolvedThemeId] = useState(
     embedContext?.themeId ?? null
@@ -878,14 +876,7 @@ export default function AppIndex() {
   const [popupLoadingKey, setPopupLoadingKey] = useState(null);
   const [notificationSlideIndex, setNotificationSlideIndex] = useState(0);
   const [seeAllNotificationsLoading, setSeeAllNotificationsLoading] = useState(false);
-  const search = location.search || "";
-  const appUrl = useCallback(
-    (path) => {
-      if (!search) return path;
-      return `${path}${path.includes("?") ? "&" : "?"}${search.slice(1)}`;
-    },
-    [search]
-  );
+  const appUrl = useCallback((path) => path, []);
   const hasThemeEmbedCheck = embedContextState.appEmbedChecked === true;
   const hasThemeEmbedSignal =
     (hasThemeEmbedCheck && embedContextState.appEmbedFound === true) ||
@@ -1258,7 +1249,12 @@ export default function AppIndex() {
                 </Box>
               </Box>
               {showFeatureSliderControls && (
-                <InlineStack align="center" blockAlign="center" gap="200">
+                <InlineStack
+                  className="dashboard-feature-slider-controls"
+                  align="center"
+                  blockAlign="center"
+                  gap="200"
+                >
                   <Button
                     icon={ChevronLeftIcon}
                     accessibilityLabel="Show previous notification cards"
