@@ -59,6 +59,10 @@
   padding-block-end: var(--p-space-200);
 }
 
+.dashboard-feature-slider-controls {
+  display: none !important;
+}
+
 .dashboard-feature-slider-track {
   display: flex;
   transform: translateX(calc(var(--notification-slide-index, 0) * -100%));
