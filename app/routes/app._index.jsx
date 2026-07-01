@@ -145,7 +145,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     desc: "Show real recent purchases to build FOMO and trust with shoppers",
     badge: "Social proof",
     path: "/app/notification/recent",
-    imageName: "recentpurshasepopup.png",
+    imageName: "recent.jpg",
     previewType: "recent",
   },
   {
@@ -154,7 +154,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     desc: "Promote limited-time discounts with a countdown bar on your storefront",
     badge: "Urgency",
     path: "/app/notification/flash",
-    imageName: "flashsalepopup.png",
+    imageName: "flashsale.jpg",
     previewType: "flash",
   },
   {
@@ -163,7 +163,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     desc: "Show real-time visitor count to create urgency on your storefront",
     badge: "Social proof",
     path: "/app/notification/visitor",
-    imageName: "visitorpopup.png",
+    imageName: "visitor.jpg",
     previewType: "visitor",
   },
   {
@@ -172,7 +172,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     desc: "Alert shoppers when stock is running low to trigger urgency",
     badge: "Social proof",
     path: "/app/notification/lowstock",
-    imageName: "lowstockpopup.png",
+    imageName: "lowstock.jpg",
     previewType: "lowstock",
   },
   {
@@ -181,7 +181,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     desc: "Show live add-to-cart activity to build social proof with shoppers",
     badge: "Social proof",
     path: "/app/notification/addtocart",
-    imageName: "addtocartpopup.png",
+    imageName: "addtocart.jpg",
     previewType: "addtocart",
   },
   {
@@ -190,7 +190,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     desc: "Show product reviews to build trust and confidence with shoppers",
     badge: "Social proof",
     path: "/app/notification/review",
-    imageName: "reviewpopup.png",
+    imageName: "Review.jpg",
     previewType: "review",
   },
   {
@@ -199,7 +199,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     desc: "Show visitor count inside product information on selected products",
     badge: "Social proof",
     path: "/app/visitor-announcement",
-    imageName: "visitorannouncementpopup.png",
+    imageName: "visitorblock.jpg",
     previewType: "visitor-block",
   },
   {
@@ -208,7 +208,7 @@ const FEATURED_NOTIFICATION_CARDS = [
     desc: "Show stock status inside product information on selected products",
     badge: "Urgency",
     path: "/app/stock-announcement",
-    imageName: "lowstockannouncementpopup.png",
+    imageName: "lowstockblock.jpg",
     previewType: "stock-block",
   },
 ];
@@ -218,42 +218,42 @@ const POPUP_CARD_DATA = [
     title: "Recent Purchase Notification",
     desc: "Show real-time customer activity to create social proof and FOMO.",
     path: "/app/notification/recent",
-    imageName: "recentpurshasepopup.png",
+    imageName: "recent.jpg",
   },
   {
     key: "flash",
     title: "Flash Sale Notification",
     desc: "Announce limited-time offers with a sticky top bar and timer.",
     path: "/app/notification/flash",
-    imageName: "flashsalepopup.png",
+    imageName: "flashsale.jpg",
   },
   {
     key: "visitor",
     title: "Visitor Notification",
     desc: "Show live visitor activity and product interest notifications.",
     path: "/app/notification/visitor",
-    imageName: "visitorpopup.png",
+    imageName: "visitor.jpg",
   },
   {
     key: "lowstock",
     title: "Low Stock Notification",
     desc: "Create urgency when inventory is running low.",
     path: "/app/notification/lowstock",
-    imageName: "lowstockpopup.png",
+    imageName: "lowstock.jpg",
   },
   {
     key: "addtocart",
     title: "Add to Cart Notification",
     desc: "Show live add-to-cart activity to build social proof.",
     path: "/app/notification/addtocart",
-    imageName: "addtocartpopup.png",
+    imageName: "addtocart.jpg",
   },
   {
     key: "review",
     title: "Review Notification",
     desc: "Show new product reviews to build trust and social proof.",
     path: "/app/notification/review",
-    imageName: "reviewpopup.png",
+    imageName: "Review.jpg",
   },
   {
     key: "visitor-block",
@@ -261,7 +261,7 @@ const POPUP_CARD_DATA = [
     desc: "Show visitor count inside product information on all or selected products.",
     path: "/app/visitor-announcement",
     managePath: "/app/notification/manage?type=visitor-block",
-    imageName: "visitorannouncementpopup.png",
+    imageName: "visitorblock.jpg",
   },
   {
     key: "stock-block",
@@ -269,7 +269,7 @@ const POPUP_CARD_DATA = [
     desc: "Show stock status inside product information on all or selected products.",
     path: "/app/stock-announcement",
     managePath: "/app/notification/manage?type=stock-block",
-    imageName: "lowstockannouncementpopup.png",
+    imageName: "lowstockblock.jpg",
   },
 ];
 
