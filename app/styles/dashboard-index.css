@@ -42,7 +42,7 @@
 
 .dashboard-feature-card-inner {
   min-height: 100%;
-  height: 300px;
+  height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -95,7 +95,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-      padding: 0 10px 10px 10px;
+  padding: 0 10px 10px 10px;
 }
 
 .dashboard-feature-content .Polaris-BlockStack {
@@ -138,7 +138,6 @@
   place-items: center;
   overflow: hidden;
   width: 100%;
-  height: 100%;
 }
 
 .dashboard-feature-image img {
